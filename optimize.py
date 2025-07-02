@@ -3,7 +3,7 @@
 import requests
 import json
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import timedelta
 from home_mpc import run_mpc_optimizer
 from models import get_electricity_price, get_electricity_load, get_tuv_demand, get_fve_forecast, get_estimate_heating_losses, get_temperature_forecast
 
@@ -12,6 +12,31 @@ TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJlOWQ2MWJkMzBmNzY0ZDFlYT
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
+}
+
+ha_color = {
+    # stavy
+    "B_SOC_percent":  "#4db6ac",  # baterie – stejná barva jako battery-out
+    "H_SOC_percent":  "#9d770f",  # zásobník tepla – „non-fossil“
+
+    # výkony
+    "B_power":        "#4db6ac",  # baterie (- = vybíjení, + = nabíjení)
+    "H_store_top":    "#f06292",  # horní spirála nabíjení zásobníku
+    "H_store_bottom": "#f06292",  # dolní spirála
+    "G_buy":          "#488fc2",  # nákup ze sítě
+    "G_sell":         "#8353d1",  # prodej do sítě
+    "H_out":          "#0f9d58",  # odběr z bojleru (teplo)
+    "fve":            "#ff9800",  # FV výroba
+    "load":           "#488fc2",  # okamžitá spotřeba (lze nechat stejný odstín jako grid)
+
+    # ceny
+    "buy_price":      "#488fc2",
+    "sell_price":     "#8353d1",
+
+    # okolí
+    "heating_demand": "#0f9d58",
+    "mean_temp":  "#ff00aa",
+    "outdoor_temps":  "#ff9800",
 }
 
 def get_ha_states():
@@ -91,32 +116,75 @@ def main():
 
     fig, axs = plt.subplots(4, 1, figsize=(12, 12), sharex=True)
 
-    axs[0].plot(hours, ts["B_SOC_percent"], label="SoC baterie")
-    axs[0].plot(hours, ts["H_SOC_percent"], label="SoC bojleru")
+    where = 'post'
+    h = timedelta(hours=1)
+
+    labels = {
+        "B_power": "Výkon baterie",
+        "G_buy": "Nákup ze sítě",
+        "G_sell": "Prodej do sítě",
+        "H_store_top": "Ohřev horní",
+        "H_store_bottom": "Ohřev dolní",
+        "H_out": "Výstup z bojleru",
+        "fve": "FVE výroba",
+        "load": "Spotřeba",
+        "buy_price": "Cena nákup",
+        "sell_price": "Cena prodej",
+        "heating_demand": "Tepelné ztráty",
+        "outdoor_temps": "Venkovní teplota",
+        "B_SOC_percent": "SoC baterie",
+        "H_SOC_percent": "SoC bojleru",
+    }
+
+    SOCs = ["B_SOC_percent", "H_SOC_percent"]
+    inverted = ["G_sell", "H_out", "G_sell"]
+    steps = ["H_store_top", "H_store_bottom", "H_out", "fve", "load"]
+    bars = ["B_power", "G_sell", "G_buy"]
+
+    # 1) stavy
+    for key in SOCs:
+        axs[0].plot([t+h for t in hours], ts[key], label=labels.get(key, key), color=ha_color.get(key, "black"))
     axs[0].set_ylabel("Energie [%]")
     axs[0].legend()
     axs[0].grid(True)
 
-    axs[1].step(hours, ts["B_power"], label="Výkon baterie", where='mid')
-    axs[1].step(hours, ts["H_store_top"], label="Ohřev horní", where='mid')
-    axs[1].step(hours, ts["H_store_bottom"], label="Ohřev dolní", where='mid')
-    axs[1].step(hours, ts["G_buy"], label="Nákup ze sítě", where='mid')
-    axs[1].step(hours, ts["G_sell"], label="Prodej do sítě", where='mid')
-    axs[1].step(hours, ts["H_out"], label="Výstup z bojleru", where='mid')
-    axs[1].step(hours, ts["fve"], label="FVE výroba", where='mid')
-    axs[1].step(hours, ts["load"], label="Spotřeba", where='mid')
+    bars_cnt = len(bars)
+    width = 0.04/bars_cnt # šířka sloupců pro barové grafy
+
+    # 2) výkony
+    for key in steps:
+        axs[1].step(
+            hours,
+            [-v for v in ts[key]] if key in inverted else ts[key], 
+            label=labels.get(key, key),
+            where=where,
+            color=ha_color.get(key, "black")
+        )
+    for i, key in enumerate(bars):
+        axs[1].bar(
+            [t + (i*h/bars_cnt) for t in hours],
+            [-v for v in ts[key]] if key in inverted else ts[key],
+            width=width,
+            align="edge",
+            color=ha_color.get(key, "black"),
+            label=labels.get(key, key),
+            alpha=0.8,          # lehká průhlednost, aby šly vidět mřížky i překryvy
+        )
+
     axs[1].set_ylabel("Výkon [kW]")
     axs[1].legend()
     axs[1].grid(True)
 
-    axs[2].step(hours, ts["buy_price"], label="Cena nákup", where='mid')
-    axs[2].step(hours, ts["sell_price"], label="Cena prodej", where='mid')
+    # 3) ceny
+    axs[2].step(hours, ts["buy_price"],  label="Cena nákup", where=where, color=ha_color["buy_price"])
+    axs[2].step(hours, ts["sell_price"], label="Cena prodej", where=where, color=ha_color["sell_price"])
     axs[2].set_ylabel("kW / Kč")
     axs[2].legend()
     axs[2].grid(True)
 
-    axs[3].plot(hours, ts["heating_demand"], label="Tepelné ztráty")
-    axs[3].plot(hours, outdoor_temps, label="Venkovní teplota")
+    # 4) teplo a venkovní teplota
+    axs[3].plot(hours, ts["heating_demand"], label="Tepelné ztráty", color=ha_color["heating_demand"])
+    axs[3].plot(hours, outdoor_temps, label="Venkovní teplota", color=ha_color["outdoor_temps"])
     axs[3].set_xlabel("Hodina")
     axs[3].set_ylabel("kWh / °C")
     axs[3].legend()

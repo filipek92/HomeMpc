@@ -1,13 +1,17 @@
+base = 0.5  # kW – nepřetržitá zátěž
+
 def get_electricity_load(time):
     if time.hour < 6:
-        return 0.0
+        extra = 0.0          # noc
     elif time.hour < 9:
-        return 2.0
+        extra = 0.75         # snídaně / příprava do práce
     elif time.hour < 12:
-        return 1.5
+        extra = 0.5          # dopolední provoz
     elif time.hour < 18:
-        return 1.0
+        extra = 0.25         # oběd + běžný chod domácnosti
     elif time.hour < 21:
-        return 0.5
+        extra = 0.25         # večerní vaření / pračka
     else:
-        return 0.0
+        extra = 0.0          # pozdní večer
+
+    return base + extra

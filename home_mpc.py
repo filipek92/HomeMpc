@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatusOptimal
-import pandas as pd
-import matplotlib.pyplot as plt
+from models.tank_losses import estimate_heating_losses
+
+heating_enabled = False  # Set to False if heating is not enabled
 
 def run_mpc_optimizer(
     tuv_demand,
@@ -15,11 +16,11 @@ def run_mpc_optimizer(
     soc_boiler_init,
     hours
 ):
-    load = [base_load[t] + tuv_demand[t] for t in hours]
+    load = [base_load[t] for t in hours]
 
     # --- Parametry systému ---
     B_CAP = 17.4
-    B_MIN = B_CAP * 0.10
+    B_MIN = B_CAP * 0.30
     B_MAX = B_CAP
     H_CAP = 81.0
     B_POWER = 9
@@ -51,9 +52,11 @@ def run_mpc_optimizer(
         prob += B_power[t] == B_charge[t] - B_discharge[t]
 
     # --- Cílová funkce ---
-    prob += lpSum([G_buy[t]*buy[t] - G_sell[t]*sell[t] for t in hours])
+    final_boiler_price = min(buy) - 1.5 # Cena za jednotku energie v SOC bojleru
+    final_bat_price = min(buy) - 2 # Cena za jednotku energie v SOC bojleru
+    prob += lpSum([G_buy[t]*buy[t] - G_sell[t]*sell[t] for t in hours])  - final_bat_price * H_SOC[max(hours)] - final_boiler_price * H_SOC[max(hours)]
 
-    prob += H_SOC[max(hours)] >= 0.8 * H_CAP
+    #prob += H_SOC[max(hours)] >= 0.8 * H_CAP
 
     # --- Omezující podmínky ---
     for t in hours:
@@ -61,8 +64,7 @@ def run_mpc_optimizer(
         
         # Energetická bilance
         prob += (
-            fve[t] + G_buy[t] + B_discharge[t]*B_EFF_OUT
-            >= load[t] + B_charge[t]/B_EFF_IN + h_total + G_sell[t]
+            fve[t] + G_buy[t] + B_discharge[t]*B_EFF_OUT == load[t] + B_charge[t]/B_EFF_IN + h_total + G_sell[t]
         )
 
         # SOC baterie - vždy v povoleném rozsahu (už je v deklaraci B_SOC)
@@ -73,7 +75,17 @@ def run_mpc_optimizer(
         prob += B_discharge[t] + h_total + G_sell[t] <= INVERTER_LIMIT
 
         # Výdej tepla z nádrže = požadavek na vytápění
-        prob += H_out[t] == heating_demand[t]
+        prob += H_out[t] == tuv_demand[t] + (heating_demand[t] * (1 if heating_enabled else 0))
+
+        print(f"t={t}, H_SOC[t]={H_SOC[t]}, H_CAP={H_CAP}, H_store_top[t]={H_store_top[t]}, H_store_bottom[t]={H_store_bottom[t]}, H_out[t]={H_out[t]}")
+
+        # Před výpočtem bilance pro nádrž
+        loss = estimate_heating_losses(
+            H_SOC[t-1] if t > 0 else soc_boiler_init,
+            H_CAP,
+            T_ambient=20,
+            cirk_time=0.3
+        )
 
         # Bilance baterie a nádrže
         if t == 0:
@@ -81,7 +93,7 @@ def run_mpc_optimizer(
             prob += H_SOC[t] == soc_boiler_init + H_store_top[t] + H_store_bottom[t] - H_out[t]
         else:
             prob += B_SOC[t] == B_SOC[t-1] + B_charge[t]*B_EFF_IN - B_discharge[t]/B_EFF_OUT
-            prob += H_SOC[t] == H_SOC[t-1] + H_store_top[t] + H_store_bottom[t] - H_out[t]
+            prob += H_SOC[t] == H_SOC[t-1] + H_store_top[t] + H_store_bottom[t] - H_out[t] - loss
 
 
     # --- Řešení modelu ---
