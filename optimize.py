@@ -21,8 +21,10 @@ ha_color = {
 
     # výkony
     "B_power":        "#4db6ac",  # baterie (- = vybíjení, + = nabíjení)
+    "B_in":           "#f06292",  # baterie 
+    "B_out":          "#4db6ac",  # baterie 
     "H_store_top":    "#4d2130",  # horní spirála nabíjení zásobníku
-    "H_store_bottom": "#f06292",  # dolní spirála
+    "H_store_bottom": "#750d0d",  # dolní spirála
     "G_buy":          "#488fc2",  # nákup ze sítě
     "G_sell":         "#8353d1",  # prodej do sítě
     "H_out":          "#0f9d58",  # odběr z bojleru (teplo)
@@ -114,6 +116,9 @@ def main():
     # Vizualizace výstupů
     ts = result["time_series"]
 
+    ts["B_in"] = [v if v > 0 else 0 for v in ts["B_power"]]
+    ts["B_out"] = [v if v < 0 else 0 for v in ts["B_power"]]
+
     fig, axs = plt.subplots(4, 1, figsize=(12, 12), sharex=True)
 
     where = 'post'
@@ -139,7 +144,7 @@ def main():
     SOCs = ["B_SOC_percent", "H_SOC_percent"]
     inverted = ["G_sell", "H_out", "G_sell"]
     steps = ["H_store_top", "H_store_bottom", "H_out", "fve", "load"]
-    bars = ["B_power", "G_sell", "G_buy"]
+    bars = ["B_in", "B_out", "G_sell", "G_buy"]
 
     # 1) stavy
     for key in SOCs:

@@ -20,7 +20,7 @@ def run_mpc_optimizer(
 
     # --- Parametry systému ---
     B_CAP = 17.4
-    B_MIN = B_CAP * 0.30
+    B_MIN = B_CAP * 0.15
     B_MAX = B_CAP
     H_CAP = 81.0
     B_POWER = 9
@@ -53,7 +53,7 @@ def run_mpc_optimizer(
 
     # --- Cílová funkce ---
     final_boiler_price = min(buy) - 1.5 # Cena za jednotku energie v SOC bojleru
-    final_bat_price = min(buy) - 2 # Cena za jednotku energie v SOC bojleru
+    final_bat_price = min(buy) - 1 # Cena za jednotku energie v SOC bojleru
     prob += lpSum([G_buy[t]*buy[t] - G_sell[t]*sell[t] for t in indexes])  - final_bat_price * H_SOC[max(indexes)] - final_boiler_price * H_SOC[max(indexes)]
 
     #prob += H_SOC[max(indexes)] >= 0.8 * H_CAP
