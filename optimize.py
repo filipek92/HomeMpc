@@ -21,7 +21,7 @@ ha_color = {
 
     # výkony
     "B_power":        "#4db6ac",  # baterie (- = vybíjení, + = nabíjení)
-    "H_store_top":    "#f06292",  # horní spirála nabíjení zásobníku
+    "H_store_top":    "#4d2130",  # horní spirála nabíjení zásobníku
     "H_store_bottom": "#f06292",  # dolní spirála
     "G_buy":          "#488fc2",  # nákup ze sítě
     "G_sell":         "#8353d1",  # prodej do sítě
@@ -98,11 +98,11 @@ def main():
 
     tuv_demand = [get_tuv_demand(h) for h in hours]
     heating_demand = [get_estimate_heating_losses(t) for t in outdoor_temps]
-    base_load =  [get_electricity_load(h) for h in hours]
+    base =  [get_electricity_load(h) for h in hours]
 
     print("SoC bojleru:", soc_boiler)
 
-    result = run_mpc_optimizer(tuv_demand, heating_demand, fve, buy, sell, base_load, soc_bat, soc_boiler, range(horizon))
+    result = run_mpc_optimizer(tuv_demand, heating_demand, fve, buy, sell, base, soc_bat, soc_boiler, hours)
 
     post_state("sensor.mpc_min_soc_battery", result["min_soc_battery"])
     post_state("sensor.mpc_target_temp_top", result["target_temp_top"])
