@@ -21,10 +21,9 @@ ha_color = {
 
     # výkony
     "B_power":        "#4db6ac",  # baterie (- = vybíjení, + = nabíjení)
-    "B_in":           "#f06292",  # baterie 
-    "B_out":          "#4db6ac",  # baterie 
-    "H_store_top":    "#4d2130",  # horní spirála nabíjení zásobníku
-    "H_store_bottom": "#750d0d",  # dolní spirála
+    "B_charge":       "#f06292",  # baterie
+    "B_discharge":    "#4db6ac",  # baterie
+    "H_in":           "#c97a94",  # horní spirála nabíjení zásobníku
     "G_buy":          "#488fc2",  # nákup ze sítě
     "G_sell":         "#8353d1",  # prodej do sítě
     "H_out":          "#0f9d58",  # odběr z bojleru (teplo)
@@ -37,7 +36,7 @@ ha_color = {
 
     # okolí
     "heating_demand": "#0f9d58",
-    "mean_temp":  "#ff00aa",
+    "mean_temp":      "#ff00aa",
     "outdoor_temps":  "#ff9800",
 }
 
@@ -106,13 +105,6 @@ def main():
 
     result = run_mpc_optimizer(tuv_demand, heating_demand, fve, buy, sell, base, soc_bat, soc_boiler, hours)
 
-    post_state("sensor.mpc_min_soc_battery", result["min_soc_battery"])
-    post_state("sensor.mpc_target_temp_top", result["target_temp_top"])
-    post_state("sensor.mpc_target_temp_rest", result["target_temp_rest"])
-    post_state("switch.mpc_allow_export", "on" if result["allow_grid_export"] else "off")
-    post_state("switch.mpc_force_discharge", "on" if result["force_discharge_to_grid_power"] > 0.5 else "off")
-    post_state("switch.mpc_allow_heating_from_grid", "on" if result["allow_grid_heating"] else "off")
-
     # Vizualizace výstupů
     ts = result["time_series"]
 
@@ -126,10 +118,11 @@ def main():
 
     labels = {
         "B_power": "Výkon baterie",
+        "B_charge": "Nabíjení baterie",
+        "B_discharge": "Vybíjení baterie",
         "G_buy": "Nákup ze sítě",
         "G_sell": "Prodej do sítě",
-        "H_store_top": "Ohřev horní",
-        "H_store_bottom": "Ohřev dolní",
+        "H_in": "Ohřev",
         "H_out": "Výstup z bojleru",
         "fve": "FVE výroba",
         "load": "Spotřeba",
@@ -142,9 +135,9 @@ def main():
     }
 
     SOCs = ["B_SOC_percent", "H_SOC_percent"]
-    inverted = ["G_sell", "H_out", "G_sell"]
-    steps = ["H_store_top", "H_store_bottom", "H_out", "fve", "load"]
-    bars = ["B_in", "B_out", "G_sell", "G_buy"]
+    inverted = ["G_sell", "H_out", "G_sell", "B_discharge"]
+    steps = ["H_in", "H_out", "fve", "load"]
+    bars = ["B_charge", "B_discharge", "G_sell", "G_buy"]
 
     # 1) stavy
     for key in SOCs:
@@ -160,7 +153,7 @@ def main():
     for key in steps:
         axs[1].step(
             hours,
-            [-v for v in ts[key]] if key in inverted else ts[key], 
+            [-v for v in ts[key]] if key in inverted else ts[key],
             label=labels.get(key, key),
             where=where,
             color=ha_color.get(key, "black")
