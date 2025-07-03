@@ -113,8 +113,12 @@ def run_mpc_optimizer(
     sell_price:      Sequence[float] = series["sell_price"]
     load_pred:       Sequence[float] = series["load_pred"]
 
-    soc_bat_init:    float = initials["soc_bat"]
-    soc_boiler_init: float = initials["soc_boiler"]
+    soc_bat_init:    float = initials["bat_soc"] / 100 * B_CAP
+    soc_boiler_init: float = initials["boiler_E"]
+
+    final_boiler_price = float(options.get("final_boler_price", min(buy_price) - 0.5))
+    final_bat_price    = float(options.get("final_bat_price", min(buy_price)))
+    battery_penalty    = float(options.get("battery_penalty", 1.0))            # Kč / kWh discharged (degradation)
 
     indexes = range(len(hours))
 
@@ -141,10 +145,6 @@ def run_mpc_optimizer(
         prob += B_power[t] == B_charge[t] - B_discharge[t]
 
     # Objective ----------------------------------------------------------
-    final_boiler_price = min(buy_price) - 0.5
-    final_bat_price    = min(buy_price)
-    battery_penalty    = 1.0            # Kč / kWh discharged (degradation)
-
     prob += (
         lpSum(
             G_buy[t]  * buy_price[t]  -
@@ -158,7 +158,6 @@ def run_mpc_optimizer(
     )
 
     # Constraints --------------------------------------------------------
-    prob += B_SOC[max(indexes)] >= B_MAX*0.6
 
     for t in indexes:
         # Power balance --------------------------------------------------

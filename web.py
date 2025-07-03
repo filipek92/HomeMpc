@@ -26,7 +26,7 @@ def compute_and_cache():
         "outdoor_temps",
     ]
 
-    initials_keys = ["soc_bat", "soc_boiler"]
+    initials_keys = ["bat_soc", "boiler_E"]
 
     solution = run_mpc_optimizer(
         {k: data[k] for k in series_keys},

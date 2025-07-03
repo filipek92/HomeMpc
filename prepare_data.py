@@ -70,8 +70,8 @@ def prepare_data():
     outdoor_forecast = get_temperature_forecast(hours)
     outdoor_temps = [temp for _, temp in outdoor_forecast]
 
-    soc_bat = get_entity(states, "sensor.odhadovana_byvajici_kapacita", 11.0)
-    soc_boiler = get_entity(states, "sensor.tepelnaakumulace_energie_n_dr_e", 25.0)
+    bat_soc = get_entity(states, "sensor.solax_battery_capacity", 50)
+    boiler_E = get_entity(states, "sensor.tepelnaakumulace_energie_n_dr_e", 25.0)
 
     tuv_demand = [get_tuv_demand(h) for h in hours]
     heating_demand = [get_estimate_heating_losses(t) for t in outdoor_temps]
@@ -85,7 +85,7 @@ def prepare_data():
         "buy_price": buy_price,
         "sell_price": sell_price,
         "load_pred": lod_pred,
-        "soc_bat": soc_bat,
-        "soc_boiler": soc_boiler,
+        "bat_soc": bat_soc,
+        "boiler_E": boiler_E,
         "outdoor_temps": outdoor_temps,
     }
