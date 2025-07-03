@@ -118,7 +118,7 @@ def run_mpc_optimizer(
 
     final_boiler_price = float(options.get("final_boler_price", min(buy_price) - 0.5))
     final_bat_price    = float(options.get("final_bat_price", min(buy_price)))
-    battery_penalty    = float(options.get("battery_penalty", 1.0))            # Kč / kWh discharged (degradation)
+    battery_penalty    = float(options.get("battery_penalty", 0))            # Kč / kWh discharged (degradation)
 
     indexes = range(len(hours))
 
