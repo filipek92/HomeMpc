@@ -219,7 +219,7 @@ def run_mpc_optimizer(
         "B_charge":      [B_charge[t].varValue      for t in indexes],
         "B_discharge":   [B_discharge[t].varValue   for t in indexes],
         "B_SOC":         [B_SOC[t].varValue         for t in indexes],
-        "B_SOC_percent": [100 * B_SOC[t].varValue / B_MAX for t in indexes],
+        "B_SOC_percent": [int(100 * B_SOC[t].varValue / B_MAX) for t in indexes],
         "H_SOC":         [H_SOC[t].varValue         for t in indexes],
         "H_SOC_percent": [100 * H_SOC[t].varValue / H_CAP for t in indexes],
         "H_in":          [H_in[t].varValue          for t in indexes],
