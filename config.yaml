@@ -1,11 +1,12 @@
 name: MPC Optimizer
-version: "1.0.2"
+version: "1.0.3"
 slug: mpc_optimizer
 description: Optimalizace energie s přístupem přes webové rozhraní
 startup: services
 boot: auto
 homeassistant_api: true
 hassio_api: true
+host_network: true
 ingress: true
 ingress_port: 26781
 ingress_entry: /
