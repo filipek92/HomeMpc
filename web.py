@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 from home_mpc import run_mpc_optimizer
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
-from actions import mpc_to_actions
+from actions import mpc_to_actions, ACTION_ATTRIBUTES
 
 import json
 
@@ -38,7 +38,7 @@ def compute_and_cache():
 
     solution["actions"] = actions
 
-    publish_to_ha(actions)
+    publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES)
 
     with open(RESULTS_FILE, "w") as f:
         json.dump(solution, f, indent=4)

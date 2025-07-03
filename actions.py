@@ -120,3 +120,50 @@ def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
                     f"B_dis={Bdis:.2f} B_chg={Bchrg:.2f} "
                     f"⇒ {inv_mode}"),
     }
+
+ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
+    "heater_mode": {
+        "friendly_name": "Režim ohřevu vody",
+        "icon": "mdi:water-boiler",
+    },
+    "inverter_mode": {
+        "friendly_name": "Režim měniče",
+        "icon": "mdi:solar-power",
+    },
+    "battery_power": {
+        "friendly_name": "Výkon baterie",
+        "unit_of_measurement": "W",
+        "device_class": "power",
+        "state_class": "measurement",
+        "icon": "mdi:battery-charging-high",
+    },
+    "battery_discharge_current": {
+        "friendly_name": "Vybíjecí proud baterie",
+        "unit_of_measurement": "A",
+        "device_class": "current",
+        "state_class": "measurement",
+        "icon": "mdi:current-dc",
+    },
+    "remaining_slot_part": {
+        "friendly_name": "Zbytek aktuálního slotu",
+        "unit_of_measurement": "h",
+        "state_class": "measurement",
+        "icon": "mdi:timer-sand",
+    },
+    "active_slot": {
+        "friendly_name": "Časový slot",
+        "device_class": "timestamp",
+        "icon": "mdi:clock-outline",
+    },
+    "battery_target": {
+        "friendly_name": "Cílové nabití baterie",
+        "unit_of_measurement": "%",
+        "device_class": "battery",
+        "state_class": "measurement",
+        "icon": "mdi:battery",
+    },
+    "comment": {
+        "friendly_name": "Komentář",
+        "icon": "mdi:note-text",
+    },
+}
