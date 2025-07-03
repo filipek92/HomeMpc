@@ -12,8 +12,12 @@ ingress_port: 26781
 ingress_entry: /
 panel_icon: mdi:chart-areaspline
 panel_title: MPC Optimizer
-options: {}
-schema: {}
+options:
+  token: ""                # výchozí prázdná hodnota
+  ha_url: "http://homeassistant:8123"
+schema:
+  token: str?
+  ha_url: str?
 arch:
   - amd64
   - aarch64

@@ -12,9 +12,19 @@ from models import (
     get_temperature_forecast,
 )
 
+TOKEN = ""
 
-HA_URL = os.environ.get("HA_URL", "http://homeassistant.local:8123")
-TOKEN = os.environ.get("HASSIO_TOKEN", None)
+try:
+    with open("/data/options.json", "r") as f: 
+        opts = json.load(f)
+        TOKEN = opts.get("token", "")
+        HA_URL = opts.get("ha_url", "")
+except:
+    pass
+
+if not TOKEN:
+    HA_URL = os.environ.get("HA_URL", "http://homeassistant.local:8123")
+    TOKEN = os.environ.get("HASSIO_TOKEN", None)
 
 
 if not TOKEN:
