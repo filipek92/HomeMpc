@@ -14,3 +14,7 @@ panel_icon: mdi:chart-areaspline
 panel_title: MPC Optimizer
 options: {}
 schema: {}
+arch:
+  - amd64
+  - aarch64
+  - armv7
