@@ -176,3 +176,4 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 mpc_results_cache.json
+credentials.yaml

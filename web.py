@@ -14,56 +14,39 @@ RESULTS_FILE = "mpc_results_cache.json"
 # --- Výpočet a cache ------------------------------------------------------
 
 def compute_and_cache():
-    (
-        hours,
-        tuv_demand,
-        heating_demand,
-        fve,
-        buy,
-        sell,
-        base,
-        soc_bat,
-        soc_boiler,
-        outdoor_temps,
-    ) = prepare_data()
+    data = prepare_data()
 
-    ts = run_mpc_optimizer(
-        {
-            "tuv_demand": tuv_demand,
-            "heating_demand": heating_demand,
-            "fve": fve,
-            "buy": buy,
-            "sell": sell,
-            "load": base,
-        },
-        {
-            "soc_bat": soc_bat,
-            "soc_boiler": soc_boiler,
-        },
-        hours
-    )["time_series"]
+    series_keys = [
+        "tuv_demand",
+        "heating_demand",
+        "fve_pred",
+        "buy_price",
+        "sell_price",
+        "load_pred",
+        "outdoor_temps",
+    ]
 
-    generated_at = datetime.now()
+    initials_keys = ["soc_bat", "soc_boiler"]
 
-    cache = {
-        "generated_at": generated_at.isoformat(),
-        "hours": [h.isoformat() for h in hours],
-        "ts": ts,
-        "outdoor_temps": outdoor_temps,
-    }
+    solution = run_mpc_optimizer(
+        {k: data[k] for k in series_keys},
+        {k: data[k] for k in initials_keys},
+        data["hours"]
+    )
+
     with open(RESULTS_FILE, "w") as f:
-        json.dump(cache, f, indent=4)
+        json.dump(solution, f, indent=4)
 
-    return generated_at, hours, ts, outdoor_temps
-
+    return solution
 
 def load_cache():
-    if not os.path.exists(RESULTS_FILE):
+    try:
+        with open(RESULTS_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError):
+        # If the file does not exist or is corrupted, return None
+        print("Cache file not found or corrupted, recomputing...")
         return None
-    with open(RESULTS_FILE, "r") as f:
-        data = json.load(f)
-    hours = [datetime.fromisoformat(s) for s in data["hours"]]
-    return datetime.fromisoformat(data["generated_at"]), hours, data["ts"], data["outdoor_temps"]
 
 # --- Web routes -----------------------------------------------------------
 
@@ -74,15 +57,19 @@ def regenerate():
 
 @app.route("/")
 def index():
-    cache = load_cache()
-    generated_at, hours, ts, outdoor_temps = cache if cache else compute_and_cache()
+    solution = load_cache()
+    if solution is None:
+        # If cache is empty or corrupted, compute and cache the results
+        solution = compute_and_cache()
+
+    generated_at = datetime.fromisoformat(solution.get("generated_at"))
 
     if(generated_at < datetime.now() - timedelta(minutes=1)):
         # If the cache is older than 1 minute, regenerate it
-        generated_at, hours, ts, outdoor_temps = compute_and_cache()
+        solution = compute_and_cache()
     
 
-    graph_html = presentation(hours, ts, outdoor_temps)
+    graph_html = presentation(solution)
 
     return render_template_string(
         """
@@ -98,10 +85,11 @@ def index():
                     <button type="submit">Přegenerovat</button>
                 </form>
                 {{ graph | safe }}
+                <pre>{{ solution["results"] | tojson(indent=2) }}</pre>
             </body>
         </html>
         """,
-        graph=graph_html, generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S")
+        graph=graph_html, generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S"), solution=solution
     )
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import yaml
 import requests
 from models import (
     get_electricity_price,
@@ -9,8 +10,24 @@ from models import (
 )
 
 
-HA_URL = "http://hass.lan:8123"
-TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJlOWQ2MWJkMzBmNzY0ZDFlYTFlM2JiMGVhYWRlYzIwMyIsImlhdCI6MTc1MTM5NTg2MywiZXhwIjoyMDY2NzU1ODYzfQ.mFrACWhl4AyvEwMrTEipBuScHj5UkABSdN3Vc02rYNM"
+HA_URL = "http://homeassistant.local:8123"
+TOKEN = "your_long_lived_access_token_here"
+
+CREDENTIALS_FILE = "credentials.yaml"
+
+try:
+    with open(CREDENTIALS_FILE, "r") as f:
+        credentials = yaml.safe_load(f)
+        HA_URL = credentials["url"]
+        TOKEN = credentials["token"]
+except (FileNotFoundError, yaml.YAMLError, ValueError, KeyError) as e:
+    print(f"Error reading {CREDENTIALS_FILE}:", e)
+    with open(CREDENTIALS_FILE, "w") as f:
+        yaml.dump({"url": HA_URL, "token": TOKEN}, f)
+        print(f"Created {CREDENTIALS_FILE} with default values. Please update it.")
+        exit(1)
+
+
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json",
@@ -46,9 +63,9 @@ def prepare_data():
     hours = [h for h, _ in buy_raw]
     horizon = len(hours)
 
-    fve = [v for _, v in fve_raw][:horizon]
-    buy = [v for _, v in buy_raw][:horizon]
-    sell = [v for _, v in sell_raw][:horizon]
+    fve_pred = [v for _, v in fve_raw][:horizon]
+    buy_price = [v for _, v in buy_raw][:horizon]
+    sell_price = [v for _, v in sell_raw][:horizon]
 
     outdoor_forecast = get_temperature_forecast(hours)
     outdoor_temps = [temp for _, temp in outdoor_forecast]
@@ -58,17 +75,17 @@ def prepare_data():
 
     tuv_demand = [get_tuv_demand(h) for h in hours]
     heating_demand = [get_estimate_heating_losses(t) for t in outdoor_temps]
-    base = [get_electricity_load(h) for h in hours]
+    lod_pred = [get_electricity_load(h) for h in hours]
 
-    return (
-        hours,
-        tuv_demand,
-        heating_demand,
-        fve,
-        buy,
-        sell,
-        base,
-        soc_bat,
-        soc_boiler,
-        outdoor_temps,
-    )
+    return {
+        "hours": hours,
+        "tuv_demand": tuv_demand,
+        "heating_demand": heating_demand,
+        "fve_pred": fve_pred,
+        "buy_price": buy_price,
+        "sell_price": sell_price,
+        "load_pred": lod_pred,
+        "soc_bat": soc_bat,
+        "soc_boiler": soc_boiler,
+        "outdoor_temps": outdoor_temps,
+    }

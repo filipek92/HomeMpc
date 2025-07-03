@@ -15,8 +15,8 @@ ha_color = {
     "G_buy": "#488fc2",
     "G_sell": "#8353d1",
     "H_out": "#0f9d58",
-    "fve": "#ff9800",
-    "load": "#488fc2",
+    "fve_pred": "#ff9800",
+    "load_pred": "#488fc2",
     # ceny
     "buy_price": "#488fc2",
     "sell_price": "#8353d1",
@@ -33,8 +33,8 @@ labels = {
     "G_sell": "Prodej do sítě",
     "H_in": "Ohřev",
     "H_out": "Výstup z bojleru",
-    "fve": "FVE výroba",
-    "load": "Spotřeba",
+    "fve_pred": "FVE výroba",
+    "load_pred": "Spotřeba",
     "buy_price": "Cena nákup",
     "sell_price": "Cena prodej",
     "heating_demand": "Tepelné ztráty",
@@ -43,11 +43,15 @@ labels = {
     "H_SOC_percent": "SoC bojleru",
 }
 
-def presentation(hours, ts, outdoor_temps):
+def presentation(solution):
+    times = [datetime.fromisoformat(t) for t in solution["times"]]
+
+    ts = {**solution["inputs"], **solution["outputs"]}
+
     SOCs = ["B_SOC_percent", "H_SOC_percent"]
     inverted = ["G_sell", "H_out", "B_discharge"]
-    steps = ["H_in", "H_out", "fve", "load"]
-    bars = ["B_charge", "B_discharge", "G_sell", "G_buy"]
+    steps = ["H_in", "H_out", "fve_pred", "load_pred"]
+    bars = ["B_charge", "B_discharge", "G_buy", "G_sell"]
 
     fig = make_subplots(
         rows=4,
@@ -65,7 +69,7 @@ def presentation(hours, ts, outdoor_temps):
     for key in SOCs:
         fig.add_trace(
             go.Scatter(
-                x=[t + timedelta(hours=1) for t in hours],
+                x=[t + timedelta(hours=1) for t in times],
                 y=ts[key],
                 name=labels.get(key, key),
                 marker_color=ha_color.get(key, "black"),
@@ -77,7 +81,7 @@ def presentation(hours, ts, outdoor_temps):
     for key in steps:
         fig.add_trace(
             go.Scatter(
-                x=hours,
+                x=times,
                 y=[-v if key in inverted else v for v in ts[key]],
                 name=labels.get(key, key),
                 line_shape="hv",
@@ -88,11 +92,11 @@ def presentation(hours, ts, outdoor_temps):
             col=1,
         )
 
-    bar_offset = 1 / (len(bars) + 1)
+    bar_offset = 1 / len(bars)
     for i, key in enumerate(bars):
         fig.add_trace(
             go.Bar(
-                x=[t + timedelta(hours=i * bar_offset) for t in hours],
+                x=[t + timedelta(hours=i * bar_offset+ 0.25) for t in times],
                 y=[-v if key in inverted else v for v in ts[key]],
                 name=labels.get(key, key),
                 marker_color=ha_color.get(key, "black"),
@@ -104,7 +108,7 @@ def presentation(hours, ts, outdoor_temps):
 
     fig.add_trace(
         go.Scatter(
-            x=hours,
+            x=times,
             y=ts["buy_price"],
             name=labels["buy_price"],
             line_shape="hv",
@@ -116,7 +120,7 @@ def presentation(hours, ts, outdoor_temps):
     )
     fig.add_trace(
         go.Scatter(
-            x=hours,
+            x=times,
             y=ts["sell_price"],
             name=labels["sell_price"],
             line_shape="hv",
@@ -129,7 +133,7 @@ def presentation(hours, ts, outdoor_temps):
 
     fig.add_trace(
         go.Scatter(
-            x=hours,
+            x=times,
             y=ts["heating_demand"],
             name=labels["heating_demand"],
             mode="lines",
@@ -140,8 +144,8 @@ def presentation(hours, ts, outdoor_temps):
     )
     fig.add_trace(
         go.Scatter(
-            x=hours,
-            y=outdoor_temps,
+            x=times,
+            y=ts["outdoor_temps"],
             name=labels["outdoor_temps"],
             mode="lines",
             marker_color=ha_color["outdoor_temps"],

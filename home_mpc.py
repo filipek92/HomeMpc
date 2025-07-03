@@ -108,10 +108,10 @@ def run_mpc_optimizer(
     # -------------------------------------------------------------------
     tuv_demand:      Sequence[float] = series["tuv_demand"]
     heating_demand:  Sequence[float] = series["heating_demand"]
-    fve:             Sequence[float] = series["fve"]
-    buy:             Sequence[float] = series["buy"]
-    sell:            Sequence[float] = series["sell"]
-    load:            Sequence[float] = series["load"]
+    fve_pred:        Sequence[float] = series["fve_pred"]
+    buy_price:       Sequence[float] = series["buy_price"]
+    sell_price:      Sequence[float] = series["sell_price"]
+    load_pred:       Sequence[float] = series["load_pred"]
 
     soc_bat_init:    float = initials["soc_bat"]
     soc_boiler_init: float = initials["soc_boiler"]
@@ -141,14 +141,14 @@ def run_mpc_optimizer(
         prob += B_power[t] == B_charge[t] - B_discharge[t]
 
     # Objective ----------------------------------------------------------
-    final_boiler_price = min(buy) - 0.5
-    final_bat_price    = min(buy)
+    final_boiler_price = min(buy_price) - 0.5
+    final_bat_price    = min(buy_price)
     battery_penalty    = 1.0            # Kč / kWh discharged (degradation)
 
     prob += (
         lpSum(
-            G_buy[t]  * buy[t]  -
-            G_sell[t] * sell[t] +
+            G_buy[t]  * buy_price[t]  -
+            G_sell[t] * sell_price[t] +
             battery_penalty * B_discharge[t]
             for t in indexes
         )
@@ -163,10 +163,10 @@ def run_mpc_optimizer(
     for t in indexes:
         # Power balance --------------------------------------------------
         prob += (
-            fve[t] +
+            fve_pred[t] +
             G_buy[t] +
             B_discharge[t] * B_EFF_OUT
-            == load[t] + B_charge[t] / B_EFF_IN + H_in[t] + G_sell[t]
+            == load_pred[t] + B_charge[t] / B_EFF_IN + H_in[t] + G_sell[t]
         )
 
         # Hardware limits ----------------------------------------------
@@ -214,7 +214,7 @@ def run_mpc_optimizer(
     # -------------------------------------------------------------------
     # Collect results into plain Python structures (easy to serialise)
     # -------------------------------------------------------------------
-    results = {
+    outputs = {
         "B_power":       [B_power[t].varValue       for t in indexes],
         "B_charge":      [B_charge[t].varValue      for t in indexes],
         "B_discharge":   [B_discharge[t].varValue   for t in indexes],
@@ -226,12 +226,15 @@ def run_mpc_optimizer(
         "H_out":         [H_out[t].varValue         for t in indexes],
         "G_buy":         [G_buy[t].varValue         for t in indexes],
         "G_sell":        [G_sell[t].varValue        for t in indexes],
-        # echo key inputs for plotting convenience
-        "load":          list(load),
-        "fve":           list(fve),
-        "buy_price":     list(buy),
-        "sell_price":    list(sell),
-        "heating_demand":list(heating_demand),
     }
 
-    return {"time_series": results}
+
+    results = {k:v[0] for k, v in outputs.items()}
+
+    return {
+        "generated_at": datetime.now().isoformat(),
+        "times": [h.isoformat() for h in hours],
+        "inputs": series,
+        "outputs": outputs,
+        "results": results,
+    }
