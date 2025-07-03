@@ -10,7 +10,7 @@ WORKDIR /app
 
 ENV TZ="Europe/Prague"
 
-EXPOSE 5000
+EXPOSE 26781
 
 # Spouštěcí skript
 RUN chmod +x /app/run.sh
