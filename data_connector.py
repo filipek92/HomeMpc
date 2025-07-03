@@ -37,6 +37,8 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
+print("Headers:", HEADERS)
+
 # --- Pomocné funkce -------------------------------------------------------
 
 def get_ha_states():
