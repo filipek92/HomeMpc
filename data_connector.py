@@ -2,6 +2,7 @@ from typing import Any, Dict
 import yaml
 import json
 import requests
+import os
 from models import (
     get_electricity_price,
     get_electricity_load,
@@ -12,22 +13,23 @@ from models import (
 )
 
 
-HA_URL = "http://homeassistant.local:8123"
-TOKEN = "your_long_lived_access_token_here"
+HA_URL = os.environ.get("HA_URL", "http://homeassistant.local:8123")
+TOKEN = os.environ.get("HASSIO_TOKEN", None)
 
-CREDENTIALS_FILE = "credentials.yaml"
 
-try:
-    with open(CREDENTIALS_FILE, "r") as f:
-        credentials = yaml.safe_load(f)
-        HA_URL = credentials["url"]
-        TOKEN = credentials["token"]
-except (FileNotFoundError, yaml.YAMLError, ValueError, KeyError) as e:
-    print(f"Error reading {CREDENTIALS_FILE}:", e)
-    with open(CREDENTIALS_FILE, "w") as f:
-        yaml.dump({"url": HA_URL, "token": TOKEN}, f)
-        print(f"Created {CREDENTIALS_FILE} with default values. Please update it.")
-        exit(1)
+if not TOKEN:
+    CREDENTIALS_FILE = "credentials.yaml"
+    try:
+        with open(CREDENTIALS_FILE, "r") as f:
+            credentials = yaml.safe_load(f)
+            HA_URL = credentials["url"]
+            TOKEN = credentials["token"]
+    except (FileNotFoundError, yaml.YAMLError, ValueError, KeyError) as e:
+        print(f"Error reading {CREDENTIALS_FILE}:", e)
+        with open(CREDENTIALS_FILE, "w") as f:
+            yaml.dump({"url": HA_URL, "token": "your_token"}, f)
+            print(f"Created {CREDENTIALS_FILE} with default values. Please update it.")
+            exit(1)
 
 
 HEADERS = {

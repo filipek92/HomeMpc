@@ -5,11 +5,20 @@ from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
 from actions import mpc_to_actions, ACTION_ATTRIBUTES
 
+from flask_apscheduler import APScheduler  
+
 import json
+import os
 
 app = Flask(__name__)
 
 RESULTS_FILE = "mpc_results_cache.json"
+
+class Config:                                    # <-- nový blok
+    # spustí miniaturní REST rozhraní na /scheduler (můžeš vypnout)
+    SCHEDULER_API_ENABLED = False
+
+app.config.from_object(Config())
 
 # --- Výpočet a cache ------------------------------------------------------
 
@@ -70,7 +79,7 @@ def index():
 
     generated_at = datetime.fromisoformat(solution.get("generated_at"))
 
-    if(generated_at < datetime.now() - timedelta(minutes=1)):
+    if(generated_at < datetime.now() - timedelta(minutes=2)):
         # If the cache is older than 1 minute, regenerate it
         solution = compute_and_cache()
     
@@ -99,4 +108,20 @@ def index():
     )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+
+    # --- Scheduler -----------------------------------------------------------
+    scheduler = APScheduler()                        # <-- nový objekt
+    scheduler.init_app(app)
+
+    # registrace úlohy – co 5 minut zavolej compute_and_cache()
+    scheduler.add_job(
+        id="mpc_refresh",
+        func=compute_and_cache,
+        trigger="interval",
+        minutes=5,
+        next_run_time=datetime.now()
+    )
+
+    scheduler.start()
+
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=True)

@@ -1,0 +1,12 @@
+name: MPC Optimizer
+version: "1.0"
+slug: mpc_optimizer
+description: Optimalizace spotřeby pro Home Assistant
+startup: services
+boot: auto
+homeassistant_api: true
+host_network: true
+hassio_api: true
+privileged: []
+options: {}
+schema: {}
