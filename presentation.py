@@ -96,7 +96,7 @@ def presentation(solution):
     for i, key in enumerate(bars):
         fig.add_trace(
             go.Bar(
-                x=[t + timedelta(hours=i * bar_offset+ 0.25) for t in times],
+                x=[t + timedelta(hours=i * bar_offset + 0.125) for t in times],
                 y=[-v if key in inverted else v for v in ts[key]],
                 name=labels.get(key, key),
                 marker_color=ha_color.get(key, "black"),

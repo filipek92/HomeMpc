@@ -1,11 +1,11 @@
 from flask import Flask, render_template_string, redirect, url_for
 from datetime import timedelta, datetime
 from home_mpc import run_mpc_optimizer
-from prepare_data import prepare_data
+from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
+from actions import mpc_to_actions
 
 import json
-import os
 
 app = Flask(__name__)
 
@@ -33,6 +33,12 @@ def compute_and_cache():
         {k: data[k] for k in initials_keys},
         data["hours"]
     )
+
+    actions = mpc_to_actions(solution)
+
+    solution["actions"] = actions
+
+    publish_to_ha(actions)
 
     with open(RESULTS_FILE, "w") as f:
         json.dump(solution, f, indent=4)
@@ -80,12 +86,12 @@ def index():
             </head>
             <body>
                 <h1>Vizualizace výsledků</h1>
-                <p>Data vygenerována: {{ generated_at }}</p>
                 <form action="/regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
                 </form>
                 {{ graph | safe }}
-                <pre>{{ solution["results"] | tojson(indent=2) }}</pre>
+                <pre>{{ solution["actions"] | tojson(indent=2) }}</pre>
+                <p>Data vygenerována: {{ generated_at }}</p>
             </body>
         </html>
         """,

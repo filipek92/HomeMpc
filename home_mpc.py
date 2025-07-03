@@ -117,7 +117,9 @@ def run_mpc_optimizer(
     soc_boiler_init: float = initials["boiler_E"]
 
     final_boiler_price = float(options.get("final_boler_price", min(buy_price) - 0.5))
-    final_bat_price    = float(options.get("final_bat_price", min(buy_price)))
+    BAT_THRESHOLD_PCT   = float(options.get("BAT_THRESHOLD_PCT",   0.60))
+    BAT_PRICE_BELOW     = float(options.get("BAT_PRICE_BELOW",     min(buy_price)))
+    BAT_PRICE_ABOVE     = float(options.get("BAT_PRICE_ABOVE",     min(buy_price) - 0.5))
     battery_penalty    = float(options.get("battery_penalty", 0))            # Kč / kWh discharged (degradation)
 
     indexes = range(len(hours))
@@ -140,6 +142,18 @@ def run_mpc_optimizer(
     G_buy        = LpVariable.dicts("G_buy",        indexes, 0)
     G_sell       = LpVariable.dicts("G_sell",       indexes, 0)
 
+    # --------------------------------------------------------------
+    # Dvoudílné rozdělení koncového SOC
+    # --------------------------------------------------------------
+    threshold = BAT_THRESHOLD_PCT * B_CAP
+    t_end     = max(indexes)
+
+    B_short   = LpVariable("B_short",   0, threshold)          # kWh do 60 %
+    B_surplus = LpVariable("B_surplus", 0, B_CAP - threshold)  # kWh nad 60 %
+
+    # součet musí dát skutečný koncový SOC
+    prob += B_short + B_surplus == B_SOC[t_end]
+
     # Link helper variables to main power variable -----------------------
     for t in indexes:
         prob += B_power[t] == B_charge[t] - B_discharge[t]
@@ -153,7 +167,8 @@ def run_mpc_optimizer(
             for t in indexes
         )
         # Reward remaining stored energy at the cheapest observed tariffs
-        - final_bat_price    * B_SOC[max(indexes)]
+        - BAT_PRICE_ABOVE  * B_surplus      # odměna za kWh NAD 60 %
+        + BAT_PRICE_BELOW  * (threshold - B_short)  # penalizace pod 60 %
         - final_boiler_price * H_SOC[max(indexes)]
     )
 
@@ -236,4 +251,5 @@ def run_mpc_optimizer(
         "inputs": series,
         "outputs": outputs,
         "results": results,
+        "options": options,
     }

@@ -1,4 +1,6 @@
+from typing import Any, Dict
 import yaml
+import json
 import requests
 from models import (
     get_electricity_price,
@@ -89,3 +91,43 @@ def prepare_data():
         "boiler_E": boiler_E,
         "outdoor_temps": outdoor_temps,
     }
+
+def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_") -> None:
+    """
+    Publikuje všechny dvojice {key: value} do Home Assistantu jako entity
+    'sensor.<prefix><key>' (Stringify výsledek kvůli state API).
+
+    Parameters
+    ----------
+    payload : dict
+        Slovník s klíči a hodnotami (např. výstup z mpc_to_actions()).
+    prefix : str, optional
+        Předpona názvu entity, defaultně 'mpc_'.
+
+    Raises
+    ------
+    requests.HTTPError
+        Když HA vrátí stavový kód >= 400.
+    """
+    for key, value in payload.items():
+        entity_id = f"sensor.{prefix}{key}"
+        resp = requests.post(
+            f"{HA_URL}/api/states/{entity_id}",
+            headers=HEADERS,
+            data=json.dumps({"state": str(value)})
+        )
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            print(f"[ERR] {entity_id} → {resp.status_code}: {resp.text}")
+            raise e
+        else:
+            print(f"[OK ] {entity_id} = {value}")
+
+# ---------------------------------------------------------------------------
+# Příklad použití:
+#
+# from mpc_to_actions import mpc_to_actions
+# solution = ...  # výstup z run_mpc_optimizer
+# actions   = mpc_to_actions(solution)
+# publish_to_ha(actions)        # pošle vše jako sensor.mpc_<key>
