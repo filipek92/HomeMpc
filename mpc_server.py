@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from flask import Flask, render_template_string, redirect, url_for
 from datetime import timedelta, datetime
 from home_mpc import run_mpc_optimizer
@@ -43,7 +45,7 @@ def compute_and_cache():
         data["hours"]
     )
 
-    actions = mpc_to_actions(solution)
+    actions, meta = mpc_to_actions(solution)
 
     solution["actions"] = actions
 
@@ -53,6 +55,12 @@ def compute_and_cache():
     }
 
     publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES, extra)
+
+    publish_to_ha({
+        "debug": extra["current_slot"]
+    }, "mpc_", {
+        "debug": meta
+    })
 
     with open(RESULTS_FILE, "w") as f:
         json.dump(solution, f, indent=4)
