@@ -1,5 +1,5 @@
 name: MPC Optimizer
-version: "1.0.8"
+version: "1.0.9"
 slug: mpc_optimizer
 description: Optimalizace energie s přístupem přes webové rozhraní
 startup: services

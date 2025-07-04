@@ -115,7 +115,6 @@ if __name__ == "__main__":
         func=compute_and_cache,
         trigger="interval",
         minutes=5,
-        next_run_time=datetime.now()
     )
 
     scheduler.start()
