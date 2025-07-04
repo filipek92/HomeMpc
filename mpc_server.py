@@ -93,7 +93,7 @@ def index():
                 <title>Optimalizace energie</title>
                 <meta charset="utf-8" />
             </head>
-            <body>
+            <body style="background-color: #ffffff">
                 <h1>Vizualizace výsledků</h1>
                 <form action="/regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
