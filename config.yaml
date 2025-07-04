@@ -1,5 +1,5 @@
 name: MPC Optimizer
-version: "1.0.4"
+version: "1.0.5"
 slug: mpc_optimizer
 description: Optimalizace energie s přístupem přes webové rozhraní
 startup: services
@@ -11,7 +11,7 @@ ingress: true
 ingress_port: 26781
 ingress_entry: /
 panel_icon: mdi:chart-areaspline
-panel_title: MPC Optimizer
+panel_title: MPC Optimalizace
 options:
   token: ""                # výchozí prázdná hodnota
   ha_url: "http://homeassistant:8123"
