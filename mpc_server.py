@@ -73,7 +73,7 @@ def load_cache():
 @app.route("/regenerate", methods=["POST"])
 def regenerate():
     compute_and_cache()
-    return redirect(url_for("index"))
+    return redirect('./')
 
 @app.route("/")
 def index():
@@ -96,12 +96,12 @@ def index():
             </head>
             <body style="background-color: #ffffff">
                 <h1>Vizualizace výsledků</h1>
-                <form action="./regenerate" method="post">
-                    <button type="submit">Přegenerovat</button>
-                </form>
                 {{ graph | safe }}
                 <pre>{{ solution["actions"] | tojson(indent=2) }}</pre>
                 <p>Data vygenerována: {{ generated_at }}</p>
+                <form action="./regenerate" method="post">
+                    <button type="submit">Přegenerovat</button>
+                </form>
             </body>
         </html>
         """,
