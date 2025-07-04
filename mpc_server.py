@@ -47,7 +47,12 @@ def compute_and_cache():
 
     solution["actions"] = actions
 
-    publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES)
+    extra = {
+        "generated_at": solution["generated_at"],
+        "current_slot": solution["times"][0],
+    }
+
+    publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES, extra)
 
     with open(RESULTS_FILE, "w") as f:
         json.dump(solution, f, indent=4)

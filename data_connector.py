@@ -106,7 +106,7 @@ def prepare_data():
         "outdoor_temps": outdoor_temps,
     }
 
-def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = None) -> None:
+def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = None, extra = None) -> None:
     """
     Publikuje všechny dvojice {key: value} do Home Assistantu jako entity
     'sensor.<prefix><key>' (Stringify výsledek kvůli state API).
@@ -125,12 +125,15 @@ def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = No
     """
     for key, value in payload.items():
         entity_id = f"sensor.{prefix}{key}"
+        attr = attributes.get(key, {}) if attributes else {}
+        if extra:
+            attr.update(extra)
         resp = requests.post(
             f"{HA_URL}/api/states/{entity_id}",
             headers=HEADERS,
             data=json.dumps({
                 "state": str(value),
-                "attributes": attributes.get(key, {}) if attributes else {}
+                "attributes": attr
             })
         )
         try:
