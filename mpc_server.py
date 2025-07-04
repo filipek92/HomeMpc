@@ -39,8 +39,8 @@ def compute_and_cache():
 
     initials_keys = ["bat_soc", "boiler_E"]
 
-    dt = [1.0] * len(data["hours"])  # předpokládáme hodinový krok
-    remain_slot_part = data["hours"][1].astimezone(None) - datetime.now().astimezone(None)
+    dt = [5/60] * len(data["hours"])  # 5minutový krok v hodinách
+    remain_slot_part = (data["hours"][1] - datetime.now().replace(second=0, microsecond=0))
     dt[0] = remain_slot_part.total_seconds() / 3600.0  # zbytek aktuálního slotu v hodinách
 
     solution = run_mpc_optimizer(

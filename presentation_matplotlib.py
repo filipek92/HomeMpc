@@ -58,6 +58,9 @@ def presentation_matplotlib(solution, show=True, save_path=None):
     axs[3].legend()
     axs[3].set_title("Tepelné ztráty a venkovní teplota")
 
+    # Nastavit popisky osy X pouze každou hodinu
+    axs[-1].set_xticks([t for t in times if t.minute == 0])
+    axs[-1].set_xticklabels([t.strftime("%H:%M") for t in times if t.minute == 0], rotation=45)
     plt.xlabel("Čas")
     plt.tight_layout()
     if save_path:

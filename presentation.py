@@ -159,4 +159,10 @@ def presentation(solution):
     fig.update_yaxes(title_text="Cena [Kč/kWh]", row=3, col=1)
     fig.update_yaxes(title_text="kWh, °C", row=4, col=1)
 
+    fig.update_xaxes(
+        tickformat="%H:%M",
+        dtick=3600000,  # každou hodinu
+        tickangle=45
+    )
+
     return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")

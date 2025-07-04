@@ -3,6 +3,8 @@ import yaml
 import json
 import requests
 import os
+import pandas as pd
+from datetime import timedelta
 from models import (
     get_electricity_price,
     get_electricity_load,
@@ -65,6 +67,10 @@ def get_entity(state_list, entity_id, default=0.0):
                 return default
     return default
 
+def repeat_to_5min(hourly_list):
+    # Každou hodnotu rozkopíruje na 12 pětiminutovek
+    return [val for val in hourly_list for _ in range(12)]
+
 def prepare_data():
     states = get_ha_states()
 
@@ -76,25 +82,50 @@ def prepare_data():
     buy_raw = get_electricity_price(states, "sensor.current_buy_electricity_price")
     sell_raw = get_electricity_price(states, "sensor.current_sell_electricity_price")
 
-    hours = [h for h, _ in buy_raw]
+    hours = [h.replace(tzinfo=None) for h, _ in buy_raw]
     horizon = len(hours)
 
-    fve_pred = [v for _, v in fve_raw][:horizon]
-    buy_price = [v for _, v in buy_raw][:horizon]
-    sell_price = [v for _, v in sell_raw][:horizon]
+    # Vytvoření 5minutové časové osy
+    if len(hours) > 1:
+        start = hours[0]
+        end = hours[-1] + timedelta(hours=1)
+        hours_5min = [t.replace(tzinfo=None) for t in pd.date_range(start, end, freq="5min")[:-1]]
+    else:
+        hours_5min = hours
+
+    # Roztažení hodinových hodnot na 5minutové kroky
+    fve_pred = repeat_to_5min([v for _, v in fve_raw][:horizon])
+    buy_price = repeat_to_5min([v for _, v in buy_raw][:horizon])
+    sell_price = repeat_to_5min([v for _, v in sell_raw][:horizon])
 
     outdoor_forecast = get_temperature_forecast(hours)
-    outdoor_temps = [temp for _, temp in outdoor_forecast]
+    outdoor_temps = repeat_to_5min([temp for _, temp in outdoor_forecast])
 
     bat_soc = get_entity(states, "sensor.solax_battery_capacity", 50)
     boiler_E = get_entity(states, "sensor.tepelnaakumulace_energie_n_dr_e", 25.0)
 
-    tuv_demand = [get_tuv_demand(h) for h in hours]
-    heating_demand = [get_estimate_heating_losses(t) for t in outdoor_temps]
-    lod_pred = [get_electricity_load(h) for h in hours]
+    tuv_demand = repeat_to_5min([get_tuv_demand(h) for h in hours])
+    heating_demand = repeat_to_5min([get_estimate_heating_losses(t) for t in outdoor_temps[::12]])
+    lod_pred = repeat_to_5min([get_electricity_load(h) for h in hours])
+
+    def pad_to_length(lst, length, fill=0.0):
+        if not lst:
+            return [fill] * length
+        if len(lst) >= length:
+            return lst[:length]
+        return lst + [lst[-1]] * (length - len(lst))
+
+    n = len(hours_5min)
+    fve_pred = pad_to_length(fve_pred, n)
+    buy_price = pad_to_length(buy_price, n)
+    sell_price = pad_to_length(sell_price, n)
+    outdoor_temps = pad_to_length(outdoor_temps, n)
+    tuv_demand = pad_to_length(tuv_demand, n)
+    heating_demand = pad_to_length(heating_demand, n)
+    lod_pred = pad_to_length(lod_pred, n)
 
     return {
-        "hours": hours,
+        "hours": hours_5min,
         "tuv_demand": tuv_demand,
         "heating_demand": heating_demand,
         "fve_pred": fve_pred,
