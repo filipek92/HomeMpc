@@ -91,7 +91,7 @@ def index():
             </head>
             <body style="background-color: #ffffff">
                 <h1>Vizualizace výsledků</h1>
-                <form action="/regenerate" method="post">
+                <form action="./regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
                 </form>
                 {{ graph | safe }}
