@@ -78,10 +78,6 @@ def index():
         solution = compute_and_cache()
 
     generated_at = datetime.fromisoformat(solution.get("generated_at"))
-
-    if(generated_at < datetime.now() - timedelta(minutes=2)):
-        # If the cache is older than 1 minute, regenerate it
-        solution = compute_and_cache()
     
 
     graph_html = presentation(solution)
