@@ -46,11 +46,11 @@ def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
     extra_export = Gsell - feed_in_pv
 
     if Bdis > P_MAN_DIS and extra_export > P_EXTRA_EXP:
-        charger_use_mode = "Manual Discharge"
+        charger_use_mode = "Manual Mode"
     elif Gsell > 0.1:
-        charger_use_mode = "Feed-in"
+        charger_use_mode = "Feedin Priority"
     else:
-        charger_use_mode = "Backup"
+        charger_use_mode = "Back Up Mode"
 
     # Režim ohřevu → přepínače
     if Hin > P_HIN_GRID and Gbuy > P_GBUY_GRID:
