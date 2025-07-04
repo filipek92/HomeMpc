@@ -117,7 +117,7 @@ def run_mpc_optimizer(
     soc_boiler_init: float = initials["boiler_E"]
 
     final_boiler_price = float(options.get("final_boler_price", min(buy_price) - 0.5))
-    BAT_THRESHOLD_PCT   = float(options.get("BAT_THRESHOLD_PCT",   0.60))
+    BAT_THRESHOLD_PCT   = float(options.get("BAT_THRESHOLD_PCT",   0.40))
     BAT_PRICE_BELOW     = float(options.get("BAT_PRICE_BELOW",     min(buy_price)))
     BAT_PRICE_ABOVE     = float(options.get("BAT_PRICE_ABOVE",     min(buy_price) - 0.5))
     battery_penalty    = float(options.get("battery_penalty", 0))            # Kč / kWh discharged (degradation)
