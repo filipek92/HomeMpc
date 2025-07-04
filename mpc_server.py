@@ -42,7 +42,6 @@ def compute_and_cache():
     dt = [1.0] * len(data["hours"])  # předpokládáme hodinový krok
     remain_slot_part = data["hours"][1].astimezone(None) - datetime.now().astimezone(None)
     dt[0] = remain_slot_part.total_seconds() / 3600.0  # zbytek aktuálního slotu v hodinách
-    data["hours"][0] = data["hours"][1] - remain_slot_part # zajištění, že čas je v UTC
 
     solution = run_mpc_optimizer(
         {k: data[k] for k in series_keys},
