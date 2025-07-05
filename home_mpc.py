@@ -105,7 +105,7 @@ def run_mpc_optimizer(
     load_pred = series["load_pred"]
 
     soc_bat_init = clamp(initials["bat_soc"] / 100 * B_CAP, B_MIN, B_MAX)
-    soc_boiler_init = initials["boiler_E"]
+    soc_boiler_init = clamp(initials["boiler_E"], 0, H_CAP)
 
     prob = LpProblem("EnergyMPC", LpMinimize)
 

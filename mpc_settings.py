@@ -58,11 +58,12 @@ def settings():
         save_settings(current)
         return redirect('./')
     # Vykreslení formuláře s jednotkami a rozsahem
+    # Přidán sloupec Default
     form_html = """
     <h1>Nastavení MPC</h1>
-    <form method='post' style='max-width:400px;padding:1em;background:#f9f9f9;border-radius:8px;'>
+    <form method='post' style='max-width:600px;padding:1em;background:#f9f9f9;border-radius:8px;'>
     <table style='width:100%;border-collapse:collapse;'>
-    <tr><th style='text-align:left'>Parametr</th><th>Hodnota</th><th>Jednotka</th><th>Rozsah</th></tr>
+    <tr><th style='text-align:left'>Parametr</th><th>Hodnota</th><th>Default</th><th>Jednotka</th><th style='min-width:120px'>Rozsah</th></tr>
     """
     for key, meta in spec.items():
         val = current.get(key, meta.get("default", ""))
@@ -70,14 +71,15 @@ def settings():
         rng = meta.get("range", None)
         default = meta.get("default", False if meta["type"] == "bool" else 0.0 if meta["type"] == "float" else None)
         highlight = " style='background-color:#fff7c0'" if val != default else ""
+        default_disp = "ano" if (meta["type"] == "bool" and default) else ("ne" if meta["type"] == "bool" else default)
         if meta["type"] == "bool":
             checked = "checked" if val else ""
-            form_html += f"<tr{highlight}><td>{key}</td><td><input type='checkbox' name='{key}' {checked}></td><td>{unit}</td><td></td></tr>"
+            form_html += f"<tr{highlight}><td>{key}</td><td><input type='checkbox' name='{key}' {checked}></td><td>{default_disp}</td><td>{unit}</td><td></td></tr>"
         else:
             minval = f"min='{rng[0]}'" if rng and rng[0] is not None else ""
             maxval = f"max='{rng[1]}'" if rng and rng[1] is not None else ""
             step = "step='any'"
-            form_html += f"<tr{highlight}><td>{key}</td><td><input type='number' name='{key}' value='{val}' {minval} {maxval} {step}></td><td>{unit}</td><td>{rng if rng else ''}</td></tr>"
+            form_html += f"<tr{highlight}><td>{key}</td><td><input type='number' name='{key}' value='{val}' {minval} {maxval} {step}></td><td>{default_disp}</td><td>{unit}</td><td style='min-width:120px'>{rng if rng else ''}</td></tr>"
     form_html += """
     </table>
     <button type='submit' style='margin-top:1em'>Uložit</button>
