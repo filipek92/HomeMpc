@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.2] – 2025-07-05
+### Added
+- Changelog
+### Fixed
+- Defualt settins
+
 ## [1.4.1] – 2025-07-05
 ### Debug
 - Výpis nepoužité FVE energie do diagnostiky
