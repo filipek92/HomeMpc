@@ -37,6 +37,7 @@ VARIABLES_SPEC = {
         "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
         "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
         "battery_penalty":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
+        "fve_unused_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
     }
 }
 

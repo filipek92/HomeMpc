@@ -96,6 +96,7 @@ def run_mpc_optimizer(
     BAT_PRICE_BELOW = get_option(options, "BAT_PRICE_BELOW", context=context)
     BAT_PRICE_ABOVE = get_option(options, "BAT_PRICE_ABOVE", context=context)
     battery_penalty = get_option(options, "battery_penalty")
+    fve_unused_penalty = get_option(options, "fve_unused_penalty")
 
     tuv_demand = series["tuv_demand"]
     heating_demand = series["heating_demand"]
@@ -118,6 +119,7 @@ def run_mpc_optimizer(
     H_out = LpVariable.dicts("H_out", indexes, 0)
     G_buy = LpVariable.dicts("G_buy", indexes, 0)
     G_sell = LpVariable.dicts("G_sell", indexes, 0)
+    FVE_unused = LpVariable.dicts("FVE_unused", indexes, 0)
 
     threshold = BAT_THRESHOLD_PCT * B_CAP
     t_end = max(indexes)
@@ -130,7 +132,7 @@ def run_mpc_optimizer(
 
     prob += (
         lpSum(
-            (G_buy[t] * buy_price[t] - G_sell[t] * sell_price[t] + battery_penalty * B_discharge[t]) * dt[t]
+            (G_buy[t] * buy_price[t] - G_sell[t] * sell_price[t] + battery_penalty * B_discharge[t] + fve_unused_penalty * FVE_unused[t]) * dt[t]
             for t in indexes
         )
         - BAT_PRICE_ABOVE * B_surplus
@@ -141,7 +143,7 @@ def run_mpc_optimizer(
     for t in indexes:
         prob += (
             fve_pred[t] + G_buy[t] + B_discharge[t] * B_EFF_OUT ==
-            load_pred[t] + B_charge[t] / B_EFF_IN + H_in[t] + G_sell[t]
+            load_pred[t] + B_charge[t] / B_EFF_IN + H_in[t] + G_sell[t] + FVE_unused[t]
         )
         prob += H_in[t] <= H_POWER
         prob += G_buy[t] + B_charge[t] + H_in[t] <= GRID_LIMIT
@@ -198,6 +200,7 @@ def run_mpc_optimizer(
         "buy_cost": [G_buy[t].varValue * buy_price[t] for t in indexes],
         "sell_income": [G_sell[t].varValue * sell_price[t] for t in indexes],
         "net_step_cost": [G_buy[t].varValue * buy_price[t] - G_sell[t].varValue * sell_price[t] for t in indexes],
+        "FVE_unused": [FVE_unused[t].varValue for t in indexes],
     }
 
     results = {k: v[0] for k, v in outputs.items() if isinstance(v, list)}
