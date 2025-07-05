@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.3] – 2025-07-05
+### Added
+- report total charge/discharge bat
+
 ## [1.4.2] – 2025-07-05
 ### Added
 - Changelog
