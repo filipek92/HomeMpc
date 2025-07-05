@@ -28,7 +28,7 @@ VARIABLES_SPEC = {
         "B_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 9},
         "B_EFF_IN":        {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
         "B_EFF_OUT":       {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
-        "H_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 81.0},
+        "H_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 45.0},
         "H_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
         "GRID_LIMIT":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
         "INVERTER_LIMIT":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},

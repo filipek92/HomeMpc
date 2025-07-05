@@ -1,8 +1,15 @@
 from flask import Blueprint, request, redirect, url_for
 import json
 from options import VARIABLES_SPEC
+import os.path
 
-SETTINGS_FILE = "mpc_settings.json"
+if os.path.isdir("/data"):
+    # Pokud běží v Dockeru, použij /data pro uložení nastavení
+    SETTINGS_FILE = "/data/mpc_settings.json"
+else:
+    # Pokud běží lokálně, použij aktuální adresář
+    SETTINGS_FILE = "mpc_settings.json"
+
 settings_bp = Blueprint("settings_bp", __name__)
 
 def load_settings():
@@ -24,8 +31,17 @@ def load_settings():
     return settings
 
 def save_settings(settings):
+    # Uloží pouze hodnoty, které se liší od defaultu
+    from options import VARIABLES_SPEC
+    spec = VARIABLES_SPEC["options"]
+    to_save = {}
+    for key, meta in spec.items():
+        val = settings.get(key, None)
+        default = meta.get("default", False if meta["type"] == "bool" else 0.0 if meta["type"] == "float" else None)
+        if val != default:
+            to_save[key] = val
     with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=2)
+        json.dump(to_save, f, indent=2)
 
 @settings_bp.route("/settings", methods=["GET", "POST"])
 def settings():
