@@ -29,7 +29,7 @@ def settings():
                 if val:
                     current[key] = float(val)
         save_settings(current)
-        return redirect(url_for("settings_bp.settings"))
+        return redirect('./')
     # Vykreslení formuláře s jednotkami a rozsahem
     form_html = """
     <h1>Nastavení MPC</h1>
@@ -53,6 +53,6 @@ def settings():
     </table>
     <button type='submit' style='margin-top:1em'>Uložit</button>
     </form>
-    <a href='/'>Zpět</a>
+    <a href='./'>Zpět</a>
     """
     return form_html
