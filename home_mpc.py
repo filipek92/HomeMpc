@@ -56,6 +56,9 @@ from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatusOptimal
 
 from models.tank_losses import estimate_heating_losses
 
+def clamp(value, min_value, max_value):
+    """Omezí hodnotu na zadaný rozsah."""
+    return max(min_value, min(value, max_value))
 
 def run_mpc_optimizer(
     series: Mapping[str, Sequence[float]],
@@ -75,7 +78,7 @@ def run_mpc_optimizer(
 
     B_CAP = float(options.get("B_CAP", 17.4))
     B_MIN = float(options.get("B_MIN", B_CAP * 0.15))
-    B_MAX = float(options.get("B_MAX", B_CAP))
+    B_MAX = float(options.get("B_MAX", B_CAP * 1.00))
     B_POWER = float(options.get("B_POWER", 9))
     B_EFF_IN = float(options.get("B_EFF_IN", 0.94))
     B_EFF_OUT = float(options.get("B_EFF_OUT", 0.94))
@@ -93,7 +96,7 @@ def run_mpc_optimizer(
     sell_price = series["sell_price"]
     load_pred = series["load_pred"]
 
-    soc_bat_init = initials["bat_soc"] / 100 * B_CAP
+    soc_bat_init = clamp(initials["bat_soc"] / 100 * B_CAP, B_MIN, B_MAX)
     soc_boiler_init = initials["boiler_E"]
 
     final_boiler_price = float(options.get("final_boler_price", min(buy_price) - 0.5))
@@ -162,6 +165,14 @@ def run_mpc_optimizer(
                 H_SOC[t] == H_SOC[t - 1] + (H_in[t] - H_out[t] - loss) * dt[t]
             )
 
+    # Dynamické omezení SOC baterie podle plánu ohřevu nádrže
+    for t in indexes:
+        if heating_demand[t] > 0 or tuv_demand[t] > 0:
+            prob += B_SOC[t] <= B_CAP * 0.9
+        else:
+            prob += B_SOC[t] <= B_CAP
+        prob += B_SOC[t] >= B_MIN
+
     prob.solve()
 
     if prob.status != LpStatusOptimal:
@@ -172,7 +183,7 @@ def run_mpc_optimizer(
         "B_charge": [B_charge[t].varValue for t in indexes],
         "B_discharge": [B_discharge[t].varValue for t in indexes],
         "B_SOC": [B_SOC[t].varValue for t in indexes],
-        "B_SOC_percent": [int(100 * B_SOC[t].varValue / B_MAX) for t in indexes],
+        "B_SOC_percent": [int(100 * B_SOC[t].varValue / B_CAP) for t in indexes],
         "H_SOC": [H_SOC[t].varValue for t in indexes],
         "H_SOC_percent": [100 * H_SOC[t].varValue / H_CAP for t in indexes],
         "H_in": [H_in[t].varValue for t in indexes],
