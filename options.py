@@ -32,11 +32,11 @@ VARIABLES_SPEC = {
         "H_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
         "GRID_LIMIT":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
         "INVERTER_LIMIT":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},
-        "final_boler_price": {"type": "float", "unit": "Kč/kWh", "default": 0.0},
+        "final_boler_price": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
         "BAT_THRESHOLD_PCT": {"type": "float", "unit": "-", "range": [0, 1], "default": 0.40},
-        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
-        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
-        "battery_penalty":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
+        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh", "default": 1.0},
+        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh", "default": 0.5},
+        "battery_penalty":   {"type": "float", "unit": "Kč/kWh", "default": 1.0},
         "fve_unused_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
     }
 }
