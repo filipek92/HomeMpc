@@ -12,6 +12,14 @@ from flask_apscheduler import APScheduler
 import json
 import os
 
+ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
+
+if ENABLE_PUBLISH:
+    print("Publishing to Home Assistant is enabled.")
+else:
+    print("Publishing to Home Assistant is disabled. Set HA_ADDON environment variable to enable it.")
+
+
 app = Flask(__name__)
 
 RESULTS_FILE = "mpc_results_cache.json"
@@ -60,14 +68,15 @@ def compute_and_cache():
         "current_slot": solution["times"][0],
     }
 
-    publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES, extra)
+    if ENABLE_PUBLISH:
+        publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES, extra)
 
-    publish_to_ha({
-        "debug": extra["current_slot"]
-    }, "mpc_", {
-        "debug": meta
-    })
-
+        publish_to_ha({
+            "debug": extra["current_slot"]
+        }, "mpc_", {
+            "debug": meta
+        })
+    
     with open(RESULTS_FILE, "w") as f:
         json.dump(solution, f, indent=4)
 
