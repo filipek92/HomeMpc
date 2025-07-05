@@ -123,16 +123,52 @@ def index():
             <head>
                 <title>Optimalizace energie</title>
                 <meta charset="utf-8" />
+                <style>
+                    table { border-collapse: collapse; margin-bottom: 2em; }
+                    th, td { border: 1px solid #ccc; padding: 0.3em 0.7em; }
+                    th { background: #f0f0f0; }
+                </style>
             </head>
             <body style="background-color: #ffffff">
                 <h1>Vizualizace výsledků</h1>
                 {{ graph | safe }}
                 <h2>Actions</h2>
-                <pre>{{ solution["actions"] | tojson(indent=2) }}</pre>
+                {% set actions = solution["actions"] %}
+                {% if actions is string %}
+                  <pre>{{ actions }}</pre>
+                {% elif actions is mapping %}
+                  <table>
+                    <tr>{% for k in actions.keys() %}<th>{{ k }}</th>{% endfor %}</tr>
+                    <tr>{% for v in actions.values() %}<td>{{ v }}</td>{% endfor %}</tr>
+                  </table>
+                {% elif actions is iterable %}
+                  {% for action in actions %}
+                    {% if action is mapping %}
+                      <table>
+                        <tr>{% for k in action.keys() %}<th>{{ k }}</th>{% endfor %}</tr>
+                        <tr>{% for v in action.values() %}<td>{{ v }}</td>{% endfor %}</tr>
+                      </table>
+                    {% else %}
+                      <pre>{{ action }}</pre>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <pre>{{ actions }}</pre>
+                {% endif %}
                 <h2>Results</h2>
-                <pre>{{ solution["results"] | tojson(indent=2) }}</pre>
+                <table>
+                  <tr><th>Klíč</th><th>Hodnota</th></tr>
+                  {% for k, v in solution["results"].items() %}
+                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+                  {% endfor %}
+                </table>
                 <h2>Nastavnení <a href="settings">Edit</a></h2>
-                <pre>{{ solution["options"] | tojson(indent=2) }}</pre>
+                <table>
+                  <tr><th>Parametr</th><th>Hodnota</th></tr>
+                  {% for k, v in solution["options"].items() %}
+                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+                  {% endfor %}
+                </table>
                 <p>Data vygenerována: {{ generated_at }}</p>
                 <form action="./regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
