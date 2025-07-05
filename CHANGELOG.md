@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.0] – 2025-07-05
+### Added
+- Water bonus added
+
 ## [1.4.3] – 2025-07-05
 ### Added
 - report total charge/discharge bat

@@ -97,6 +97,7 @@ def run_mpc_optimizer(
     BAT_PRICE_ABOVE = get_option(options, "BAT_PRICE_ABOVE", context=context)
     battery_penalty = get_option(options, "battery_penalty")
     fve_unused_penalty = get_option(options, "fve_unused_penalty")
+    WATER_PRIORITY_BONUS = get_option(options, "WATER_PRIORITY_BONUS")
 
     tuv_demand = series["tuv_demand"]
     heating_demand = series["heating_demand"]
@@ -132,7 +133,8 @@ def run_mpc_optimizer(
 
     prob += (
         lpSum(
-            (G_buy[t] * buy_price[t] - G_sell[t] * sell_price[t] + battery_penalty * B_discharge[t] + fve_unused_penalty * FVE_unused[t]) * dt[t]
+            (G_buy[t] * buy_price[t] - G_sell[t] * sell_price[t] + battery_penalty * B_discharge[t] + fve_unused_penalty * FVE_unused[t]
+             - WATER_PRIORITY_BONUS * H_in[t]) * dt[t]  # zvýhodnění ohřevu vody
             for t in indexes
         )
         - BAT_PRICE_ABOVE * B_surplus
@@ -215,6 +217,7 @@ def run_mpc_optimizer(
     results["total_BAT_PRICE_BELOW"] = BAT_PRICE_BELOW * (threshold - (B_short.varValue if hasattr(B_short, 'varValue') else 0))
     results["total_final_boiler_value"] = final_boiler_price * (H_SOC[t_end].varValue if hasattr(H_SOC[t_end], 'varValue') else 0)
     results["total_fve_unused"] = sum(FVE_unused[t].varValue * dt[t] for t in indexes)
+    results["total_water_priority_bonus"] = sum(WATER_PRIORITY_BONUS * H_in[t].varValue * dt[t] for t in indexes)
     results["objective_value"] = prob.objective.value() if prob.objective is not None else None
 
     return {
