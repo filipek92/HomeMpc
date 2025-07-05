@@ -20,11 +20,11 @@ VARIABLES_SPEC = {
     },
     # Parametry a volby (options)
     "options": {
-        "heating_enabled": {"type": "bool"},
-        "charge_bat_min":  {"type": "bool"},
+        "heating_enabled": {"type": "bool", "default": False},
+        "charge_bat_min":  {"type": "bool", "default": False},
         "B_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4},
-        "B_MIN":           {"type": "float", "unit": "kWh", "range": [0, None]},
-        "B_MAX":           {"type": "float", "unit": "kWh", "range": [0, None]},
+        "B_MIN":           {"type": "float", "unit": "kWh", "range": [0, None]},  # default se neuvádí, vždy dopočítat
+        "B_MAX":           {"type": "float", "unit": "kWh", "range": [0, None]},  # default se neuvádí, vždy dopočítat
         "B_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 9},
         "B_EFF_IN":        {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
         "B_EFF_OUT":       {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
@@ -32,34 +32,38 @@ VARIABLES_SPEC = {
         "H_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
         "GRID_LIMIT":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
         "INVERTER_LIMIT":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},
-        "final_boler_price": {"type": "float", "unit": "Kč/kWh"},
+        "final_boler_price": {"type": "float", "unit": "Kč/kWh", "default": 0.0},
         "BAT_THRESHOLD_PCT": {"type": "float", "unit": "-", "range": [0, 1], "default": 0.40},
-        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh"},
-        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh"},
-        "battery_penalty":   {"type": "float", "unit": "Kč/kWh"},
+        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
+        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
+        "battery_penalty":   {"type": "float", "unit": "Kč/kWh", "default": 0.0},
     }
 }
 
 def get_option(options, key, spec=VARIABLES_SPEC["options"], context=None):
     """Vrací hodnotu z options, nebo default ze spec, případně dopočítá (např. B_MIN, B_MAX)."""
+    # Pro B_MIN a B_MAX ignoruj 0.0 a None a vždy dopočítej, pokud není v options kladná hodnota
+    if key in ("B_MIN", "B_MAX"):
+        val = options.get(key, None)
+        if val is not None and val > 0:
+            return val
+        if key == "B_MIN":
+            B_CAP = get_option(options, "B_CAP", spec)
+            return B_CAP * 0.15
+        if key == "B_MAX":
+            B_CAP = get_option(options, "B_CAP", spec)
+            return B_CAP * 1.0
     if key in options:
         return options[key]
-    meta = spec.get(key, {})
-    if "default" in meta:
-        return meta["default"]
-    # Odvozené hodnoty
-    if key == "B_MIN":
-        B_CAP = get_option(options, "B_CAP", spec)
-        return B_CAP * 0.15
-    if key == "B_MAX":
-        B_CAP = get_option(options, "B_CAP", spec)
-        return B_CAP * 1.0
     if key == "final_boler_price" and context and "buy_price" in context:
         return min(context["buy_price"]) - 0.5
     if key == "BAT_PRICE_BELOW" and context and "buy_price" in context:
         return min(context["buy_price"])
     if key == "BAT_PRICE_ABOVE" and context and "buy_price" in context:
         return min(context["buy_price"]) - 0.5
+    meta = spec.get(key, {})
+    if "default" in meta:
+        return meta["default"]
     # Výchozí pro bool/float
     if meta.get("type") == "bool":
         return False
