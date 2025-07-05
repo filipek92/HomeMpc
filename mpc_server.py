@@ -11,7 +11,7 @@ from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
 from actions import mpc_to_actions, ACTION_ATTRIBUTES
-from mpc_settings import settings_bp
+from mpc_settings import settings_bp, load_settings, save_settings
 
 ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
 
@@ -97,21 +97,6 @@ def load_cache():
         # If the file does not exist or is corrupted, return None
         print("Cache file not found or corrupted, recomputing...")
         return None
-
-# Načtení nastavení z JSON souboru
-
-def load_settings():
-    try:
-        with open(SETTINGS_FILE, "r") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError, ValueError):
-        return {}
-
-# Uložení nastavení do JSON souboru
-
-def save_settings(settings):
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=2)
 
 # --- Web routes -----------------------------------------------------------
 
