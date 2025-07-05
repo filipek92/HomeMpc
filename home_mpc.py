@@ -207,6 +207,8 @@ def run_mpc_optimizer(
     results["total_buy_cost"] = sum(outputs["buy_cost"])
     results["total_sell_income"] = sum(outputs["sell_income"])
     results["net_bilance"] = sum(outputs["net_step_cost"])
+    results["total_charged"] = sum(outputs["B_charge"])  # Total energy charged to the battery
+    results["total_discharged"] = sum(outputs["B_discharge"])  # Total energy discharged from the battery
     results["total_battery_penalty"] = sum(B_discharge[t].varValue * battery_penalty * dt[t] for t in indexes)
     results["total_fve_unused_penalty"] = sum(FVE_unused[t].varValue * fve_unused_penalty * dt[t] for t in indexes)
     results["total_BAT_PRICE_ABOVE"] = BAT_PRICE_ABOVE * (B_surplus.varValue if hasattr(B_surplus, 'varValue') else 0)
