@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-from flask import Flask, render_template_string, redirect, url_for
-from datetime import timedelta, datetime
-from home_mpc import run_mpc_optimizer
+import os
+import json
+from datetime import datetime, timedelta
+
+from flask import Flask, render_template_string, redirect, url_for, request
+from flask_apscheduler import APScheduler
+
+from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
 from actions import mpc_to_actions, ACTION_ATTRIBUTES
-
-from flask_apscheduler import APScheduler  
-
-import json
-import os
+from mpc_settings_web import settings_bp
 
 ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
 
@@ -23,6 +24,7 @@ else:
 app = Flask(__name__)
 
 RESULTS_FILE = "mpc_results_cache.json"
+SETTINGS_FILE = "mpc_settings.json"
 
 class Config:                                    # <-- nový blok
     # spustí miniaturní REST rozhraní na /scheduler (můžeš vypnout)
@@ -30,10 +32,13 @@ class Config:                                    # <-- nový blok
 
 app.config.from_object(Config())
 
+app.register_blueprint(settings_bp)
+
 # --- Výpočet a cache ------------------------------------------------------
 
 def compute_and_cache():
     data = prepare_data()
+    settings = load_settings()
 
     series_keys = [
         "tuv_demand",
@@ -55,7 +60,7 @@ def compute_and_cache():
         {k: data[k] for k in series_keys},
         {k: data[k] for k in initials_keys},
         data["hours"],
-        {},
+        settings,
         dt
     )
 
@@ -93,6 +98,21 @@ def load_cache():
         print("Cache file not found or corrupted, recomputing...")
         return None
 
+# Načtení nastavení z JSON souboru
+
+def load_settings():
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError):
+        return {}
+
+# Uložení nastavení do JSON souboru
+
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=2)
+
 # --- Web routes -----------------------------------------------------------
 
 @app.route("/regenerate", methods=["POST"])
@@ -126,7 +146,8 @@ def index():
                 <pre>{{ solution["actions"] | tojson(indent=2) }}</pre>
                 <h2>Results</h2>
                 <pre>{{ solution["results"] | tojson(indent=2) }}</pre>
-                <h2>Meta informace</h2>
+                <h2>Nastavnení <a href="settings">Edit</a></h2>
+                <pre>{{ solution["options"] | tojson(indent=2) }}</pre>
                 <p>Data vygenerována: {{ generated_at }}</p>
                 <form action="./regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
@@ -136,7 +157,6 @@ def index():
         """,
         graph=graph_html, generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S"), solution=solution
     )
-
 if __name__ == "__main__":
 
     # --- Scheduler -----------------------------------------------------------
@@ -154,3 +174,4 @@ if __name__ == "__main__":
     scheduler.start()
 
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "26781")), debug=True)
+

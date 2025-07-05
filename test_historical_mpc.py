@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
@@ -68,7 +70,7 @@ if __name__ == "__main__":
     else:
         start_dt = datetime.now() - timedelta(days=1)
     START_DATE = start_dt.strftime("%Y-%m-%d")
-    END_DATE = (start_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+    END_DATE = (start_dt + timedelta(days=2)).strftime("%Y-%m-%d")
 
     print(f"Stahuji historická data z OTE pro {START_DATE}...")
     hours, buy_price = fetch_ote_prices(START_DATE, END_DATE)

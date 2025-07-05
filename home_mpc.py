@@ -56,6 +56,43 @@ from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatusOptimal
 
 from models.tank_losses import estimate_heating_losses
 
+VARIABLES_SPEC = {
+    # Vstupní vektory (series)
+    "series": {
+        "tuv_demand":    {"type": "list[float]", "unit": "kWh", "range": [0, None]},
+        "heating_demand":{"type": "list[float]", "unit": "kWh", "range": [0, None]},
+        "fve_pred":      {"type": "list[float]", "unit": "kW",  "range": [0, None]},
+        "buy_price":     {"type": "list[float]", "unit": "Kč/kWh", "range": [0, None]},
+        "sell_price":    {"type": "list[float]", "unit": "Kč/kWh", "range": [0, None]},
+        "load_pred":     {"type": "list[float]", "unit": "kW",  "range": [0, None]},
+    },
+    # Počáteční stavy (initials)
+    "initials": {
+        "bat_soc":   {"type": "float", "unit": "%", "range": [0, 100]},
+        "boiler_E":  {"type": "float", "unit": "kWh", "range": [0, 81]},
+    },
+    # Parametry a volby (options)
+    "options": {
+        "heating_enabled": {"type": "bool"},
+        "charge_bat_min":  {"type": "bool"},
+        "B_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4},
+        "B_MIN":           {"type": "float", "unit": "kWh", "range": [0, None]},
+        "B_MAX":           {"type": "float", "unit": "kWh", "range": [0, None]},
+        "B_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 9},
+        "B_EFF_IN":        {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
+        "B_EFF_OUT":       {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
+        "H_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 81.0},
+        "H_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
+        "GRID_LIMIT":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
+        "INVERTER_LIMIT":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},
+        "final_boler_price": {"type": "float", "unit": "Kč/kWh"},
+        "BAT_THRESHOLD_PCT": {"type": "float", "unit": "-", "range": [0, 1], "default": 0.40},
+        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh"},
+        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh"},
+        "battery_penalty":   {"type": "float", "unit": "Kč/kWh"},
+    }
+}
+
 def clamp(value, min_value, max_value):
     """Omezí hodnotu na zadaný rozsah."""
     return max(min_value, min(value, max_value))
@@ -75,6 +112,7 @@ def run_mpc_optimizer(
         dt = [1.0] * len(hours)
 
     heating_enabled: bool = bool(options.get("heating_enabled", False))
+    charge_bat_min: bool = bool(options.get("charge_bat_min", False))
 
     B_CAP = float(options.get("B_CAP", 17.4))
     B_MIN = float(options.get("B_MIN", B_CAP * 0.15))
@@ -172,6 +210,9 @@ def run_mpc_optimizer(
         else:
             prob += B_SOC[t] <= B_CAP
         prob += B_SOC[t] >= B_MIN
+        # Pokud je baterie pod 60 %, neohříváme vodu
+        if charge_bat_min:
+            prob += H_in[t] <= H_POWER * (B_SOC[t] >= B_CAP * 0.6)
 
     prob.solve()
 
