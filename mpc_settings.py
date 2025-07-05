@@ -68,14 +68,16 @@ def settings():
         val = current.get(key, meta.get("default", ""))
         unit = meta.get("unit", "")
         rng = meta.get("range", None)
+        default = meta.get("default", False if meta["type"] == "bool" else 0.0 if meta["type"] == "float" else None)
+        highlight = " style='background-color:#fff7c0'" if val != default else ""
         if meta["type"] == "bool":
             checked = "checked" if val else ""
-            form_html += f"<tr><td>{key}</td><td><input type='checkbox' name='{key}' {checked}></td><td>{unit}</td><td></td></tr>"
+            form_html += f"<tr{highlight}><td>{key}</td><td><input type='checkbox' name='{key}' {checked}></td><td>{unit}</td><td></td></tr>"
         else:
             minval = f"min='{rng[0]}'" if rng and rng[0] is not None else ""
             maxval = f"max='{rng[1]}'" if rng and rng[1] is not None else ""
             step = "step='any'"
-            form_html += f"<tr><td>{key}</td><td><input type='number' name='{key}' value='{val}' {minval} {maxval} {step}></td><td>{unit}</td><td>{rng if rng else ''}</td></tr>"
+            form_html += f"<tr{highlight}><td>{key}</td><td><input type='number' name='{key}' value='{val}' {minval} {maxval} {step}></td><td>{unit}</td><td>{rng if rng else ''}</td></tr>"
     form_html += """
     </table>
     <button type='submit' style='margin-top:1em'>Uložit</button>
