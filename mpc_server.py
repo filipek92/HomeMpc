@@ -11,7 +11,7 @@ from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
 from actions import mpc_to_actions, ACTION_ATTRIBUTES
-from mpc_settings_web import settings_bp
+from mpc_settings import settings_bp
 
 ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
 
