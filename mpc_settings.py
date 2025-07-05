@@ -1,6 +1,6 @@
 from flask import Blueprint, request, redirect, url_for
 import json
-from home_mpc import VARIABLES_SPEC
+from options import VARIABLES_SPEC
 
 SETTINGS_FILE = "mpc_settings.json"
 settings_bp = Blueprint("settings_bp", __name__)
@@ -8,9 +8,20 @@ settings_bp = Blueprint("settings_bp", __name__)
 def load_settings():
     try:
         with open(SETTINGS_FILE, "r") as f:
-            return json.load(f)
+            settings = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
-        return {}
+        settings = {}
+    # Doplnění defaultních hodnot podle VARIABLES_SPEC["options"]
+    spec = VARIABLES_SPEC["options"]
+    for key, meta in spec.items():
+        if key not in settings:
+            if "default" in meta:
+                settings[key] = meta["default"]
+            elif meta["type"] == "bool":
+                settings[key] = False
+            elif meta["type"] == "float":
+                settings[key] = 0.0
+    return settings
 
 def save_settings(settings):
     with open(SETTINGS_FILE, "w") as f:

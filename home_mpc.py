@@ -55,43 +55,7 @@ from typing import Sequence, Mapping, Any, List, Dict
 from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatusOptimal
 
 from models.tank_losses import estimate_heating_losses
-
-VARIABLES_SPEC = {
-    # Vstupní vektory (series)
-    "series": {
-        "tuv_demand":    {"type": "list[float]", "unit": "kWh", "range": [0, None]},
-        "heating_demand":{"type": "list[float]", "unit": "kWh", "range": [0, None]},
-        "fve_pred":      {"type": "list[float]", "unit": "kW",  "range": [0, None]},
-        "buy_price":     {"type": "list[float]", "unit": "Kč/kWh", "range": [0, None]},
-        "sell_price":    {"type": "list[float]", "unit": "Kč/kWh", "range": [0, None]},
-        "load_pred":     {"type": "list[float]", "unit": "kW",  "range": [0, None]},
-    },
-    # Počáteční stavy (initials)
-    "initials": {
-        "bat_soc":   {"type": "float", "unit": "%", "range": [0, 100]},
-        "boiler_E":  {"type": "float", "unit": "kWh", "range": [0, 81]},
-    },
-    # Parametry a volby (options)
-    "options": {
-        "heating_enabled": {"type": "bool"},
-        "charge_bat_min":  {"type": "bool"},
-        "B_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4},
-        "B_MIN":           {"type": "float", "unit": "kWh", "range": [0, None]},
-        "B_MAX":           {"type": "float", "unit": "kWh", "range": [0, None]},
-        "B_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 9},
-        "B_EFF_IN":        {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
-        "B_EFF_OUT":       {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
-        "H_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 81.0},
-        "H_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
-        "GRID_LIMIT":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
-        "INVERTER_LIMIT":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},
-        "final_boler_price": {"type": "float", "unit": "Kč/kWh"},
-        "BAT_THRESHOLD_PCT": {"type": "float", "unit": "-", "range": [0, 1], "default": 0.40},
-        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh"},
-        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh"},
-        "battery_penalty":   {"type": "float", "unit": "Kč/kWh"},
-    }
-}
+from options import VARIABLES_SPEC, get_option
 
 def clamp(value, min_value, max_value):
     """Omezí hodnotu na zadaný rozsah."""
@@ -111,21 +75,27 @@ def run_mpc_optimizer(
     if dt is None:
         dt = [1.0] * len(hours)
 
-    heating_enabled: bool = bool(options.get("heating_enabled", False))
-    charge_bat_min: bool = bool(options.get("charge_bat_min", False))
+    # Kontext pro odvozené hodnoty
+    context = {}
+    context["buy_price"] = series["buy_price"]
 
-    B_CAP = float(options.get("B_CAP", 17.4))
-    B_MIN = float(options.get("B_MIN", B_CAP * 0.15))
-    B_MAX = float(options.get("B_MAX", B_CAP * 1.00))
-    B_POWER = float(options.get("B_POWER", 9))
-    B_EFF_IN = float(options.get("B_EFF_IN", 0.94))
-    B_EFF_OUT = float(options.get("B_EFF_OUT", 0.94))
-
-    H_CAP = float(options.get("H_CAP", 81.0))
-    H_POWER = float(options.get("H_POWER", 12))
-
-    GRID_LIMIT = float(options.get("GRID_LIMIT", 18))
-    INVERTER_LIMIT = float(options.get("INVERTER_LIMIT", 15))
+    heating_enabled = get_option(options, "heating_enabled")
+    charge_bat_min = get_option(options, "charge_bat_min")
+    B_CAP = get_option(options, "B_CAP")
+    B_MIN = get_option(options, "B_MIN", context=context)
+    B_MAX = get_option(options, "B_MAX", context=context)
+    B_POWER = get_option(options, "B_POWER")
+    B_EFF_IN = get_option(options, "B_EFF_IN")
+    B_EFF_OUT = get_option(options, "B_EFF_OUT")
+    H_CAP = get_option(options, "H_CAP")
+    H_POWER = get_option(options, "H_POWER")
+    GRID_LIMIT = get_option(options, "GRID_LIMIT")
+    INVERTER_LIMIT = get_option(options, "INVERTER_LIMIT")
+    final_boiler_price = get_option(options, "final_boler_price", context=context)
+    BAT_THRESHOLD_PCT = get_option(options, "BAT_THRESHOLD_PCT")
+    BAT_PRICE_BELOW = get_option(options, "BAT_PRICE_BELOW", context=context)
+    BAT_PRICE_ABOVE = get_option(options, "BAT_PRICE_ABOVE", context=context)
+    battery_penalty = get_option(options, "battery_penalty")
 
     tuv_demand = series["tuv_demand"]
     heating_demand = series["heating_demand"]
@@ -136,12 +106,6 @@ def run_mpc_optimizer(
 
     soc_bat_init = clamp(initials["bat_soc"] / 100 * B_CAP, B_MIN, B_MAX)
     soc_boiler_init = initials["boiler_E"]
-
-    final_boiler_price = float(options.get("final_boler_price", min(buy_price) - 0.5))
-    BAT_THRESHOLD_PCT = float(options.get("BAT_THRESHOLD_PCT", 0.40))
-    BAT_PRICE_BELOW = float(options.get("BAT_PRICE_BELOW", min(buy_price)))
-    BAT_PRICE_ABOVE = float(options.get("BAT_PRICE_ABOVE", min(buy_price) - 0.5))
-    battery_penalty = float(options.get("battery_penalty", 0))
 
     prob = LpProblem("EnergyMPC", LpMinimize)
 
@@ -231,19 +195,14 @@ def run_mpc_optimizer(
         "H_out": [H_out[t].varValue for t in indexes],
         "G_buy": [G_buy[t].varValue for t in indexes],
         "G_sell": [G_sell[t].varValue for t in indexes],
-        # Celková cena za nakoupenou energii
         "buy_cost": [G_buy[t].varValue * buy_price[t] for t in indexes],
-        # Celkový příjem za prodanou energii
         "sell_income": [G_sell[t].varValue * sell_price[t] for t in indexes],
-        # Průběh čistých nákladů v každém kroku
         "net_step_cost": [G_buy[t].varValue * buy_price[t] - G_sell[t].varValue * sell_price[t] for t in indexes],
     }
 
     results = {k: v[0] for k, v in outputs.items() if isinstance(v, list)}
-    # Přidání souhrnných hodnot i do results
     results["total_buy_cost"] = sum(outputs["buy_cost"])
     results["total_sell_income"] = sum(outputs["sell_income"])
-    # Přidání celkového součtu čistých nákladů
     results["net_bilance"] = sum(outputs["net_step_cost"])
 
     return {

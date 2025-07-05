@@ -53,8 +53,11 @@ def presentation(solution):
     steps = ["H_in", "H_out", "fve_pred", "load_pred"]
     bars = ["B_charge", "B_discharge", "G_buy", "G_sell"]
 
+    options = solution.get("options", {})
+    heating_enabled = options.get("heating_enabled", False)
+
     fig = make_subplots(
-        rows=4,
+        rows=4 if heating_enabled else 3,
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.04,
@@ -130,33 +133,34 @@ def presentation(solution):
         row=3,
         col=1,
     )
-
-    fig.add_trace(
-        go.Scatter(
-            x=times,
-            y=ts["heating_demand"],
-            name=labels["heating_demand"],
-            mode="lines",
-            marker_color=ha_color["heating_demand"],
-        ),
-        row=4,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=times,
-            y=ts["outdoor_temps"],
-            name=labels["outdoor_temps"],
-            mode="lines",
-            marker_color=ha_color["outdoor_temps"],
-        ),
-        row=4,
-        col=1,
-    )
+    if heating_enabled:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts["heating_demand"],
+                name=labels["heating_demand"],
+                mode="lines",
+                marker_color=ha_color["heating_demand"],
+            ),
+            row=4,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts["outdoor_temps"],
+                name=labels["outdoor_temps"],
+                mode="lines",
+                marker_color=ha_color["outdoor_temps"],
+            ),
+            row=4,
+            col=1,
+        )
 
     fig.update_yaxes(title_text="Energie [%]", row=1, col=1)
     fig.update_yaxes(title_text="Výkon [kW]", row=2, col=1)
     fig.update_yaxes(title_text="Cena [Kč/kWh]", row=3, col=1)
-    fig.update_yaxes(title_text="kWh, °C", row=4, col=1)
+    if heating_enabled:
+        fig.update_yaxes(title_text="kWh, °C", row=4, col=1)
 
     return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
