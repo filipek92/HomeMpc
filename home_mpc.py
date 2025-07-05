@@ -179,9 +179,20 @@ def run_mpc_optimizer(
         "H_out": [H_out[t].varValue for t in indexes],
         "G_buy": [G_buy[t].varValue for t in indexes],
         "G_sell": [G_sell[t].varValue for t in indexes],
+        # Celková cena za nakoupenou energii
+        "buy_cost": [G_buy[t].varValue * buy_price[t] for t in indexes],
+        # Celkový příjem za prodanou energii
+        "sell_income": [G_sell[t].varValue * sell_price[t] for t in indexes],
+        # Průběh čistých nákladů v každém kroku
+        "net_step_cost": [G_buy[t].varValue * buy_price[t] - G_sell[t].varValue * sell_price[t] for t in indexes],
     }
 
-    results = {k: v[0] for k, v in outputs.items()}
+    results = {k: v[0] for k, v in outputs.items() if isinstance(v, list)}
+    # Přidání souhrnných hodnot i do results
+    results["total_buy_cost"] = sum(outputs["buy_cost"])
+    results["total_sell_income"] = sum(outputs["sell_income"])
+    # Přidání celkového součtu čistých nákladů
+    results["net_bilance"] = sum(outputs["net_step_cost"])
 
     return {
         "generated_at": datetime.now().isoformat(),

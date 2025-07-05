@@ -68,6 +68,8 @@ def compute_and_cache():
         "current_slot": solution["times"][0],
     }
 
+    print("Solution results", json.dumps(solution["results"], indent=2))
+
     if ENABLE_PUBLISH:
         publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES, extra)
 
@@ -120,7 +122,11 @@ def index():
             <body style="background-color: #ffffff">
                 <h1>Vizualizace výsledků</h1>
                 {{ graph | safe }}
+                <h2>Actions</h2>
                 <pre>{{ solution["actions"] | tojson(indent=2) }}</pre>
+                <h2>Results</h2>
+                <pre>{{ solution["results"] | tojson(indent=2) }}</pre>
+                <h2>Meta informace</h2>
                 <p>Data vygenerována: {{ generated_at }}</p>
                 <form action="./regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
