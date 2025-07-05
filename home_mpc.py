@@ -207,6 +207,13 @@ def run_mpc_optimizer(
     results["total_buy_cost"] = sum(outputs["buy_cost"])
     results["total_sell_income"] = sum(outputs["sell_income"])
     results["net_bilance"] = sum(outputs["net_step_cost"])
+    results["total_battery_penalty"] = sum(B_discharge[t].varValue * battery_penalty * dt[t] for t in indexes)
+    results["total_fve_unused_penalty"] = sum(FVE_unused[t].varValue * fve_unused_penalty * dt[t] for t in indexes)
+    results["total_BAT_PRICE_ABOVE"] = BAT_PRICE_ABOVE * (B_surplus.varValue if hasattr(B_surplus, 'varValue') else 0)
+    results["total_BAT_PRICE_BELOW"] = BAT_PRICE_BELOW * (threshold - (B_short.varValue if hasattr(B_short, 'varValue') else 0))
+    results["total_final_boiler_value"] = final_boiler_price * (H_SOC[t_end].varValue if hasattr(H_SOC[t_end], 'varValue') else 0)
+    results["total_fve_unused"] = sum(FVE_unused[t].varValue * dt[t] for t in indexes)
+    results["objective_value"] = prob.objective.value() if prob.objective is not None else None
 
     return {
         "generated_at": datetime.now().isoformat(),
