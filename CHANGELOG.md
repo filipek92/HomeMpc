@@ -1,4 +1,9 @@
 
+## 1.7.1 - 2025-07-06
+Addon detection, autoreload
+- addon detection, autoreload
+
+
 ## 1.7.0 - 2025-07-06
 Schript for publishing
 - check git cleant
