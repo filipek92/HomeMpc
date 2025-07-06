@@ -123,6 +123,7 @@ def index():
             <head>
                 <title>Optimalizace energie</title>
                 <meta charset="utf-8" />
+                <meta http-equiv="refresh" content="300">
                 <style>
                     table { border-collapse: collapse; margin-bottom: 2em; }
                     th, td { border: 1px solid #ccc; padding: 0.3em 0.7em; }
@@ -180,19 +181,21 @@ def index():
     )
 if __name__ == "__main__":
 
-    # --- Scheduler -----------------------------------------------------------
-    scheduler = APScheduler()                        # <-- nový objekt
-    scheduler.init_app(app)
+    if os.environ.get("HA_ADDON"):
+        # pokud běží v Dockeru, použij přepočítávej pravielně model
 
-    # registrace úlohy – co 5 minut zavolej compute_and_cache()
-    scheduler.add_job(
-        id="mpc_refresh",
-        func=compute_and_cache,
-        trigger="interval",
-        minutes=5,
-    )
+        scheduler = APScheduler()                        # <-- nový objekt
+        scheduler.init_app(app)
 
-    scheduler.start()
+        # registrace úlohy – co 5 minut zavolej compute_and_cache()
+        scheduler.add_job(
+            id="mpc_refresh",
+            func=compute_and_cache,
+            trigger="interval",
+            minutes=5,
+        )
+
+        scheduler.start()
 
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "26781")), debug=True)
 
