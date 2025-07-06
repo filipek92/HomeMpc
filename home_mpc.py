@@ -122,6 +122,14 @@ def run_mpc_optimizer(
     G_sell = LpVariable.dicts("G_sell", indexes, 0)
     FVE_unused = LpVariable.dicts("FVE_unused", indexes, 0)
 
+    # Penalizace za SOC pod prahem v každém kroku
+    BAT_UNDER_PENALTY = get_option(options, "BAT_UNDER_PENALTY")
+    BAT_THRESHOLD = BAT_THRESHOLD_PCT * B_CAP
+    B_soc_under = LpVariable.dicts("B_soc_under", indexes, 0)
+    for t in indexes:
+        prob += B_soc_under[t] >= BAT_THRESHOLD - B_SOC[t]
+        prob += B_soc_under[t] >= 0
+
     threshold = BAT_THRESHOLD_PCT * B_CAP
     t_end = max(indexes)
     B_short = LpVariable("B_short", 0, threshold)
@@ -134,7 +142,7 @@ def run_mpc_optimizer(
     prob += (
         lpSum(
             (G_buy[t] * buy_price[t] - G_sell[t] * sell_price[t] + battery_penalty * B_discharge[t] + fve_unused_penalty * FVE_unused[t]
-             - WATER_PRIORITY_BONUS * H_in[t]) * dt[t]  # zvýhodnění ohřevu vody
+             - WATER_PRIORITY_BONUS * H_in[t] + BAT_UNDER_PENALTY * B_soc_under[t]) * dt[t]
             for t in indexes
         )
         - BAT_PRICE_ABOVE * B_surplus

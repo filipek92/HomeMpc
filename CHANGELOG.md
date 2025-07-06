@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.0] – 2025-07-06
+### Added
+- Penalty for bat under
+
 ## [1.5.0] – 2025-07-05
 ### Added
 - Water bonus added
