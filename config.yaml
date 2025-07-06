@@ -1,25 +1,25 @@
-name: MPC Optimizer
-version: "1.6.0"
-slug: mpc_optimizer
-description: Optimalizace energie s přístupem přes webové rozhraní
-startup: services
+arch:
+- amd64
+- aarch64
+- armv7
 boot: auto
-homeassistant_api: true
+description: "Optimalizace energie s p\u0159\xEDstupem p\u0159es webov\xE9 rozhran\xED"
 hassio_api: true
+homeassistant_api: true
 host_network: true
+icon: icon.png
 ingress: true
-ingress_port: 26781
 ingress_entry: /
+ingress_port: 26781
+name: MPC Optimizer
+options:
+  ha_url: http://homeassistant:8123
+  token: ''
 panel_icon: mdi:chart-areaspline
 panel_title: MPC Optimalizace
-icon: icon.png
-options:
-  token: ""                # výchozí prázdná hodnota
-  ha_url: "http://homeassistant:8123"
 schema:
-  token: str?
   ha_url: str?
-arch:
-  - amd64
-  - aarch64
-  - armv7
+  token: str?
+slug: mpc_optimizer
+startup: services
+version: 1.7.0

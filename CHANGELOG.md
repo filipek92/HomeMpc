@@ -1,3 +1,10 @@
+
+## 1.7.0 - 2025-07-06
+Schript for publishing
+- check git cleant
+- fix changelog
+- publish version script
+
 # Changelog
 
 ## [1.6.0] – 2025-07-06
