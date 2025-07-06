@@ -79,6 +79,12 @@ def main():
     last_tag = get_last_tag()
     commits = get_commits_since(last_tag)
 
+    # Kontrola čistoty pracovního adresáře
+    status = subprocess.check_output(['git', 'status', '--porcelain']).decode().strip()
+    if status:
+        print('Chyba: Pracovní adresář není čistý. Uložte nebo zahoďte změny před publikací verze.')
+        sys.exit(1)
+
     print('--- Shrnutí publikace verze ---')
     print(f'Stará verze: {old_version}')
     print(f'Nová verze: {new_version}')
