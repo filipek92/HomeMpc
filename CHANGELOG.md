@@ -1,4 +1,9 @@
 
+## 1.10.1 - 2025-07-07
+Fixes
+- fix: results dir existency
+
+
 ## 1.10.0 - 2025-07-07
 History solution view
 - version report in storage
