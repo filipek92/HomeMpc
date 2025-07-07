@@ -12,6 +12,7 @@ from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
 from actions import mpc_to_actions, ACTION_ATTRIBUTES
 from mpc_settings import settings_bp, load_settings, save_settings
+from publish_version import get_current_version
 
 ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
 
@@ -76,6 +77,8 @@ def compute_and_cache():
         settings,
         dt
     )
+    # Tag solution with current app version
+    solution["version"] = get_current_version()
 
     actions, meta = mpc_to_actions(solution)
 
@@ -116,8 +119,12 @@ def compute_and_cache():
 
     return solution
 
-def load_cache():
+def load_cache(filename=None):
     try:
+        if filename is None:
+            filename = LATEST_LINK
+        else:
+            filename = os.path.join(RESULTS_DIR, filename)
         with open(LATEST_LINK, "r") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
@@ -134,30 +141,29 @@ def regenerate():
 
 @app.route("/")
 def index():
-    # Load latest or cached solution
-    solution = load_cache()
-    if solution is None:
-        # If cache is empty or corrupted, compute and cache the results
-        solution = compute_and_cache()
-    # Prepare list of past results for comparison
-    compare_file = request.args.get('compare')
     # List result files in descending order (newest first)
     available_files = sorted(
         (f for f in os.listdir(RESULTS_DIR)
          if f.startswith('result_') and f.endswith('.json')),
         reverse=True
     )
-    compare_solution = None
-    if compare_file in available_files:
-        with open(os.path.join(RESULTS_DIR, compare_file), 'r') as cf:
-            compare_solution = json.load(cf)
+
+    compare_file = request.args.get('compare')
+    if not compare_file in available_files:
+
+        # Load latest or cached solution
+        solution = load_cache()
+        if solution is None:
+            # If cache is empty or corrupted, compute and cache the results
+            solution = compute_and_cache()
+        # Prepare list of past results for comparison
+
     else:
-        compare_file = None
+        solution = load_cache(compare_file)
 
     generated_at = datetime.fromisoformat(solution.get("generated_at"))
     # Generate graphs
     graph_html = presentation(solution)
-    compare_graph = presentation(compare_solution) if compare_solution else None
 
     return render_template_string(
         """
@@ -173,6 +179,9 @@ def index():
                 </style>
             </head>
             <body style="background-color: #ffffff">
+                <div style="position:absolute; top:10px; right:10px; font-size:0.9em; color:#666;">
+                  Verze: {{ solution["version"] }}
+                </div>
                 <!-- Selector for comparing older results -->
                 <form method="get" action="./">
                   <label for="compare">Porovnat s:</label>
@@ -184,12 +193,12 @@ def index():
                   </select>
                   <button type="submit">Zobrazit</button>
                 </form>
-                <h1>Vizualizace výsledků</h1>
-                {{ graph | safe }}
-                {% if compare_graph %}
-                  <h2>Porovnání s {{ compare_file }}</h2>
-                  {{ compare_graph | safe }}
+                {% if compare_file %}
+                <h1>Vizualizace výsledků {{compare_file}}</h1>
+                {% else %}
+                <h1>Vizualizace aktuálních výsledků</h1>
                 {% endif %}
+                {{ graph | safe }}
                 <h2>Actions</h2>
                 {% set actions = solution["actions"] %}
                 {% if actions is string %}
@@ -227,7 +236,11 @@ def index():
                     <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
                   {% endfor %}
                 </table>
+                {% if solution["version"] != version %}
+                <p>Data vygenerována: {{ generated_at }} (v{{ solution["version"] }})</p>
+                {% else %}
                 <p>Data vygenerována: {{ generated_at }}</p>
+                {% endif %}
                 <form action="./regenerate" method="post">
                     <button type="submit">Přegenerovat</button>
                 </form>
@@ -239,7 +252,7 @@ def index():
         solution=solution,
         available_files=available_files,
         compare_file=compare_file,
-        compare_graph=compare_graph
+        version=get_current_version(),
     )
 if __name__ == "__main__":
 
