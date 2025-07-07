@@ -36,9 +36,9 @@ else:
     # This is useful for development and testing.
     # Results will be stored in a "results" subdirectory.
     RESULTS_DIR = "results"
-
-
 LATEST_LINK = os.path.join(RESULTS_DIR, "latest")
+# Ensure results directory exists on startup
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 class Config:                                    # <-- nový blok
     # spustí miniaturní REST rozhraní na /scheduler (můžeš vypnout)
