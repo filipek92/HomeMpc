@@ -1,4 +1,9 @@
 
+## 1.10.2 - 2025-07-07
+Fixes
+- fix: datetime serialization
+
+
 ## 1.10.1 - 2025-07-07
 Fixes
 - fix: results dir existency
