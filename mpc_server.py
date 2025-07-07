@@ -24,9 +24,20 @@ else:
 app = Flask(__name__)
 
 # Directory for storing all optimization results and symlink to latest
-RESULTS_DIR = "results"
+if os.path.isdir("/data"):
+    # If running in Docker, use /data for storing results
+    # This allows persistent storage across container restarts
+    # and makes it accessible outside the container.
+
+    RESULTS_DIR = "/data/results"
+else:
+    # If running locally, use the current directory
+    # This is useful for development and testing.
+    # Results will be stored in a "results" subdirectory.
+    RESULTS_DIR = "results"
+
+
 LATEST_LINK = os.path.join(RESULTS_DIR, "latest")
-SETTINGS_FILE = "mpc_settings.json"
 
 class Config:                                    # <-- nový blok
     # spustí miniaturní REST rozhraní na /scheduler (můžeš vypnout)
