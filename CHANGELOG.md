@@ -1,4 +1,10 @@
 
+## 1.9.0 - 2025-07-07
+TStore results (data folder  if addon)
+- store in data folder if addon
+- store history of optim tasks
+
+
 ## 1.8.0 - 2025-07-07
 Tank value bonus at evening
 - tank value bonus
