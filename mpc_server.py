@@ -80,7 +80,7 @@ def compute_and_cache():
     # Tag solution with current app version
     solution["version"] = get_current_version()
 
-    actions, meta = mpc_to_actions(solution)
+    actions = mpc_to_actions(solution)
 
     solution["actions"] = actions
 
@@ -98,7 +98,7 @@ def compute_and_cache():
         publish_to_ha({
             "debug": extra["current_slot"]
         }, "mpc_", {
-            "debug": meta
+            "debug": solution["results"]
         })
     
     # Ensure results directory exists

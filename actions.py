@@ -45,7 +45,10 @@ def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
     feed_in_pv   = max(0.0, fve - load)
     extra_export = Gsell - feed_in_pv
 
-    if Bdis > P_MAN_DIS and extra_export > P_EXTRA_EXP:
+    # Pokud je baterie plná na 100 %, necháme Back Up Mode, export se provede i v tomto režimu
+    if B_SOC >= 100:
+        charger_use_mode = "Back Up Mode"
+    elif Bdis > P_MAN_DIS and extra_export > P_EXTRA_EXP:
         charger_use_mode = "Manual Mode"
     elif Gsell > 0.1:
         charger_use_mode = "Feedin Priority"
@@ -78,25 +81,14 @@ def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
     battery_power = max(scaled_pwr_w, -BATTERY_POWER_MAX)
     battery_current = round(-battery_power / DC_BUS_V, 2)
 
-    return [{
+    return {
             "charger_use_mode":        charger_use_mode,
             "acumulation_on":          acumulation_on,
             "max_heat_on":             max_heat_on,
             "battery_power":           battery_power,
             "battery_discharge_current": battery_current,
             "battery_target":          B_SOC,
-        },
-        {
-            "heater_power": out["H_in"][0],
-            "grid_export": out["G_sell"][0],
-            "grid_import": out["G_buy"][0],
-            "battery_charge": out["B_charge"][0],
-            "battery_discharge": out["B_discharge"][0],
-            "tuv_soc_target_pct": out.get("H_SOC_percent", [None])[0],
-            "load_forecast": sol["inputs"]["load_pred"][0],
-            "tuv_demand": sol["inputs"]["tuv_demand"][0],
-            "heating_demand": sol["inputs"]["heating_demand"][0],
-        }]
+        }
 
 ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
     "charger_use_mode": {
