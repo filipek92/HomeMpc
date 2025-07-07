@@ -1,4 +1,9 @@
 
+## 1.10.5 - 2025-07-07
+Parasitic charging
+- feat: parasitic energy storage
+
+
 ## 1.10.4 - 2025-07-07
 Resultst into meta
 - publish all results into mpc_debug
