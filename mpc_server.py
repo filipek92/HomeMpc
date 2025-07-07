@@ -87,7 +87,7 @@ def compute_and_cache():
     extra = {
         "generated_at": solution["generated_at"],
         # parse the first timestamp string back to datetime for further use
-        "current_slot": datetime.fromisoformat(solution["times"][0]),
+        "current_slot": solution["times"][0],
     }
 
     print("Solution results", json.dumps(solution["results"], indent=2))
