@@ -23,7 +23,9 @@ else:
 
 app = Flask(__name__)
 
-RESULTS_FILE = "mpc_results_cache.json"
+# Directory for storing all optimization results and symlink to latest
+RESULTS_DIR = "results"
+LATEST_LINK = os.path.join(RESULTS_DIR, "latest")
 SETTINGS_FILE = "mpc_settings.json"
 
 class Config:                                    # <-- nový blok
@@ -70,7 +72,8 @@ def compute_and_cache():
 
     extra = {
         "generated_at": solution["generated_at"],
-        "current_slot": solution["times"][0],
+        # parse the first timestamp string back to datetime for further use
+        "current_slot": datetime.fromisoformat(solution["times"][0]),
     }
 
     print("Solution results", json.dumps(solution["results"], indent=2))
@@ -84,14 +87,27 @@ def compute_and_cache():
             "debug": meta
         })
     
-    with open(RESULTS_FILE, "w") as f:
+    # Ensure results directory exists
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    # Save the solution to a timestamped file using current time
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    result_file = os.path.join(RESULTS_DIR, f"result_{timestamp}.json")
+    # Use absolute path for symlink target to avoid relative resolution issues
+    abs_result_file = os.path.abspath(result_file)
+    with open(result_file, "w") as f:
         json.dump(solution, f, indent=4)
+
+    # Update the latest symlink
+    if os.path.islink(LATEST_LINK) or os.path.exists(LATEST_LINK):
+        os.remove(LATEST_LINK)
+    os.symlink(abs_result_file, LATEST_LINK)
 
     return solution
 
 def load_cache():
     try:
-        with open(RESULTS_FILE, "r") as f:
+        with open(LATEST_LINK, "r") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
         # If the file does not exist or is corrupted, return None
@@ -107,15 +123,30 @@ def regenerate():
 
 @app.route("/")
 def index():
+    # Load latest or cached solution
     solution = load_cache()
     if solution is None:
         # If cache is empty or corrupted, compute and cache the results
         solution = compute_and_cache()
+    # Prepare list of past results for comparison
+    compare_file = request.args.get('compare')
+    # List result files in descending order (newest first)
+    available_files = sorted(
+        (f for f in os.listdir(RESULTS_DIR)
+         if f.startswith('result_') and f.endswith('.json')),
+        reverse=True
+    )
+    compare_solution = None
+    if compare_file in available_files:
+        with open(os.path.join(RESULTS_DIR, compare_file), 'r') as cf:
+            compare_solution = json.load(cf)
+    else:
+        compare_file = None
 
     generated_at = datetime.fromisoformat(solution.get("generated_at"))
-    
-
+    # Generate graphs
     graph_html = presentation(solution)
+    compare_graph = presentation(compare_solution) if compare_solution else None
 
     return render_template_string(
         """
@@ -131,8 +162,23 @@ def index():
                 </style>
             </head>
             <body style="background-color: #ffffff">
+                <!-- Selector for comparing older results -->
+                <form method="get" action="./">
+                  <label for="compare">Porovnat s:</label>
+                  <select name="compare" id="compare">
+                    <option value="">Aktuální (latest)</option>
+                    {% for f in available_files %}
+                      <option value="{{ f }}" {% if f==compare_file %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit">Zobrazit</button>
+                </form>
                 <h1>Vizualizace výsledků</h1>
                 {{ graph | safe }}
+                {% if compare_graph %}
+                  <h2>Porovnání s {{ compare_file }}</h2>
+                  {{ compare_graph | safe }}
+                {% endif %}
                 <h2>Actions</h2>
                 {% set actions = solution["actions"] %}
                 {% if actions is string %}
@@ -177,7 +223,12 @@ def index():
             </body>
         </html>
         """,
-        graph=graph_html, generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S"), solution=solution
+        graph=graph_html,
+        generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S"),
+        solution=solution,
+        available_files=available_files,
+        compare_file=compare_file,
+        compare_graph=compare_graph
     )
 if __name__ == "__main__":
 
