@@ -166,6 +166,15 @@ def run_mpc_optimizer(
         prob += B_discharge[t] + H_in[t] + G_sell[t] <= INVERTER_LIMIT
         prob += H_out[t] == tuv_demand[t] + (heating_demand[t] if heating_enabled else 0)
 
+        # Parametr pro parazitní ztráty při ohřevu vody (default 0.05 = 5 %)
+        PARASITIC_WATER_HEATING = get_option(options, "PARASITIC_WATER_HEATING")
+        # Parazitní energie při ohřevu vody (nastavitelný parametr)
+        parasitic_energy = PARASITIC_WATER_HEATING * H_in[t]
+        # Tato energie se musí dodat z FVE nebo sítě (tj. navýší H_in)
+        prob += (
+            fve_pred[t] + G_buy[t] + B_discharge[t] * B_EFF_OUT ==
+            load_pred[t] + B_charge[t] / B_EFF_IN + (H_in[t] + parasitic_energy) + G_sell[t] + FVE_unused[t]
+        )
         loss = estimate_heating_losses(
             (H_SOC[t - 1] if t > 0 else soc_boiler_init), H_CAP, T_ambient=20, cirk_time=0.3
         )
@@ -235,6 +244,23 @@ def run_mpc_optimizer(
     results["total_battery_under_penalty"] = sum(B_soc_under[t].varValue * BAT_UNDER_PENALTY * dt[t] for t in indexes)
     results["tank_value_bonus"] = sum(H_SOC[t].varValue * tank_value_bonus for t in tank_value_indexes)
     results["objective_value"] = prob.objective.value() if prob.objective is not None else None
+
+    # Výpočet celkové parazitní energie při ohřevu vody a její rozdělení podle SOC baterie (ex-post)
+    total_parasitic_energy = 0.0
+    total_parasitic_to_battery = 0.0
+    total_parasitic_to_grid = 0.0
+    for t in indexes:
+        PARASITIC_WATER_HEATING = get_option(options, "PARASITIC_WATER_HEATING")
+        pe = PARASITIC_WATER_HEATING * outputs["H_in"][t] * dt[t]
+        total_parasitic_energy += pe
+        # Rozdělení podle skutečného SOC baterie
+        if outputs["B_SOC"][t] < B_CAP:
+            total_parasitic_to_battery += pe
+        else:
+            total_parasitic_to_grid += pe
+    results["total_parasitic_energy"] = total_parasitic_energy
+    results["total_parasitic_to_battery"] = total_parasitic_to_battery
+    results["total_parasitic_to_grid"] = total_parasitic_to_grid
 
     return {
         "generated_at": datetime.now().isoformat(),

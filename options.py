@@ -43,6 +43,7 @@ VARIABLES_SPEC = {
         # Přidáno pro ocenění energie v nádrži v konkrétní hodinu
         "tank_value_hour": {"type": "int", "unit": "hodina", "default": 18, "desc": "Hodina dne, kdy se oceňuje energie v nádrži"},
         "tank_value_bonus": {"type": "float", "unit": "Kč/kWh", "default": 1.0, "desc": "Odměna za energii v nádrži v danou hodinu"},
+        "PARASITIC_WATER_HEATING": {"type": "float", "unit": "-", "default": 0.05, "desc": "Podíl parazitní energie při ohřevu vody"},
     }
 }
 
