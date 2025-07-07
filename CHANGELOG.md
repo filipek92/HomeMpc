@@ -1,4 +1,10 @@
 
+## 1.8.0 - 2025-07-07
+Tank value bonus at evening
+- tank value bonus
+- change scheduler
+
+
 ## 1.7.1 - 2025-07-06
 Addon detection, autoreload
 - addon detection, autoreload
