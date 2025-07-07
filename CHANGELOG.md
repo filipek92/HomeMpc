@@ -1,4 +1,9 @@
 
+## 1.10.0 - 2025-07-07
+History solution view
+- version report in storage
+
+
 ## 1.9.0 - 2025-07-07
 TStore results (data folder  if addon)
 - store in data folder if addon
