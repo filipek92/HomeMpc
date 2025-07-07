@@ -1,4 +1,9 @@
 
+## 1.10.4 - 2025-07-07
+Resultst into meta
+- publish all results into mpc_debug
+
+
 ## 1.10.3 - 2025-07-07
 Fixes
 - split date and time
