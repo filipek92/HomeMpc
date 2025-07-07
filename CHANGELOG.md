@@ -1,4 +1,9 @@
 
+## 1.10.3 - 2025-07-07
+Fixes
+- split date and time
+
+
 ## 1.10.2 - 2025-07-07
 Fixes
 - fix: datetime serialization
