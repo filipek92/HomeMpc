@@ -40,6 +40,9 @@ VARIABLES_SPEC = {
         "fve_unused_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
         "WATER_PRIORITY_BONUS": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
         "BAT_UNDER_PENALTY": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
+        # Přidáno pro ocenění energie v nádrži v konkrétní hodinu
+        "tank_value_hour": {"type": "int", "unit": "hodina", "default": 18, "desc": "Hodina dne, kdy se oceňuje energie v nádrži"},
+        "tank_value_bonus": {"type": "float", "unit": "Kč/kWh", "default": 1.0, "desc": "Odměna za energii v nádrži v danou hodinu"},
     }
 }
 

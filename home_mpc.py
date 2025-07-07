@@ -139,6 +139,11 @@ def run_mpc_optimizer(
     for t in indexes:
         prob += B_power[t] == B_charge[t] - B_discharge[t]
 
+    # Parametry pro ocenění energie v nádrži v konkrétní hodinu
+    tank_value_hour = get_option(options, "tank_value_hour")
+    tank_value_bonus = get_option(options, "tank_value_bonus")  # Kč/kWh
+    tank_value_indexes = [i for i, h in enumerate(hours) if h.hour == tank_value_hour]
+
     prob += (
         lpSum(
             (G_buy[t] * buy_price[t] - G_sell[t] * sell_price[t] + battery_penalty * B_discharge[t] + fve_unused_penalty * FVE_unused[t]
@@ -148,6 +153,7 @@ def run_mpc_optimizer(
         - BAT_PRICE_ABOVE * B_surplus
         + BAT_PRICE_BELOW * (threshold - B_short)
         - final_boiler_price * H_SOC[t_end]
+        - tank_value_bonus * lpSum(H_SOC[t] for t in tank_value_indexes)
     )
 
     for t in indexes:
@@ -226,6 +232,8 @@ def run_mpc_optimizer(
     results["total_final_boiler_value"] = final_boiler_price * (H_SOC[t_end].varValue if hasattr(H_SOC[t_end], 'varValue') else 0)
     results["total_fve_unused"] = sum(FVE_unused[t].varValue * dt[t] for t in indexes)
     results["total_water_priority_bonus"] = sum(WATER_PRIORITY_BONUS * H_in[t].varValue * dt[t] for t in indexes)
+    results["total_battery_under_penalty"] = sum(B_soc_under[t].varValue * BAT_UNDER_PENALTY * dt[t] for t in indexes)
+    results["tank_value_bonus"] = sum(H_SOC[t].varValue * tank_value_bonus for t in tank_value_indexes)
     results["objective_value"] = prob.objective.value() if prob.objective is not None else None
 
     return {
