@@ -187,12 +187,12 @@ if __name__ == "__main__":
         scheduler = APScheduler()                        # <-- nový objekt
         scheduler.init_app(app)
 
-        # registrace úlohy – co 5 minut zavolej compute_and_cache()
+        # registrace úlohy – každých 5 minut v celou (00, 05, 10, ...)
         scheduler.add_job(
             id="mpc_refresh",
             func=compute_and_cache,
-            trigger="interval",
-            minutes=5,
+            trigger="cron",
+            minute="*/5",
         )
 
         scheduler.start()
