@@ -1,4 +1,9 @@
 
+## 1.11.1 - 2025-07-08
+Přidá state template, failsafe migrace
+- Přidá state template, failsafe migrace
+
+
 ## 1.11.0 - 2025-07-08
 Refactor variable names to convention
 - message is optional
