@@ -31,7 +31,7 @@ P_HIN_GRID  = 11.0
 # ---------------------------------------------------------------------------
 def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
     out   = sol["outputs"]  # outputs now use lower_snake_case keys
-    Hin   = out["h_in"][0]
+    Hin   = out["h_in_lower"][0] + out["h_in_upper"][0]
     Gsell = out["g_sell"][0]
     Gbuy  = out["g_buy"][0]
     Bdis  = out["b_discharge"][0]

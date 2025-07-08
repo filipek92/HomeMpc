@@ -90,6 +90,13 @@ def prepare_data():
     bat_soc = get_entity(states, "sensor.solax_battery_capacity", 50)
     boiler_E = get_entity(states, "sensor.tepelnaakumulace_energie_n_dr_e", 25.0)
 
+    boiler_top = get_entity(states, "sensor.tepelnaakumulace_horn_senzor", 45.0)
+    boiler_middle = get_entity(states, "sensor.tepelnaakumulace_st_edn_senzor", 45.0)
+    boiler_bottom = get_entity(states, "sensor.tepelnaakumulace_spodn_senzor", 30.0)
+
+    temp_upper = boiler_top * 0.5 + boiler_middle * 0.5
+    temp_lower = boiler_middle * 0.25 + boiler_bottom * 0.75
+
     tuv_demand = [get_tuv_demand(h) for h in hours]
     heating_demand = [get_estimate_heating_losses(t) for t in outdoor_temps]
     lod_pred = [get_electricity_load(h) for h in hours]
@@ -105,6 +112,8 @@ def prepare_data():
         "bat_soc": bat_soc,
         "boiler_E": boiler_E,
         "outdoor_temps": outdoor_temps,
+        "temp_upper": temp_upper,
+        "temp_lower": temp_lower,
     }
 
 def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = None, extra = None) -> None:

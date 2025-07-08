@@ -68,6 +68,24 @@ def clamp(value, min_value, max_value):
     """Omezí hodnotu na zadaný rozsah."""
     return max(min_value, min(value, max_value))
 
+def temp_to_energy(temp: float, volume: float, ref_temp: float) -> float:
+    """Převádí teplotu vody na energii v kWh.
+
+    Voda má tepelnou kapacitu přibližně 4.181 kJ/(kg·K) a hustotu 1000 kg/m³.
+    """
+    # Přepočet teploty na energii (kWh)
+    # Zahrnutí hustoty vody 1000 kg/m³
+    return (temp - ref_temp) * volume * 1000 * 4.181 / 3600  # Převod z kJ na kWh
+
+def energy_to_temp(energy: float, volume: float, ref_temp: float) -> float:
+    """Převádí energii v kWh na teplotu vody.
+
+    Voda má tepelnou kapacitu přibližně 4.181 kJ/(kg·K) a hustotu 1000 kg/m³.
+    """
+    # Přepočet energie na teplotu (°C)
+    # Zahrnutí hustoty vody 1000 kg/m³
+    return energy * 3600 / (volume * 1000 * 4.181) + ref_temp  # Převod z kWh na °C
+
 def run_mpc_optimizer(
     series: Mapping[str, Sequence[float]],
     initials: Mapping[str, float],
@@ -96,8 +114,6 @@ def run_mpc_optimizer(
     b_power_max = get_option(options, "b_power")
     b_eff_in = get_option(options, "b_eff_in")
     b_eff_out = get_option(options, "b_eff_out")
-    h_cap = get_option(options, "h_cap")
-    h_power_max = get_option(options, "h_power")
     grid_limit = get_option(options, "grid_limit")
     inverter_limit = get_option(options, "inverter_limit")
     final_boiler_price = get_option(options, "final_boiler_price", context=context)
@@ -107,6 +123,19 @@ def run_mpc_optimizer(
     battery_penalty = get_option(options, "battery_penalty")
     fve_unused_penalty = get_option(options, "fve_unused_penalty")
     water_priority_bonus = get_option(options, "water_priority_bonus")
+    water_priority_bonus = get_option(options, "water_priority_bonus")
+    water_priority_bonus = get_option(options, "water_priority_bonus")
+
+    h_lower_min_t = get_option(options, "h_lower_min_t", context={})  # minimální teplota dolní zóny [°C]
+    h_lower_max_t = get_option(options, "h_lower_max_t", context={})  # maximální teplota dolní zóny [°C]
+    h_upper_min_t = get_option(options, "h_upper_min_t", context={})  # minimální teplota horní zóny [°C]
+    h_upper_max_t = get_option(options, "h_upper_max_t", context={})  # maximální teplota horní zóny [°C]
+
+    h_upper_vol = get_option(options, "h_upper_vol", context={})  # objem horní zóny [m³]
+    h_lower_vol = get_option(options, "h_lower_vol", context={})  # objem dolní zóny [m³]
+
+    h_lower_cap = temp_to_energy(h_lower_max_t, h_lower_vol, h_lower_min_t)  # kapacita dolní zóny [kWh]
+    h_upper_cap = temp_to_energy(h_upper_max_t, h_upper_vol, h_upper_min_t)  # kapacita horní zóny [kWh]
 
     tuv_demand = series["tuv_demand"]
     heating_demand = series["heating_demand"]
@@ -116,7 +145,10 @@ def run_mpc_optimizer(
     load_pred = series["load_pred"]
 
     soc_bat_init = clamp(initials["bat_soc"] / 100 * b_cap, b_min, b_max)
-    soc_boiler_init = clamp(initials["boiler_E"], 0, h_cap)
+    soc_lower_init = clamp(temp_to_energy(initials["temp_lower"], h_lower_vol, h_lower_min_t), 0, h_lower_cap)   # 700L zóna
+    soc_upper_init = clamp(temp_to_energy(initials["temp_upper"], h_upper_vol, h_upper_min_t), 0, h_upper_cap)   # 300L zóna
+    debug(f"soc_bat_init={soc_bat_init}, soc_lower_init={soc_lower_init}, soc_upper_init={soc_upper_init}")
+    debug(f"h_lower_cap={h_lower_cap}, h_upper_cap={h_upper_cap}, h_lower_vol={h_lower_vol}, h_upper_vol={h_upper_vol}")
 
     prob = LpProblem("EnergyMPC", LpMinimize)
 
@@ -125,9 +157,19 @@ def run_mpc_optimizer(
     b_soc = LpVariable.dicts("b_soc", indexes, b_min, b_max)
     b_charge = LpVariable.dicts("b_charge", indexes, 0, b_power_max)
     b_discharge = LpVariable.dicts("b_discharge", indexes, 0, b_power_max)
-    h_in = LpVariable.dicts("h_in", indexes, 0, h_power_max)
-    h_soc = LpVariable.dicts("h_soc", indexes, 0, h_cap)
-    h_out = LpVariable.dicts("h_out", indexes, 0)
+    # Dvou-zónový model nádrže: dolní (700L, 8kW) a horní (300L, 4kW)
+    h_lower_power = get_option(options, "h_lower_power", context={})  # 8
+    h_upper_power = get_option(options, "h_upper_power", context={})  # 4
+    h_in_lower = LpVariable.dicts("h_in_lower", indexes, 0, h_lower_power)
+    h_in_upper = LpVariable.dicts("h_in_upper", indexes, 0, h_upper_power)
+    h_soc_lower = LpVariable.dicts("h_soc_lower", indexes, 0, h_lower_cap)
+    h_soc_upper = LpVariable.dicts("h_soc_upper", indexes, 0, h_upper_cap)
+    h_out_lower = LpVariable.dicts("h_out_lower", indexes, 0)
+    h_out_upper = LpVariable.dicts("h_out_upper", indexes, 0)
+    # Přenos tepla z dolní do horní zóny
+    h_to_upper = LpVariable.dicts("h_to_upper", indexes, 0)
+
+    # Definice proměnných pro nákup, prodej a nevyužitou PV
     g_buy = LpVariable.dicts("g_buy", indexes, 0)
     g_sell = LpVariable.dicts("g_sell", indexes, 0)
     fve_unused = LpVariable.dicts("fve_unused", indexes, 0)
@@ -156,53 +198,68 @@ def run_mpc_optimizer(
 
     prob += (
         lpSum(
-            (g_buy[t] * buy_price[t] - g_sell[t] * sell_price[t] + battery_penalty * b_discharge[t] + fve_unused_penalty * fve_unused[t]
-             - water_priority_bonus * h_in[t] + bat_under_penalty * b_soc_under[t]) * dt[t]
+            (g_buy[t] * buy_price[t]
+             - g_sell[t] * sell_price[t]
+             + battery_penalty * b_discharge[t]
+             + fve_unused_penalty * fve_unused[t]
+             - water_priority_bonus * (h_in_lower[t] + h_in_upper[t])
+             + bat_under_penalty * b_soc_under[t]) * dt[t]
             for t in indexes
         )
         - bat_price_above * b_surplus
         + bat_price_below * (threshold - b_short)
-        - final_boiler_price * h_soc[t_end]
-        - tank_value_bonus * lpSum(h_soc[t] for t in tank_value_indexes)
+        - final_boiler_price * (h_soc_lower[t_end] + h_soc_upper[t_end])
+        - tank_value_bonus * lpSum(h_soc_lower[t] + h_soc_upper[t] for t in tank_value_indexes)
     )
 
+    # Unified two-zone boiler constraints
     for t in indexes:
-        prob += (
-            fve_pred[t] + g_buy[t] + b_discharge[t] * b_eff_out ==
-            load_pred[t] + b_charge[t] / b_eff_in + h_in[t] + g_sell[t] + fve_unused[t]
-        )
-        prob += h_in[t] <= h_power_max
-        prob += g_buy[t] + b_charge[t] + h_in[t] <= grid_limit
-        prob += b_discharge[t] + h_in[t] + g_sell[t] <= inverter_limit
-        prob += h_out[t] == tuv_demand[t] + (heating_demand[t] if heating_enabled else 0)
+        # Battery SOC dynamics
+        if t == 0:
+            prob += b_soc[t] == soc_bat_init + (b_charge[t] * b_eff_in - b_discharge[t] / b_eff_out) * dt[t]
+        else:
+            prob += b_soc[t] == b_soc[t-1] + (b_charge[t] * b_eff_in - b_discharge[t] / b_eff_out) * dt[t]
 
-        # Parametr pro parazitní ztráty při ohřevu vody (default 0.05 = 5 %)
+        # Outputs from boiler zones
+        prob += h_out_upper[t] == tuv_demand[t]
+        prob += h_out_lower[t] == (heating_demand[t] if heating_enabled else 0)
+
+        # Parazitní ztráty nyní z obou patron
         parasitic_water_heating = get_option(options, "parasitic_water_heating")
-        # Parazitní energie při ohřevu vody (nastavitelný parametr)
-        parasitic_energy = parasitic_water_heating * h_in[t]
-        # Tato energie se musí dodat z FVE nebo sítě (tj. navýší H_in)
+        parasitic_energy = parasitic_water_heating * (h_in_lower[t] + h_in_upper[t])
+
+        # Energetická bilance s oběma patronami
         prob += (
             fve_pred[t] + g_buy[t] + b_discharge[t] * b_eff_out ==
-            load_pred[t] + b_charge[t] / b_eff_in + (h_in[t] + parasitic_energy) + g_sell[t] + fve_unused[t]
+            load_pred[t] + b_charge[t] / b_eff_in + (h_in_lower[t] + h_in_upper[t] + parasitic_energy) + g_sell[t] + fve_unused[t]
         )
-        loss = estimate_heating_losses(
-            (h_soc[t - 1] if t > 0 else soc_boiler_init), h_cap, T_ambient=20, cirk_time=0.3
+
+        # Heat transfer lower->upper
+        prob += h_to_upper[t] <= h_soc_lower[t]
+
+        # Lower zone SOC dynamics
+        loss_lower = estimate_heating_losses(
+            (h_soc_lower[t - 1] if t > 0 else soc_lower_init ),
+            h_lower_cap, T_ambient=20, cirk_time=0.3
+        )
+
+        loss_upper = estimate_heating_losses(
+            (h_soc_upper[t - 1] if t > 0 else soc_upper_init),
+             h_upper_cap, T_ambient=20, cirk_time=0.3
         )
 
         if t == 0:
-            prob += (
-                b_soc[t] == soc_bat_init +
-                (b_charge[t] * b_eff_in - b_discharge[t] / b_eff_out) * dt[t]
-            )
-            prob += h_soc[t] == soc_boiler_init + (h_in[t] - h_out[t]) * dt[t]
+            prob += h_soc_lower[t] == soc_lower_init + (h_in_lower[t] - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
+            prob += h_soc_upper[t] == soc_upper_init + (h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
         else:
-            prob += (
-                b_soc[t] == b_soc[t - 1] +
-                (b_charge[t] * b_eff_in - b_discharge[t] / b_eff_out) * dt[t]
-            )
-            prob += (
-                h_soc[t] == h_soc[t - 1] + (h_in[t] - h_out[t] - loss) * dt[t]
-            )
+            prob += h_soc_lower[t] == h_soc_lower[t - 1] + (h_in_lower[t] - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
+            prob += h_soc_upper[t] == h_soc_upper[t - 1] + (h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
+
+        # Heater power limits and grid/inverter constraints
+        prob += h_in_lower[t] <= h_lower_power
+        prob += h_in_upper[t] <= h_upper_power
+        prob += g_buy[t] + b_charge[t] + (h_in_lower[t] + h_in_upper[t]) <= grid_limit
+        prob += b_discharge[t] + (h_in_lower[t] + h_in_upper[t]) + g_sell[t] <= inverter_limit
 
     # Dynamické omezení SOC baterie podle plánu ohřevu nádrže
     for t in indexes:
@@ -211,9 +268,11 @@ def run_mpc_optimizer(
         else:
             prob += b_soc[t] <= b_cap
         prob += b_soc[t] >= b_min
+        # BEGIN CLEANUP: uprava pro dvouzónovy model
         # Pokud je baterie pod 60 %, neohříváme vodu
         if charge_bat_min:
-            prob += h_in[t] <= h_power_max * (b_soc[t] >= b_cap * 0.6)
+            prob += (h_in_lower[t] + h_in_upper[t]) <= (h_lower_power + h_upper_power) * (b_soc[t] >= b_cap * 0.6)
+        # END CLEANUP
 
     prob.solve()
 
@@ -226,16 +285,25 @@ def run_mpc_optimizer(
         "b_discharge": [b_discharge[t].varValue for t in indexes],
         "b_soc": [b_soc[t].varValue for t in indexes],
         "b_soc_percent": [int(100 * b_soc[t].varValue / b_cap) for t in indexes],
-        "h_soc": [h_soc[t].varValue for t in indexes],
-        "h_soc_percent": [100 * h_soc[t].varValue / h_cap for t in indexes],
-        "h_in": [h_in[t].varValue for t in indexes],
-        "h_out": [h_out[t].varValue for t in indexes],
         "g_buy": [g_buy[t].varValue for t in indexes],
         "g_sell": [g_sell[t].varValue for t in indexes],
         "buy_cost": [g_buy[t].varValue * buy_price[t] for t in indexes],
         "sell_income": [g_sell[t].varValue * sell_price[t] for t in indexes],
         "net_step_cost": [g_buy[t].varValue * buy_price[t] - g_sell[t].varValue * sell_price[t] for t in indexes],
         "fve_unused": [fve_unused[t].varValue for t in indexes],
+        # nové průběhy dvou-zónové nádrže
+        "h_in_lower": [h_in_lower[t].varValue for t in indexes],
+        "h_in_upper": [h_in_upper[t].varValue for t in indexes],
+        "h_out_lower": [h_out_lower[t].varValue for t in indexes],
+        "h_out_upper": [h_out_upper[t].varValue for t in indexes],
+        "h_soc_lower": [h_soc_lower[t].varValue for t in indexes],
+        "h_soc_upper": [h_soc_upper[t].varValue for t in indexes],
+        "h_soc_upper_percent": [100*h_soc_upper[t].varValue/h_upper_cap for t in indexes],
+        "h_soc_lower_percent": [100*h_soc_lower[t].varValue/h_lower_cap for t in indexes],
+        "h_to_upper": [h_to_upper[t].varValue for t in indexes],
+        # Teploty dolní a horní zóny [°C]
+        "temp_lower": [energy_to_temp(h_soc_lower[t].varValue, h_lower_vol, h_lower_min_t) for t in indexes],
+        "temp_upper": [energy_to_temp(h_soc_upper[t].varValue, h_upper_vol, h_upper_min_t) for t in indexes],
     }
 
     results = {k: v[0] for k, v in outputs.items() if isinstance(v, list)}
@@ -248,14 +316,24 @@ def run_mpc_optimizer(
     results["total_fve_unused_penalty"] = sum(fve_unused[t].varValue * fve_unused_penalty * dt[t] for t in indexes)
     results["total_bat_price_above"] = bat_price_above * (b_surplus.varValue if hasattr(b_surplus, 'varValue') else 0)
     results["total_bat_price_below"] = bat_price_below * (threshold - (b_short.varValue if hasattr(b_short, 'varValue') else 0))
-    results["total_final_boiler_value"] = final_boiler_price * (h_soc[t_end].varValue if hasattr(h_soc[t_end], 'varValue') else 0)
+    # Celková hodnota energii v obou zónách na konci
+    results["total_final_boiler_value"] = final_boiler_price * (
+        (h_soc_lower[t_end].varValue + h_soc_upper[t_end].varValue) if hasattr(h_soc_lower[t_end], 'varValue') and hasattr(h_soc_upper[t_end], 'varValue') else 0
+    )
     results["total_fve_unused"] = sum(fve_unused[t].varValue * dt[t] for t in indexes)
-    results["total_water_priority_bonus"] = sum(water_priority_bonus * h_in[t].varValue * dt[t] for t in indexes)
+    # Bonifikace za ohřev v obou zónách
+    results["total_water_priority_bonus"] = sum(
+        water_priority_bonus * (h_in_lower[t].varValue + h_in_upper[t].varValue) * dt[t]
+        for t in indexes
+    )
     results["total_battery_under_penalty"] = sum(b_soc_under[t].varValue * bat_under_penalty * dt[t] for t in indexes)
-    results["tank_value_bonus"] = sum(h_soc[t].varValue * tank_value_bonus for t in tank_value_indexes)
+    # Bonus hodnoty tepla v obou zónách ve vybraných hodinách
+    results["tank_value_bonus"] = sum(
+        (h_soc_lower[t].varValue + h_soc_upper[t].varValue) * tank_value_bonus for t in tank_value_indexes
+    )
     results["objective_value"] = prob.objective.value() if prob.objective is not None else None
 
-    debug(f"b_cap: {b_cap}, b_min: {b_min}, b_max: {b_max}, h_cap: {h_cap}")
+    debug(f"b_cap: {b_cap}, b_min: {b_min}, b_max: {b_max}, h_lower_cap: {h_lower_cap}, h_upper_cap: {h_upper_cap}")
     debug(f"outputs keys: {list(outputs.keys())}")
     debug(f"results: {results}")
 
@@ -265,7 +343,7 @@ def run_mpc_optimizer(
     total_parasitic_to_grid = 0.0
     for t in indexes:
         parasitic_water_heating = get_option(options, "parasitic_water_heating")
-        pe = parasitic_water_heating * outputs["h_in"][t] * dt[t]
+        pe = parasitic_water_heating * (outputs["h_in_lower"][t] + outputs["h_in_upper"][t]) * dt[t]
         total_parasitic_energy += pe
         # Rozdělení podle skutečného SOC baterie
         if outputs["b_soc"][t] < b_cap:

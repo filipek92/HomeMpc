@@ -54,7 +54,7 @@ def compute_and_cache():
         "outdoor_temps",
     ]
 
-    initials_keys = ["bat_soc", "boiler_E"]
+    initials_keys = ["bat_soc", "temp_upper", "temp_lower"]
 
     dt = [1.0] * len(data["hours"])  # předpokládáme hodinový krok
     remain_slot_part = data["hours"][1].astimezone(None) - datetime.now().astimezone(None)

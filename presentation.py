@@ -23,6 +23,18 @@ ha_color = {
     # okolí
     "heating_demand": "#0f9d58",
     "outdoor_temps": "#ff9800",
+    "h_in_lower": "#c2185b",
+    "h_in_upper": "#e91e63",
+    "h_out_lower": "#00796b",
+    "h_out_upper": "#004d40",
+    "h_to_upper": "#8e24aa",
+    "h_soc_lower": "#ff8f00",
+    "h_soc_upper": "#ffc107",
+    "h_soc_lower_percent": "#ff8f00",
+    "h_soc_upper_percent": "#ffc107",
+    # teplotní průběhy
+    "temp_lower": "#ff8f00",
+    "temp_upper": "#ffc107",
 }
 
 labels = {
@@ -41,6 +53,18 @@ labels = {
     "outdoor_temps": "Venkovní teplota",
     "b_soc_percent": "SoC baterie",
     "h_soc_percent": "SoC bojleru",
+    "h_in_lower": "Ohřev dolní zóny",
+    "h_in_upper": "Ohřev horní zóny",
+    "h_out_lower": "Odběr topení (dolní)",
+    "h_out_upper": "Odběr TUV (horní)",
+    "h_to_upper": "Přenos dolní→horní",
+    "h_soc_lower": "SoC dolní zóny",
+    "h_soc_upper": "SoC horní zóny",
+    "h_soc_lower_percent": "SoC dolní zóny",
+    "h_soc_upper_percent": "SoC horní zóny",
+    # teploty z dvou zón
+    "temp_lower": "Teplota dolní zóny",
+    "temp_upper": "Teplota horní zóny",
 }
 
 def presentation(solution):
@@ -48,16 +72,16 @@ def presentation(solution):
 
     ts = {**solution["inputs"], **solution["outputs"]}
 
-    socs = ["b_soc_percent", "h_soc_percent"]
-    inverted = ["g_sell", "h_out", "b_discharge"]
-    steps = ["h_in", "h_out", "fve_pred", "load_pred"]
-    bars = ["b_charge", "b_discharge", "g_buy", "g_sell"]
+    socs = ["b_soc_percent", "h_soc_lower_percent", "h_soc_upper_percent"]
+    inverted = ["g_sell", "h_out_lower", "h_out_upper", "b_discharge"]
+    steps = ["h_in_lower", "h_in_upper", "h_out_lower", "h_out_upper", "fve_pred", "load_pred"]
+    bars = ["b_charge", "b_discharge", "g_buy", "g_sell", "h_to_upper"]
 
     options = solution.get("options", {})
     heating_enabled = options.get("heating_enabled", False)
 
     fig = make_subplots(
-        rows=4 if heating_enabled else 3,
+        rows=4 if heating_enabled or True else 3,
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.04,
@@ -75,6 +99,19 @@ def presentation(solution):
                 x=[t + timedelta(hours=1) for t in times],
                 y=ts[key],
                 name=labels.get(key, key),
+                marker_color=ha_color.get(key, "black"),
+            ),
+            row=1,
+            col=1,
+        )
+    # Přidání zónových SoC (kWh)
+    for key in ["h_soc_lower", "h_soc_upper"]:
+        fig.add_trace(
+            go.Scatter(
+                x=[t + timedelta(hours=1) for t in times],
+                y=ts[key],
+                name=labels.get(key, key),
+                line_dash="dot",
                 marker_color=ha_color.get(key, "black"),
             ),
             row=1,
@@ -133,7 +170,7 @@ def presentation(solution):
         row=3,
         col=1,
     )
-    if heating_enabled:
+    if heating_enabled or True:
         fig.add_trace(
             go.Scatter(
                 x=times,
@@ -152,6 +189,29 @@ def presentation(solution):
                 name=labels["outdoor_temps"],
                 mode="lines",
                 marker_color=ha_color["outdoor_temps"],
+            ),
+            row=4,
+            col=1,
+        )
+        # Teploty z výstupů MPC
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts.get("temp_lower", []),
+                name=labels.get("temp_lower", "temp_lower"),
+                line_dash="dash",
+                marker_color=ha_color.get("temp_lower", "black"),
+            ),
+            row=4,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts.get("temp_upper", []),
+                name=labels.get("temp_upper", "temp_upper"),
+                line_dash="dot",
+                marker_color=ha_color.get("temp_upper", "black"),
             ),
             row=4,
             col=1,
