@@ -1,4 +1,10 @@
 
+## 1.11.0 - 2025-07-08
+Refactor variable names to convention
+- message is optional
+- name migration
+
+
 ## 1.10.5 - 2025-07-07
 Parasitic charging
 - feat: parasitic energy storage
