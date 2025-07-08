@@ -42,6 +42,14 @@ def get_last_tag():
         tag = None
     return tag
 
+# Function to get the last commit message if no message provided
+def get_last_commit_message():
+    try:
+        msg = subprocess.check_output(['git', 'log', '-1', '--pretty=format:%s']).decode().strip()
+    except subprocess.CalledProcessError:
+        msg = ''
+    return msg
+
 def get_commits_since(tag):
     if tag:
         rev_range = f'{tag}..HEAD'
@@ -69,11 +77,14 @@ def git_commit_and_tag(new_version):
     subprocess.check_call(['git', 'push', '--tags'])
 
 def main():
-    if len(sys.argv) < 3:
-        print('Použití: publish_version.py [major|minor|patch] "zpráva"')
+    if len(sys.argv) < 2:
+        print('Použití: publish_version.py [major|minor|patch] ["zpráva"]')
         sys.exit(1)
     part = sys.argv[1]
-    message = sys.argv[2]
+    if len(sys.argv) >= 3:
+        message = sys.argv[2]
+    else:
+        message = get_last_commit_message()
     old_version = get_current_version()
     new_version = bump_version(old_version, part)
     last_tag = get_last_tag()
