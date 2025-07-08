@@ -37,6 +37,7 @@ def run_migration():
     if os.path.exists(MIGRATION_FLAG):
         print("Migration already done, skipping.")
         return
+    failed_files = []
     KEY_MAP = {
         # outputs/results
         "B_power": "b_power",
@@ -87,15 +88,27 @@ def run_migration():
     # Migruj všechny výsledky v /results/
     if os.path.exists(RESULTS_DIR):
         for file in glob.glob(os.path.join(RESULTS_DIR, "*.json")):
-            migrate_json_file(file, KEY_MAP)
+            try:
+                migrate_json_file(file, KEY_MAP)
+            except Exception as e:
+                print(f"Failed to migrate {file}: {e}")
+                failed_files.append(file)
     # Migruj konfiguraci v konfiguraci
     for config in SETTINGS_FILES:
         if os.path.exists(config):
-            migrate_json_file(config, KEY_MAP)
+            try:
+                migrate_json_file(config, KEY_MAP)
+            except Exception as e:
+                print(f"Failed to migrate {config}: {e}")
+                failed_files.append(config)
     # Zapiš flag, že migrace proběhla
     with open(MIGRATION_FLAG, "w") as f:
         f.write("Migration done.")
     print("Migration completed.")
+    if failed_files:
+        print("Files failed to migrate:")
+        for f in failed_files:
+            print(f"- {f}")
 
 # Spustí migraci automaticky při importu (např. v HA addonu)
 run_migration()
