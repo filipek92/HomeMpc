@@ -14,8 +14,11 @@ from models import (
 
 TOKEN = ""
 
+DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
+OPTIONS_FILE = os.path.join(DATA_DIR, "options.json")
+
 try:
-    with open("/data/options.json", "r") as f: 
+    with open(OPTIONS_FILE, "r") as f: 
         opts = json.load(f)
         TOKEN = opts.get("token", "")
         HA_URL = opts.get("ha_url", "")

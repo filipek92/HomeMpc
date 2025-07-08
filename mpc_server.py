@@ -24,18 +24,8 @@ else:
 
 app = Flask(__name__)
 
-# Directory for storing all optimization results and symlink to latest
-if os.path.isdir("/data"):
-    # If running in Docker, use /data for storing results
-    # This allows persistent storage across container restarts
-    # and makes it accessible outside the container.
-
-    RESULTS_DIR = "/data/results"
-else:
-    # If running locally, use the current directory
-    # This is useful for development and testing.
-    # Results will be stored in a "results" subdirectory.
-    RESULTS_DIR = "results"
+DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
+RESULTS_DIR = os.path.join(DATA_DIR, "results")
 LATEST_LINK = os.path.join(RESULTS_DIR, "latest")
 # Ensure results directory exists on startup
 os.makedirs(RESULTS_DIR, exist_ok=True)

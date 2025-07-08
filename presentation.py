@@ -5,16 +5,16 @@ from datetime import timedelta, datetime
 
 ha_color = {
     # stavy
-    "B_SOC_percent": "#4db6ac",
-    "H_SOC_percent": "#9d770f",
+    "b_soc_percent": "#4db6ac",
+    "h_soc_percent": "#9d770f",
     # výkony
-    "B_power": "#4db6ac",
-    "B_charge": "#f06292",
-    "B_discharge": "#4db6ac",
-    "H_in": "#c97a94",
-    "G_buy": "#488fc2",
-    "G_sell": "#8353d1",
-    "H_out": "#0f9d58",
+    "b_power": "#4db6ac",
+    "b_charge": "#f06292",
+    "b_discharge": "#4db6ac",
+    "h_in": "#c97a94",
+    "g_buy": "#488fc2",
+    "g_sell": "#8353d1",
+    "h_out": "#0f9d58",
     "fve_pred": "#ff9800",
     "load_pred": "#488fc2",
     # ceny
@@ -26,21 +26,21 @@ ha_color = {
 }
 
 labels = {
-    "B_power": "Výkon baterie",
-    "B_charge": "Nabíjení baterie",
-    "B_discharge": "Vybíjení baterie",
-    "G_buy": "Nákup ze sítě",
-    "G_sell": "Prodej do sítě",
-    "H_in": "Ohřev",
-    "H_out": "Výstup z bojleru",
+    "b_power": "Výkon baterie",
+    "b_charge": "Nabíjení baterie",
+    "b_discharge": "Vybíjení baterie",
+    "g_buy": "Nákup ze sítě",
+    "g_sell": "Prodej do sítě",
+    "h_in": "Ohřev",
+    "h_out": "Výstup z bojleru",
     "fve_pred": "FVE výroba",
     "load_pred": "Spotřeba",
     "buy_price": "Cena nákup",
     "sell_price": "Cena prodej",
     "heating_demand": "Tepelné ztráty",
     "outdoor_temps": "Venkovní teplota",
-    "B_SOC_percent": "SoC baterie",
-    "H_SOC_percent": "SoC bojleru",
+    "b_soc_percent": "SoC baterie",
+    "h_soc_percent": "SoC bojleru",
 }
 
 def presentation(solution):
@@ -48,10 +48,10 @@ def presentation(solution):
 
     ts = {**solution["inputs"], **solution["outputs"]}
 
-    SOCs = ["B_SOC_percent", "H_SOC_percent"]
-    inverted = ["G_sell", "H_out", "B_discharge"]
-    steps = ["H_in", "H_out", "fve_pred", "load_pred"]
-    bars = ["B_charge", "B_discharge", "G_buy", "G_sell"]
+    socs = ["b_soc_percent", "h_soc_percent"]
+    inverted = ["g_sell", "h_out", "b_discharge"]
+    steps = ["h_in", "h_out", "fve_pred", "load_pred"]
+    bars = ["b_charge", "b_discharge", "g_buy", "g_sell"]
 
     options = solution.get("options", {})
     heating_enabled = options.get("heating_enabled", False)
@@ -69,7 +69,7 @@ def presentation(solution):
         ),
     )
 
-    for key in SOCs:
+    for key in socs:
         fig.add_trace(
             go.Scatter(
                 x=[t + timedelta(hours=1) for t in times],

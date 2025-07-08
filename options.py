@@ -22,51 +22,51 @@ VARIABLES_SPEC = {
     "options": {
         "heating_enabled": {"type": "bool", "default": False},
         "charge_bat_min":  {"type": "bool", "default": False},
-        "B_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4},
-        "B_MIN":           {"type": "float", "unit": "kWh", "range": [0, None]},  # default se neuvádí, vždy dopočítat
-        "B_MAX":           {"type": "float", "unit": "kWh", "range": [0, None]},  # default se neuvádí, vždy dopočítat
-        "B_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 9},
-        "B_EFF_IN":        {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
-        "B_EFF_OUT":       {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
-        "H_CAP":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 45.0},
-        "H_POWER":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
-        "GRID_LIMIT":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
-        "INVERTER_LIMIT":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},
-        "final_boler_price": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
-        "BAT_THRESHOLD_PCT": {"type": "float", "unit": "-", "range": [0, 1], "default": 0.40},
-        "BAT_PRICE_BELOW":   {"type": "float", "unit": "Kč/kWh", "default": 1.0},
-        "BAT_PRICE_ABOVE":   {"type": "float", "unit": "Kč/kWh", "default": 0.5},
+        "b_cap":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4},
+        "b_min":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4*0.15},  # default se neuvádí, vždy dopočítat
+        "b_max":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 17.4},  # default se neuvádí, vždy dopočítat
+        "b_power":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 9},
+        "b_eff_in":        {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
+        "b_eff_out":       {"type": "float", "unit": "-",   "range": [0, 1], "default": 0.94},
+        "h_cap":           {"type": "float", "unit": "kWh", "range": [0, None], "default": 45.0},
+        "h_power":         {"type": "float", "unit": "kW",  "range": [0, None], "default": 12},
+        "grid_limit":      {"type": "float", "unit": "kW",  "range": [0, None], "default": 18},
+        "inverter_limit":  {"type": "float", "unit": "kW",  "range": [0, None], "default": 15},
+        "final_boiler_price": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
+        "bat_threshold_pct": {"type": "float", "unit": "-", "range": [0, 1], "default": 0.40},
+        "bat_price_below":   {"type": "float", "unit": "Kč/kWh", "default": 1.0},
+        "bat_price_above":   {"type": "float", "unit": "Kč/kWh", "default": 0.5},
         "battery_penalty":   {"type": "float", "unit": "Kč/kWh", "default": 1.0},
         "fve_unused_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
-        "WATER_PRIORITY_BONUS": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
-        "BAT_UNDER_PENALTY": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
+        "water_priority_bonus": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
+        "bat_under_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
         # Přidáno pro ocenění energie v nádrži v konkrétní hodinu
         "tank_value_hour": {"type": "int", "unit": "hodina", "default": 18, "desc": "Hodina dne, kdy se oceňuje energie v nádrži"},
         "tank_value_bonus": {"type": "float", "unit": "Kč/kWh", "default": 1.0, "desc": "Odměna za energii v nádrži v danou hodinu"},
-        "PARASITIC_WATER_HEATING": {"type": "float", "unit": "-", "default": 0.05, "desc": "Podíl parazitní energie při ohřevu vody"},
+        "parasitic_water_heating": {"type": "float", "unit": "-", "default": 0.05, "desc": "Podíl parazitní energie při ohřevu vody"},
     }
 }
 
 def get_option(options, key, spec=VARIABLES_SPEC["options"], context=None):
-    """Vrací hodnotu z options, nebo default ze spec, případně dopočítá (např. B_MIN, B_MAX)."""
-    # Pro B_MIN a B_MAX ignoruj 0.0 a None a vždy dopočítej, pokud není v options kladná hodnota
-    if key in ("B_MIN", "B_MAX"):
+    """Vrací hodnotu z options, nebo default ze spec, případně dopočítá (např. b_min, b_max)."""
+    # Pro b_min a b_max ignoruj 0.0 a None a vždy dopočítej, pokud není v options kladná hodnota
+    if key in ("b_min", "b_max"):
         val = options.get(key, None)
         if val is not None and val > 0:
             return val
-        if key == "B_MIN":
-            B_CAP = get_option(options, "B_CAP", spec)
-            return B_CAP * 0.15
-        if key == "B_MAX":
-            B_CAP = get_option(options, "B_CAP", spec)
-            return B_CAP * 1.0
+        if key == "b_min":
+            b_cap = get_option(options, "b_cap", spec)
+            return b_cap * 0.15
+        if key == "b_max":
+            b_cap = get_option(options, "b_cap", spec)
+            return b_cap * 1.0
     if key in options:
         return options[key]
-    if key == "final_boler_price" and context and "buy_price" in context:
+    if key == "final_boiler_price" and context and "buy_price" in context:
         return min(context["buy_price"]) - 0.5
-    if key == "BAT_PRICE_BELOW" and context and "buy_price" in context:
+    if key == "bat_price_below" and context and "buy_price" in context:
         return min(context["buy_price"])
-    if key == "BAT_PRICE_ABOVE" and context and "buy_price" in context:
+    if key == "bat_price_above" and context and "buy_price" in context:
         return min(context["buy_price"]) - 0.5
     meta = spec.get(key, {})
     if "default" in meta:

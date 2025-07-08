@@ -3,12 +3,8 @@ import json
 from options import VARIABLES_SPEC
 import os.path
 
-if os.path.isdir("/data"):
-    # Pokud běží v Dockeru, použij /data pro uložení nastavení
-    SETTINGS_FILE = "/data/mpc_settings.json"
-else:
-    # Pokud běží lokálně, použij aktuální adresář
-    SETTINGS_FILE = "mpc_settings.json"
+DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
+SETTINGS_FILE = os.path.join(DATA_DIR, "mpc_settings.json")
 
 settings_bp = Blueprint("settings_bp", __name__)
 

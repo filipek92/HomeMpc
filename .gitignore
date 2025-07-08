@@ -178,5 +178,9 @@ pyrightconfig.json
 mpc_results_cache.json
 credentials.yaml
 mpc_settings.json
+mpc_settings.json.bak
+
+.migration_done
+
 
 results/*
