@@ -27,7 +27,7 @@ ha_color = {
     "h_in_upper": "#e91e63",
     "h_out_lower": "#00796b",
     "h_out_upper": "#004d40",
-    "h_to_upper": "#8e24aa",
+    "h_to_upper": "#ff69e6",
     "h_soc_lower": "#ff8f00",
     "h_soc_upper": "#ffc107",
     "h_soc_lower_percent": "#ff8f00",

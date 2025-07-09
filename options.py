@@ -52,6 +52,8 @@ VARIABLES_SPEC = {
         "tank_value_hour": {"type": "int", "unit": "hodina", "default": 18, "desc": "Hodina dne, kdy se oceňuje energie v nádrži"},
         "tank_value_bonus": {"type": "float", "unit": "Kč/kWh", "default": 1.0, "desc": "Odměna za energii v nádrži v danou hodinu"},
         "parasitic_water_heating": {"type": "float", "unit": "-", "default": 0.05, "desc": "Podíl parazitní energie při ohřevu vody"},
+        # Koeficient přenosu tepla mezi zónami: h_to_upper <= alpha * (T_upper - T_lower)
+        "alpha": {"type": "float", "unit": "kW/˚C", "default": 0.1, "desc": "Koeficient přenosu tepla z dolní do horní zóny"},
     }
 }
 

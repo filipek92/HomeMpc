@@ -126,6 +126,12 @@ def run_mpc_optimizer(
     water_priority_bonus = get_option(options, "water_priority_bonus")
     water_priority_bonus = get_option(options, "water_priority_bonus")
 
+    # Dvou-zónový model nádrže: dolní (700L, 8kW) a horní (300L, 4kW)
+    h_lower_power = get_option(options, "h_lower_power", context={})  # 8
+    h_upper_power = get_option(options, "h_upper_power", context={})  # 4
+    # Pasivní přenos tepla mezi zónami: koeficient alpha
+    alpha = get_option(options, "alpha", context=context)
+
     h_lower_min_t = get_option(options, "h_lower_min_t", context={})  # minimální teplota dolní zóny [°C]
     h_lower_max_t = get_option(options, "h_lower_max_t", context={})  # maximální teplota dolní zóny [°C]
     h_upper_min_t = get_option(options, "h_upper_min_t", context={})  # minimální teplota horní zóny [°C]
@@ -157,17 +163,16 @@ def run_mpc_optimizer(
     b_soc = LpVariable.dicts("b_soc", indexes, b_min, b_max)
     b_charge = LpVariable.dicts("b_charge", indexes, 0, b_power_max)
     b_discharge = LpVariable.dicts("b_discharge", indexes, 0, b_power_max)
-    # Dvou-zónový model nádrže: dolní (700L, 8kW) a horní (300L, 4kW)
-    h_lower_power = get_option(options, "h_lower_power", context={})  # 8
-    h_upper_power = get_option(options, "h_upper_power", context={})  # 4
     h_in_lower = LpVariable.dicts("h_in_lower", indexes, 0, h_lower_power)
     h_in_upper = LpVariable.dicts("h_in_upper", indexes, 0, h_upper_power)
     h_soc_lower = LpVariable.dicts("h_soc_lower", indexes, 0, h_lower_cap)
     h_soc_upper = LpVariable.dicts("h_soc_upper", indexes, 0, h_upper_cap)
     h_out_lower = LpVariable.dicts("h_out_lower", indexes, 0)
     h_out_upper = LpVariable.dicts("h_out_upper", indexes, 0)
-    # Přenos tepla z dolní do horní zóny
-    h_to_upper = LpVariable.dicts("h_to_upper", indexes, 0)
+    # Heat flow from lower to upper (can be negative for reverse flow)
+    h_to_upper = LpVariable.dicts("h_to_upper", indexes)
+    # Pomocná proměnná pro kladnou část rozdílu teplot mezi zónami
+    h_delta_temp = LpVariable.dicts("h_delta_temp", indexes, 0)
 
     # Definice proměnných pro nákup, prodej a nevyužitou PV
     g_buy = LpVariable.dicts("g_buy", indexes, 0)
@@ -209,7 +214,7 @@ def run_mpc_optimizer(
         - bat_price_above * b_surplus
         + bat_price_below * (threshold - b_short)
         - final_boiler_price * (h_soc_lower[t_end] + h_soc_upper[t_end])
-        - tank_value_bonus * lpSum(h_soc_lower[t] + h_soc_upper[t] for t in tank_value_indexes)
+        - tank_value_bonus * lpSum(h_soc_upper[t] for t in tank_value_indexes)
     )
 
     # Unified two-zone boiler constraints
@@ -236,6 +241,19 @@ def run_mpc_optimizer(
 
         # Heat transfer lower->upper
         prob += h_to_upper[t] <= h_soc_lower[t]
+        # Compute previous zone SOC for temperature conversion
+        if t == 0:
+            lower_soc_prev = soc_lower_init
+            upper_soc_prev = soc_upper_init
+        else:
+            lower_soc_prev = h_soc_lower[t-1]
+            upper_soc_prev = h_soc_upper[t-1]
+        # Convert energy to temperature expressions (°C)
+        temp_lower_expr = energy_to_temp(lower_soc_prev, h_lower_vol, h_lower_min_t)
+        temp_upper_expr = energy_to_temp(upper_soc_prev, h_upper_vol, h_upper_min_t)
+        # Passive heat transfer governed by temperature difference (positive or negative)
+        prob += h_to_upper[t] == alpha * (temp_lower_expr - temp_upper_expr)
+        
 
         # Lower zone SOC dynamics
         loss_lower = estimate_heating_losses(
@@ -248,12 +266,14 @@ def run_mpc_optimizer(
              h_upper_cap, T_ambient=20, cirk_time=0.3
         )
 
+        beta = 0.5
+
         if t == 0:
             prob += h_soc_lower[t] == soc_lower_init + (h_in_lower[t] - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
             prob += h_soc_upper[t] == soc_upper_init + (h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
         else:
-            prob += h_soc_lower[t] == h_soc_lower[t - 1] + (h_in_lower[t] - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
-            prob += h_soc_upper[t] == h_soc_upper[t - 1] + (h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
+            prob += h_soc_lower[t] == h_soc_lower[t - 1] + (h_in_lower[t]*(1-beta) - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
+            prob += h_soc_upper[t] == h_soc_upper[t - 1] + (h_in_lower[t]*beta + h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
 
         # Heater power limits and grid/inverter constraints
         prob += h_in_lower[t] <= h_lower_power
