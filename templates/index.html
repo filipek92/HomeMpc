@@ -56,7 +56,7 @@
         
         .graph-container .plotly-graph-div {
             width: 100%;
-            height: 650px;
+            height: 850px;
         }
         
         .tables-container { 
@@ -134,11 +134,11 @@
             }
             
             .graph-container {
-                min-height: 450px;
+                min-height: 550px;
             }
             
             .graph-container .plotly-graph-div {
-                height: 450px;
+                height: 550px;
             }
         }
     </style>
@@ -217,6 +217,43 @@
                 {% endfor %}
             {% else %}
                 <pre>{{ actions }}</pre>
+            {% endif %}
+        </div>
+        
+        <div class="table-section">
+            <h2>Plán akcí (první 12 slotů)</h2>
+            {% set timeline = solution.get("actions_timeline", {}) %}
+            {% if timeline %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Slot</th>
+                            <th>Režim střídače</th>
+                            <th>Horní akumulace</th>
+                            <th>Spodní akumulace</th>
+                            <th>Max ohřev</th>
+                            <th>Rezerva [W]</th>
+                            <th>FVE přebytek [kW]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(12) %}
+                            {% if i < timeline.get("charger_mode", [])|length %}
+                                <tr>
+                                    <td>{{ i + 1 }}</td>
+                                    <td>{{ timeline["charger_mode"][i] }}</td>
+                                    <td>{{ "✓" if timeline["upper_accumulation"][i] else "✗" }}</td>
+                                    <td>{{ "✓" if timeline["lower_accumulation"][i] else "✗" }}</td>
+                                    <td>{{ "✓" if timeline["max_heat"][i] else "✗" }}</td>
+                                    <td>{{ timeline["reserve_power"][i] }}</td>
+                                    <td>{{ "%.2f"|format(timeline["fve_surplus"][i]) }}</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>Plán akcí není k dispozici</p>
             {% endif %}
         </div>
         

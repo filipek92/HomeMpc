@@ -2,6 +2,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import plotly.io as pio
 from datetime import timedelta, datetime
+from actions import mpc_to_actions_timeline
 
 ha_color = {
     # stavy
@@ -35,6 +36,17 @@ ha_color = {
     # teplotní průběhy
     "temp_lower": "#ff8f00",
     "temp_upper": "#ffc107",
+    # akce
+    "charger_mode_self": "#4db6ac",
+    "charger_mode_backup": "#0f9d58", 
+    "charger_mode_feedin": "#8353d1",
+    "charger_mode_manual": "#f06292",
+    "upper_accumulation": "#c97a94",
+    "lower_accumulation": "#0f9d58",
+    "max_heat": "#ff9800",
+    "heating_blocked": "#f44336",
+    "fve_surplus": "#ffeb3b",
+    "battery_reserve": "#4db6ac",
 }
 
 labels = {
@@ -65,6 +77,18 @@ labels = {
     # teploty z dvou zón
     "temp_lower": "Teplota dolní zóny",
     "temp_upper": "Teplota horní zóny",
+    # nové labely
+    "charger_mode": "Režim střídače",
+    "upper_accumulation": "Horní akumulace",
+    "lower_accumulation": "Spodní akumulace", 
+    "max_heat": "Maximální ohřev",
+    "heating_blocked": "Ohřev blokován",
+    "fve_surplus": "FVE přebytek",
+    "battery_reserve": "Rezerva baterie",
+    "charger_mode_self": "Self Use",
+    "charger_mode_backup": "Back Up Mode",
+    "charger_mode_feedin": "Feedin Priority",
+    "charger_mode_manual": "Manual",
 }
 
 def presentation(solution):
@@ -80,16 +104,21 @@ def presentation(solution):
     options = solution.get("options", {})
     heating_enabled = options.get("heating_enabled", False)
 
+    # Generování plánu akcí pro všechny sloty
+    actions_timeline = mpc_to_actions_timeline(solution)
+
     fig = make_subplots(
-        rows=4 if heating_enabled or True else 3,
+        rows=6 if heating_enabled or True else 5,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.04,
+        vertical_spacing=0.03,
         subplot_titles=(
             "Stavy (SoC)",
             "Výkony",
             "Ceny elektřiny",
             "Tepelné ztráty a venkovní teplota",
+            "Plán režimů střídače",
+            "Plán akcí ohřevu",
         ),
     )
 
@@ -217,15 +246,119 @@ def presentation(solution):
             col=1,
         )
 
+    # === NOVÉ GRAFY PLÁNŮ AKCÍ ===
+    
+    # Graf 5: Plán režimů střídače
+    charger_modes = ["Self Use", "Back Up Mode", "Feedin Priority", "Manual"]
+    mode_colors = ["#4db6ac", "#0f9d58", "#8353d1", "#f06292"]
+    
+    for i, mode in enumerate(charger_modes):
+        mode_values = [1 if m == mode else 0 for m in actions_timeline["charger_mode"]]
+        if any(mode_values):  # Zobrazit pouze pokud se mode používá
+            fig.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=mode_values,
+                    name=f"Režim: {mode}",
+                    mode="lines",
+                    line_shape="hv",
+                    stackgroup="charger_modes",
+                    marker_color=mode_colors[i],
+                    hovertemplate=f"<b>{mode}</b><br>" +
+                                  "Čas: %{x}<br>" +
+                                  "Aktivní: %{y}<br>" +
+                                  "<extra></extra>",
+                ),
+                row=5,
+                col=1,
+            )
+    
+    # Přidání informací o FVE přebytku (normalizováno na 0-1 škálu)
+    max_surplus = max(actions_timeline["fve_surplus"]) if actions_timeline["fve_surplus"] and max(actions_timeline["fve_surplus"]) > 0 else 1
+    normalized_surplus = [s/max_surplus for s in actions_timeline["fve_surplus"]]
+    
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=normalized_surplus,
+            name=f"FVE přebytek (max: {max_surplus:.1f} kW)",
+            mode="lines",
+            line_shape="hv",
+            marker_color="#ffeb3b",
+            line_dash="dot",
+            hovertemplate="<b>FVE přebytek</b><br>" +
+                          "Čas: %{x}<br>" +
+                          f"Přebytek: %{{customdata:.2f}} kW<br>" +
+                          "<extra></extra>",
+            customdata=actions_timeline["fve_surplus"],
+        ),
+        row=5,
+        col=1,
+    )
+    
+    # Graf 6: Plán akcí ohřevu
+    heating_actions = [
+        ("upper_accumulation", "Horní akumulace", "#c97a94"),
+        ("lower_accumulation", "Spodní akumulace", "#0f9d58"), 
+        ("max_heat", "Maximální ohřev", "#ff9800"),
+        ("heating_blocked", "Ohřev blokován", "#f44336"),
+    ]
+    
+    for action_key, action_name, color in heating_actions:
+        action_values = [1 if v else 0 for v in actions_timeline[action_key]]
+        if any(action_values):  # Zobrazit pouze pokud se akce používá
+            fig.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=action_values,
+                    name=action_name,
+                    mode="lines",
+                    line_shape="hv",
+                    stackgroup="heating_actions",
+                    marker_color=color,
+                    hovertemplate=f"<b>{action_name}</b><br>" +
+                                  "Čas: %{x}<br>" +
+                                  "Aktivní: %{y}<br>" +
+                                  "<extra></extra>",
+                ),
+                row=6,
+                col=1,
+            )
+    
+    # Přidání informací o rezervovaném výkonu (normalizováno)
+    max_reserve = max(actions_timeline["reserve_power"]) if actions_timeline["reserve_power"] and max(actions_timeline["reserve_power"]) > 0 else 1000
+    normalized_reserve = [r/max_reserve for r in actions_timeline["reserve_power"]]
+    
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=normalized_reserve,
+            name=f"Rezervovaný výkon (max: {max_reserve/1000:.1f} kW)",
+            mode="lines",
+            line_shape="hv",
+            marker_color="#4db6ac",
+            line_dash="dash",
+            hovertemplate="<b>Rezervovaný výkon</b><br>" +
+                          "Čas: %{x}<br>" +
+                          f"Výkon: %{{customdata:.0f}} W<br>" +
+                          "<extra></extra>",
+            customdata=actions_timeline["reserve_power"],
+        ),
+        row=6,
+        col=1,
+    )
+    
+    # Aktualizace os pro nové grafy
     fig.update_yaxes(title_text="Energie [%]", row=1, col=1)
     fig.update_yaxes(title_text="Výkon [kW]", row=2, col=1)
     fig.update_yaxes(title_text="Cena [Kč/kWh]", row=3, col=1)
-    if heating_enabled:
-        fig.update_yaxes(title_text="kWh, °C", row=4, col=1)
+    fig.update_yaxes(title_text="kWh, °C", row=4, col=1)
+    fig.update_yaxes(title_text="Aktivní", side="left", row=5, col=1)
+    fig.update_yaxes(title_text="Aktivní", side="left", row=6, col=1)
 
     # Nastavení výšky grafu pro lepší čitelnost
     fig.update_layout(
-        height=650,  # Celková výška grafu
+        height=850,  # Zvýšená výška pro více grafů
         margin=dict(l=50, r=50, t=80, b=50),  # Okraje
         showlegend=True,
         legend=dict(

@@ -10,7 +10,7 @@ from flask_apscheduler import APScheduler
 from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
-from actions import mpc_to_actions, ACTION_ATTRIBUTES
+from actions import mpc_to_actions, mpc_to_actions_timeline, ACTION_ATTRIBUTES
 from mpc_settings import settings_bp, load_settings, save_settings
 from publish_version import get_current_version
 
@@ -71,8 +71,10 @@ def compute_and_cache():
     solution["version"] = get_current_version()
 
     actions = mpc_to_actions(solution)
+    actions_timeline = mpc_to_actions_timeline(solution)
 
     solution["actions"] = actions
+    solution["actions_timeline"] = actions_timeline
 
     extra = {
         "generated_at": solution["generated_at"],

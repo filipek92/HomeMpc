@@ -2,7 +2,24 @@
 """
 actions.py
 ----------
-Převádí výstupy z `run_mpc_optimizer` na konkrétní akce pro Home Assistant.
+Převádí výstupy z `run_mpc_optimizer` na konkré    # Výpočet výkonů a proudů baterie
+    if charger_use_mode == "Manual":
+        # Manual režim - explicitní řízení (servisní účely)
+        if Bdis > P_MAN_DIS:
+            # Vybíjení
+            battery_power_w = -int(Bdis * 1000)
+            battery_discharge_power = max(0, int(Bdis * 1000))
+        elif Bchrg > P_MAN_DIS:
+            # Nabíjení
+            battery_power_w = int(Bchrg * 1000)
+            battery_discharge_power = 0
+        else:
+            battery_power_w = 0
+            battery_discharge_power = 0
+    else:
+        # Automatické režimy (Self Use, Feedin Priority, Back Up) - střídač řídí sám
+        battery_power_w = 0
+        battery_discharge_power = 0ome Assistant.
 
 ZMĚNY v mapování entit:
 • charger_use_mode           → select.solax_charger_use_mode
@@ -16,10 +33,23 @@ ZMĚNY v mapování entit:
 • minimum_battery_soc       → number.tepelnaakumulace_minim_ln_stav_nabit_baterie
 
 LOGIKA:
-- Pokud je baterie nad 40%, systém se snaží využít FVE přebytek pro ohřev
-- Horní a spodní akumulace se ovládají samostatně podle velikosti přebytku
-- Maximální ohřev (12kW) se zapíná pouze při velkém přebytku nebo levné elektřině
-- Blokování nuceného ohřevu chrání při nedostatku energie
+- Využívá oficiální režimy X3 G4: Self Use, Feedin Priority, Back Up Mode, Manual
+- Manual režim pouze pro servisní účely (nucené nabíjení/vybíjení)
+- Feedin Priority pro optimalizaci prodeje přebytků
+- Self Use vs Back Up Mode: oba optimalizují vlastní spotřebu, ale:
+  * Self Use: při min SOC střídač "usne" (úspora energie)
+  * Back Up Mode: střídač zůstává aktivní pro okamžité záložní napájení
+- Konfigurovatelný preferovaný standardní režim (PREFERRED_STANDARD_MODE)
+- Automatické režimy využívají inteligenci střídače pro 0W na elektroměru
+
+LOGIKA OHŘEVU AKUMULACE:
+- Respektuje automatické režimy akumulace (pokud nejsou blokovány):
+  * Udržuje alespoň 45°C nahoře pro základní komfort
+  * Po 16h připravuje 65°C nahoře pro koupání (55°C pokud je dole teplo)
+  * Při FVE přebytku: nejdříve nahoře na 70°C, pak celou nádrž na 90°C
+- Horní a spodní akumulace se ovládají podle MPC signálů a aktuálních teplot
+- Maximální ohřev (12kW) se zapíná při velkém přebytku pro celou nádrž
+- Blokování nuceného ohřevu pouze v kritických situacích (zachovává komfort)
 """
 
 from datetime import datetime
@@ -33,67 +63,91 @@ BATTERY_POWER_MAX = 9000  # W
 MIN_SOC_RESERVE = 40     # % - minimální rezerva baterie
 MAX_HEAT_POWER = 12000   # W - maximální výkon ohřevu
 
+# Konfigurace režimů střídače
+# "Self Use" - optimalizuje vlastní spotřebu, při min SOC střídač "usne"
+# "Back Up Mode" - podobné jako Self Use, ale střídač zůstává aktivní pro záložní napájení
+PREFERRED_STANDARD_MODE = "Back Up Mode"  # nebo "Self Use"
+
 # Heuristiky
-P_MAN_DIS   = 0.10       # kW - práh pro Manual Discharge
+P_MAN_DIS   = 3.5        # kW - práh pro Manual režim (reálný minimální výkon)
 P_EXTRA_EXP = 0.10       # kW - práh pro extra export
 P_GBUY_GRID = 8.0        # kW - práh pro nákup ze sítě
 P_HIN_GRID  = 11.0       # kW - práh pro ohřev ze sítě
 FVE_SURPLUS_THRESHOLD = 2.0  # kW - přebytek FVE pro akumulaci
 
+# Teplotní limity pro akumulaci
+TEMP_COMFORT_MIN = 45    # °C - minimální teplota nahoře pro komfort
+TEMP_BATH_TARGET = 65    # °C - cílová teplota nahoře po 18h pro koupání  
+TEMP_BATH_REDUCED = 55   # °C - snížená teplota když je dole teplo
+TEMP_ACCUMULATION = 70   # °C - teplota nahoře při FVE přebytku
+TEMP_FULL_TANK = 90      # °C - cílová teplota celé nádrže
+TEMP_LOWER_WARM = 50     # °C - práh "teplá spodní zóna"
+
 # ---------------------------------------------------------------------------
-def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
-    out   = sol["outputs"]  # outputs now use lower_snake_case keys
-    Hin_upper = out["h_in_upper"][0]
-    Hin_lower = out["h_in_lower"][0]
-    Hin_total = Hin_upper + Hin_lower
-    Gsell = out["g_sell"][0]
-    Gbuy  = out["g_buy"][0]
-    Bdis  = out["b_discharge"][0]
-    Bchrg = out["b_charge"][0]
-    B_SOC = out["b_soc_percent"][0]
-
-    fve   = sol["inputs"]["fve_pred"][0]
-    load  = sol["inputs"]["load_pred"][0]
-
-    # Výpočet přebytku FVE
-    fve_surplus = max(0.0, fve - load)
+def mpc_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, Any]:
+    """
+    Převádí výstupy z MPC optimizátoru na konkrétní akce pro daný slot.
     
-    # Režim měniče → select.solax_charger_use_mode
-    if B_SOC >= 100:
-        # Plná baterie - záloha
-        charger_use_mode = "Back Up Mode"
-    elif Bdis > P_MAN_DIS:
-        # Potřebujeme vybíjet baterii manuálně
-        charger_use_mode = "Manual Discharge"
-    elif Bchrg > P_MAN_DIS and fve_surplus < 1.0:
-        # Nabíjíme ze sítě
-        charger_use_mode = "Manual Charge" 
-    elif Gsell > 0.1 or fve_surplus > 1.0:
-        # Máme přebytek energie pro export
-        charger_use_mode = "Feedin Priority"
-    elif B_SOC < MIN_SOC_RESERVE:
-        # Nízká baterie - záloha s nabíjením
-        charger_use_mode = "Back Up Mode"
-    else:
-        # Standardní záložní režim
-        charger_use_mode = "Back Up Mode"
+    Args:
+        sol: Slovník s výstupy MPC optimizátoru
+        slot_index: Index slotu (0 = aktuální/první slot)
+    """
+    out = sol["outputs"]  # outputs now use lower_snake_case keys
+    Hin_upper = out["h_in_upper"][slot_index]
+    Hin_lower = out["h_in_lower"][slot_index]
+    Hin_total = Hin_upper + Hin_lower
+    Gsell = out["g_sell"][slot_index]
+    Gbuy = out["g_buy"][slot_index]
+    Bdis = out["b_discharge"][slot_index]
+    Bchrg = out["b_charge"][slot_index]
+    B_SOC = out["b_soc_percent"][slot_index]
 
-    # Logika ohřevu na základě dostupné energie a cen
-    heating_decisions = enhanced_heating_logic(
-        fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy
+    # Současné teploty nádrže z MPC
+    temp_upper_current = out["temp_upper"][slot_index]  # °C
+    temp_lower_current = out["temp_lower"][slot_index]  # °C
+
+    # Výpočet FVE přebytku
+    fve_output = out.get("fve_pred", [0] * len(out["h_in_upper"]))[slot_index]
+    load_demand = out.get("load_pred", [0] * len(out["h_in_upper"]))[slot_index]
+    fve_surplus = max(0, fve_output - load_demand)
+
+    # Vylepšená logika ohřevu pro aktuální slot
+    heating = enhanced_heating_logic(
+        fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy,
+        temp_upper_current, temp_lower_current
     )
     
-    upper_accumulation_on = heating_decisions["upper_accumulation"]
-    lower_accumulation_on = heating_decisions["lower_accumulation"] 
-    max_heat_on = heating_decisions["max_heat"]
-    forced_heating_block = heating_decisions["block_heating"]
+    upper_accumulation_on = heating["upper_accumulation"]
+    lower_accumulation_on = heating["lower_accumulation"] 
+    max_heat_on = heating["max_heat"]
+    forced_heating_block = heating["block_heating"]
+
+    # Režim střídače
+    if Bdis > P_MAN_DIS:
+        charger_use_mode = "Manual"
+    elif Bchrg > P_MAN_DIS:
+        charger_use_mode = "Manual"
+    elif Gsell > P_EXTRA_EXP:
+        charger_use_mode = "Feedin Priority"
+    else:
+        charger_use_mode = PREFERRED_STANDARD_MODE
 
     # Výpočet výkonů a proudů baterie
-    if charger_use_mode in ["Manual Discharge", "Manual Charge"]:
-        # V manuálním režimu nastavujeme konkrétní výkon
-        battery_power_w = -int(Bdis * 1000) if Bdis > 0 else int(Bchrg * 1000)
-        battery_discharge_power = max(0, int(Bdis * 1000))
+    if charger_use_mode == "Manual":
+        # Manual režim - explicitní řízení (servisní účely)
+        if Bdis > P_MAN_DIS:
+            # Vybíjení
+            battery_power_w = -int(Bdis * 1000)
+            battery_discharge_power = max(0, int(Bdis * 1000))
+        elif Bchrg > P_MAN_DIS:
+            # Nabíjení
+            battery_power_w = int(Bchrg * 1000)
+            battery_discharge_power = 0
+        else:
+            battery_power_w = 0
+            battery_discharge_power = 0
     else:
+        # Automatické režimy (Self Use, Feedin Priority, Back Up) - střídač řídí sám
         battery_power_w = 0
         battery_discharge_power = 0
     
@@ -121,7 +175,7 @@ def mpc_to_actions(sol: Dict[str, Any]) -> Dict[str, Any]:
 
 ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
     "charger_use_mode": {
-        "friendly_name": "Režim měniče",
+        "friendly_name": "Režim měniče (Self Use/Feedin Priority/Back Up/Manual)",
         "icon": "mdi:transmission-tower-export",
     },
     "upper_accumulation_on": {
@@ -196,53 +250,75 @@ ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
 
 # ---------------------------------------------------------------------------
 def enhanced_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float, 
-                          Hin_lower: float, Gbuy: float) -> Dict[str, bool]:
+                          Hin_lower: float, Gbuy: float, temp_upper: float, 
+                          temp_lower: float) -> Dict[str, bool]:
     """
-    Vylepšená logika ohřevu podle požadavků:
-    - Pokud je baterie nad 40%, snaží se vytěžit FVE do ohřevu
-    - Zapíná patrony podle povolení horní a spodní akumulace
-    - Při zapnutí maximálního výkonu spustí 12kW ohřev
+    Vylepšená logika ohřevu podle aktuálních teplot a požadavků:
+    
+    Automatické režimy akumulace (pokud nejsou blokovány):
+    - Udržuje alespoň 45°C nahoře pro komfort
+    - Po 18h cílí na 65°C nahoře pro koupání (55°C pokud je dole teplo)
+    - Při FVE přebytku: nejdříve nahoře na 70°C, pak celá nádrž na 90°C
+    
+    MPC optimalizátor by měl toto chování řídit podle budoucích podmínek.
     """
+    from datetime import datetime
     
     # Základní podmínky
     battery_above_40 = B_SOC > 40
     cheap_electricity = Gbuy < P_GBUY_GRID
     expensive_electricity = Gbuy > P_HIN_GRID
+    current_hour = datetime.now().hour
+    is_evening_prep = current_hour >= 16  # Příprava na večerní koupání
+    lower_is_warm = temp_lower > TEMP_LOWER_WARM
     
-    # Horní akumulace - konzervativnější
+    # Kontrola základních komfortních teplot
+    upper_needs_comfort = temp_upper < TEMP_COMFORT_MIN
+    upper_needs_bath = is_evening_prep and temp_upper < (TEMP_BATH_REDUCED if lower_is_warm else TEMP_BATH_TARGET)
+    
+    # Logika pro horní akumulaci
     upper_on = (
-        # FVE přebytek + dobrá baterie
-        (fve_surplus > FVE_SURPLUS_THRESHOLD and battery_above_40) or
-        # Levná elektřina + signál z optimizátoru  
+        # Kritické - pod komfortní teplotou (nutné nezávisle na energii)
+        upper_needs_comfort or
+        # Příprava na koupání podle času
+        upper_needs_bath or
+        # FVE přebytek - akumulace nad 70°C
+        (fve_surplus > FVE_SURPLUS_THRESHOLD and battery_above_40 and temp_upper < TEMP_ACCUMULATION) or
+        # MPC signál + levná elektřina
         (cheap_electricity and Hin_upper > 0.1) or
-        # Velký přebytek FVE
+        # Velký FVE přebytek - vždy využít
         (fve_surplus > 5.0)
     )
     
-    # Spodní akumulace - agresivnější využití přebytku
+    # Logika pro spodní akumulaci
     lower_on = (
-        # Jakýkoliv FVE přebytek + baterie nad 40%
+        # MPC signál pro topení (heating_demand > 0)
+        (Hin_lower > 0.1) or
+        # FVE přebytek + dobrá baterie
         (fve_surplus > 1.0 and battery_above_40) or
-        # Levná elektřina + signál
+        # Levná elektřina + MPC signál
         (cheap_electricity and Hin_lower > 0.1) or
-        # Střední přebytek FVE
+        # Střední FVE přebytek
         (fve_surplus > 3.0)
     )
     
-    # Maximální ohřev - pouze při výjimečných podmínkách
+    # Maximální ohřev (12kW) - celá nádrž na 90°C
     max_heat_on = (
-        # Velký FVE přebytek + dobrá baterie
-        (fve_surplus > 8.0 and battery_above_40) or
-        # Velmi levná elektřina + vysoký signál
-        (expensive_electricity and (Hin_upper + Hin_lower) > P_HIN_GRID)
+        # Velký FVE přebytek + obě zóny pod cílem
+        (fve_surplus > 8.0 and battery_above_40 and 
+         temp_upper < TEMP_FULL_TANK and temp_lower < TEMP_FULL_TANK) or
+        # Velmi vysoký MPC signál při levné elektřině
+        (cheap_electricity and (Hin_upper + Hin_lower) > P_HIN_GRID)
     )
     
-    # Blokování nuceného ohřevu - ochrana při nedostatku
+    # Blokování nuceného ohřevu - jen když je situace kritická
+    # POZOR: blokuje i základní komfortní ohřevy!
     block_heating = (
-        # Málo energie + slabá baterie + drahá elektřina
-        (fve_surplus < 0.5 and B_SOC < 30 and expensive_electricity) or
-        # Velmi slabá baterie
-        (B_SOC < 20)
+        # Velmi kritická situace - málo energie + slabá baterie + drahá elektřina
+        (fve_surplus < 0.2 and B_SOC < 20 and expensive_electricity and 
+         not upper_needs_comfort) or  # Neblokuj při kritickém nedostatku tepla
+        # Extrémně slabá baterie (ale ne při kritických teplotách)
+        (B_SOC < 15 and not upper_needs_comfort)
     )
     
     return {
@@ -253,3 +329,87 @@ def enhanced_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
     }
 
 # ---------------------------------------------------------------------------
+def mpc_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generuje plán akcí pro všechny časové sloty podle výstupů MPC optimizátoru.
+    Výsledek obsahuje časové řady pro vizualizaci v grafech.
+    """
+    out = sol["outputs"]
+    num_slots = len(out["h_in_upper"])
+    
+    # Příprava výstupních časových řad
+    timeline = {
+        "charger_mode": [],
+        "upper_accumulation": [],
+        "lower_accumulation": [],
+        "max_heat": [],
+        "heating_blocked": [],
+        "battery_target_soc": [],
+        "reserve_power": [],
+        "minimum_soc": [],
+        "fve_surplus": [],
+        "heating_logic": [],
+    }
+    
+    for slot in range(num_slots):
+        # Extrakce hodnot pro daný slot
+        Hin_upper = out["h_in_upper"][slot]
+        Hin_lower = out["h_in_lower"][slot]
+        Hin_total = Hin_upper + Hin_lower
+        Gsell = out["g_sell"][slot]
+        Gbuy = out["g_buy"][slot]
+        Bdis = out["b_discharge"][slot]
+        Bchrg = out["b_charge"][slot]
+        B_SOC = out["b_soc_percent"][slot]
+        temp_upper = out["temp_upper"][slot]
+        temp_lower = out["temp_lower"][slot]
+        
+        # Výpočet FVE přebytku
+        fve_output = out.get("fve_pred", [0] * num_slots)[slot]
+        load_demand = out.get("load_pred", [0] * num_slots)[slot]
+        fve_surplus = max(0, fve_output - load_demand)
+        
+        # Vylepšená logika ohřevu
+        heating = enhanced_heating_logic(
+            fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy,
+            temp_upper, temp_lower
+        )
+        
+        # Režim střídače
+        if Bdis > P_MAN_DIS:
+            charger_mode = "Manual"
+        elif Bchrg > P_MAN_DIS:
+            charger_mode = "Manual"
+        elif Gsell > P_EXTRA_EXP:
+            charger_mode = "Feedin Priority"
+        else:
+            charger_mode = PREFERRED_STANDARD_MODE
+        
+        # Rezervovaný výkon pro dobíjení
+        reserve_power = max(0, int(Bchrg * 1000)) if B_SOC < 90 else 0
+        
+        # Minimální SOC
+        minimum_soc = MIN_SOC_RESERVE if heating["max_heat"] else max(MIN_SOC_RESERVE - 10, 20)
+        
+        # Uložení do časových řad
+        timeline["charger_mode"].append(charger_mode)
+        timeline["upper_accumulation"].append(heating["upper_accumulation"])
+        timeline["lower_accumulation"].append(heating["lower_accumulation"])
+        timeline["max_heat"].append(heating["max_heat"])
+        timeline["heating_blocked"].append(heating["block_heating"])
+        timeline["battery_target_soc"].append(round(B_SOC, 1))
+        timeline["reserve_power"].append(reserve_power)
+        timeline["minimum_soc"].append(minimum_soc)
+        timeline["fve_surplus"].append(fve_surplus)
+        
+        # Logické kombinace pro vizualizaci
+        heating_active = heating["upper_accumulation"] or heating["lower_accumulation"]
+        timeline["heating_logic"].append({
+            "heating_active": heating_active,
+            "max_heat_active": heating["max_heat"],
+            "heating_blocked": heating["block_heating"],
+            "charger_manual": charger_mode == "Manual",
+            "charger_feedin": charger_mode == "Feedin Priority",
+        })
+    
+    return timeline
