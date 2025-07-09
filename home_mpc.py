@@ -151,8 +151,21 @@ def run_mpc_optimizer(
     load_pred = series["load_pred"]
 
     soc_bat_init = clamp(initials["bat_soc"] / 100 * b_cap, b_min, b_max)
-    soc_lower_init = clamp(temp_to_energy(initials["temp_lower"], h_lower_vol, h_lower_min_t), 0, h_lower_cap)   # 700L zóna
-    soc_upper_init = clamp(temp_to_energy(initials["temp_upper"], h_upper_vol, h_upper_min_t), 0, h_upper_cap)   # 300L zóna
+    
+    # Správná inicializace SOC pro zóny - pokud je teplota pod minimem, použijeme 0
+    # Pokud je nad minimem, spočítáme energii relativně k minimu
+    if initials["temp_lower"] < h_lower_min_t:
+        soc_lower_init = 0
+    else:
+        soc_lower_init = clamp(temp_to_energy(initials["temp_lower"], h_lower_vol, h_lower_min_t), 0, h_lower_cap)
+    
+    if initials["temp_upper"] < h_upper_min_t:
+        soc_upper_init = 0
+    else:
+        soc_upper_init = clamp(temp_to_energy(initials["temp_upper"], h_upper_vol, h_upper_min_t), 0, h_upper_cap)
+    
+    debug(f"Initial temps: lower={initials['temp_lower']}°C, upper={initials['temp_upper']}°C")
+    debug(f"Min temps: lower={h_lower_min_t}°C, upper={h_upper_min_t}°C")
     debug(f"soc_bat_init={soc_bat_init}, soc_lower_init={soc_lower_init}, soc_upper_init={soc_upper_init}")
     debug(f"h_lower_cap={h_lower_cap}, h_upper_cap={h_upper_cap}, h_lower_vol={h_lower_vol}, h_upper_vol={h_upper_vol}")
 
@@ -239,20 +252,40 @@ def run_mpc_optimizer(
             load_pred[t] + b_charge[t] / b_eff_in + (h_in_lower[t] + h_in_upper[t] + parasitic_energy) + g_sell[t] + fve_unused[t]
         )
 
-        # Heat transfer lower->upper
-        prob += h_to_upper[t] <= h_soc_lower[t]
-        # Compute previous zone SOC for temperature conversion
+        # Heat transfer lower->upper based on energy difference (linearized approach)
+        # Since temperature is proportional to energy/volume, we can use SOC directly
+        # Convert alpha from temperature-based to energy-based coefficient
+        
         if t == 0:
-            lower_soc_prev = soc_lower_init
-            upper_soc_prev = soc_upper_init
+            lower_soc_available = soc_lower_init
+            upper_soc_available = soc_upper_init
+            # Use previous SOC for heat transfer calculation
+            lower_soc_for_transfer = soc_lower_init
+            upper_soc_for_transfer = soc_upper_init
         else:
-            lower_soc_prev = h_soc_lower[t-1]
-            upper_soc_prev = h_soc_upper[t-1]
-        # Convert energy to temperature expressions (°C)
-        temp_lower_expr = energy_to_temp(lower_soc_prev, h_lower_vol, h_lower_min_t)
-        temp_upper_expr = energy_to_temp(upper_soc_prev, h_upper_vol, h_upper_min_t)
-        # Passive heat transfer governed by temperature difference (positive or negative)
-        prob += h_to_upper[t] == alpha * (temp_lower_expr - temp_upper_expr)
+            lower_soc_available = h_soc_lower[t-1]
+            upper_soc_available = h_soc_upper[t-1]
+            # Use previous SOC for heat transfer calculation
+            lower_soc_for_transfer = h_soc_lower[t-1]
+            upper_soc_for_transfer = h_soc_upper[t-1]
+        
+        # Linearized heat transfer based on energy difference
+        # Convert temperature difference to energy difference for linear model
+        # alpha_energy adjusts the original alpha coefficient for energy-based calculation
+        alpha_energy = alpha * 3600 / 4181  # Convert from temperature-based to energy-based
+        
+        # Normalize by volume to account for different zone sizes
+        lower_energy_density = lower_soc_for_transfer / h_lower_vol if h_lower_vol > 0 else 0
+        upper_energy_density = upper_soc_for_transfer / h_upper_vol if h_upper_vol > 0 else 0
+        
+        # Heat transfer proportional to energy density difference
+        prob += h_to_upper[t] == alpha_energy * (lower_energy_density - upper_energy_density)
+        
+        # Physical constraints: heat transfer cannot exceed available energy in source zone
+        # When heat flows from lower to upper (h_to_upper[t] > 0)
+        prob += h_to_upper[t] <= lower_soc_available
+        # When heat flows from upper to lower (h_to_upper[t] < 0)
+        prob += h_to_upper[t] >= -upper_soc_available
         
 
         # Lower zone SOC dynamics
@@ -266,14 +299,16 @@ def run_mpc_optimizer(
              h_upper_cap, T_ambient=20, cirk_time=0.3
         )
 
-        beta = 0.5
-
+        # Zone SOC dynamics - physically correct model
+        # Lower zone: heated by lower heater, loses heat through transfer to upper zone and direct output
+        # Upper zone: heated by upper heater, gains heat from lower zone, loses heat through output
+        
         if t == 0:
             prob += h_soc_lower[t] == soc_lower_init + (h_in_lower[t] - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
             prob += h_soc_upper[t] == soc_upper_init + (h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
         else:
-            prob += h_soc_lower[t] == h_soc_lower[t - 1] + (h_in_lower[t]*(1-beta) - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
-            prob += h_soc_upper[t] == h_soc_upper[t - 1] + (h_in_lower[t]*beta + h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
+            prob += h_soc_lower[t] == h_soc_lower[t - 1] + (h_in_lower[t] - h_to_upper[t] - h_out_lower[t] - loss_lower) * dt[t]
+            prob += h_soc_upper[t] == h_soc_upper[t - 1] + (h_in_upper[t] + h_to_upper[t] - h_out_upper[t] - loss_upper) * dt[t]
 
         # Heater power limits and grid/inverter constraints
         prob += h_in_lower[t] <= h_lower_power
