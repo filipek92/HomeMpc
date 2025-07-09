@@ -25,8 +25,8 @@ class ChartTheme:
     
     # Specifické barvy pro komponenty
     BATTERY_SOC = "#4db6ac"
-    BATTERY_CHARGE = "#10B981"
-    BATTERY_DISCHARGE = "#EF4444"
+    BATTERY_DISCHARGE = "#10B981"
+    BATTERY_CHARGE = "#EF4444"
     
     HEATING_LOWER = "#c2185b"
     HEATING_UPPER = "#e91e63"
@@ -527,6 +527,27 @@ class ChartFactory:
         mode_colors = [self.theme.MODE_SELF_USE, self.theme.MODE_BACKUP, 
                       self.theme.MODE_FEEDIN, self.theme.MODE_MANUAL]
         
+        # Přidání podbarvení podle režimu
+        for i, mode in enumerate(charger_modes):
+            # Parse hex color to rgba with transparency
+            hex_color = mode_colors[i]
+            r, g, b = int(hex_color[1:3], 16), int(hex_color[3:5], 16), int(hex_color[5:7], 16)
+            fill_color = f"rgba({r},{g},{b},0.2)"
+            y_area = [1 if m == mode else 0 for m in actions["charger_mode"]]
+            fig.add_trace(
+                go.Scatter(
+                    x=data['times'],
+                    y=y_area,
+                    mode='none',
+                    fill='tozeroy',
+                    fillcolor=fill_color,
+                    showlegend=False
+                ),
+                row=row,
+                col=1,
+            )
+
+        # Původní body
         for i, mode in enumerate(charger_modes):
             mode_values = [i+1 if m == mode else None for m in actions["charger_mode"]]
             if any(v for v in mode_values if v is not None):
@@ -707,8 +728,8 @@ def presentation(solution: Dict[str, Any]) -> Dict[str, str]:
     if data['heating_enabled'] or True:  # Always show for now
         graphs['heating'] = chart_factory.create_heating_chart(data, ChartConfig(height=400))
     
-    # Graf 6: Plán akcí
-    graphs['actions'] = chart_factory.create_actions_chart(data, ChartConfig(height=500))
+    # Graf 6: Plán akcí - removed per user request
+    # graphs['actions'] = chart_factory.create_actions_chart(data, ChartConfig(height=500))
 
     return graphs
 

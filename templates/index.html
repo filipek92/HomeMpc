@@ -146,6 +146,28 @@
             animation: pulse 2s infinite;
         }
 
+        /* Badge pro režimy střídače v tabulce Plán akcí */
+        .mode-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: white;
+            display: inline-block;
+        }
+        .mode-self-use { background-color: #4db6ac; }
+        .mode-back-up-mode { background-color: #0f9d58; }
+        .mode-feedin-priority { background-color: #8353d1; }
+        .mode-manual { background-color: #f06292; }
+        /* Malý barevný puntík pod badge režimu */
+        .mode-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-top: 0.25rem;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.8; }
@@ -1227,7 +1249,7 @@
                 
                 <div class="key-metrics">
                     <div class="metric-item">
-                        <div class="metric-value">{{ "%.2f"|format(current_results.get('total_cost', 0)) }}</div>
+                        <div class="metric-value">{{ "%.2f"|format(current_results.get('net_bilance', 0)) }}</div>
                         <div class="metric-label">Celkové náklady (Kč)</div>
                     </div>
                     <div class="metric-item">
@@ -1295,8 +1317,9 @@
                                     <td>{{ timeline.times[i] }}</td>
                                     <td>
                                         <span class="mode-badge mode-{{ timeline.charger_mode[i].lower().replace(' ', '-') }}">
-                                            {{ timeline.charger_mode[i][:8] }}
+                                            {{ timeline.charger_mode[i] }}
                                         </span>
+                                        <span class="mode-dot mode-{{ timeline.charger_mode[i].lower().replace(' ', '-') }}"></span>
                                     </td>
                                     <td>{{ "%.0f"|format(timeline.battery_target_soc[i]) }}%</td>
                                     <td>{{ "%.0f"|format(timeline.reserve_power[i]/1000) }}W</td>

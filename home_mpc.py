@@ -362,7 +362,9 @@ def run_mpc_optimizer(
         "temp_upper": [energy_to_temp(h_soc_upper[t].varValue, h_upper_vol, h_upper_min_t) for t in indexes],
     }
 
-    results = {k: v[0] for k, v in outputs.items() if isinstance(v, list)}
+    results = {}
+    results["grid_consumption"] = sum(outputs["g_buy"])  # Celková spotřeba z gridu
+    results["grid_injection"] = sum(outputs["g_sell"])  # Celková
     results["total_buy_cost"] = sum(outputs["buy_cost"])
     results["total_sell_income"] = sum(outputs["sell_income"])
     results["net_bilance"] = sum(outputs["net_step_cost"])
