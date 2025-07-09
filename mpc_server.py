@@ -282,6 +282,26 @@ def index():
     slots = solution.get("slots", [])
     first_slot_data = slots[0] if slots else {}
     current_results = solution.get("results", {})
+    timeline = solution.get("actions_timeline", {})
+    
+    # Přidat časy do timeline
+    if timeline and "times" not in timeline:
+        solution_times = solution.get("times", [])
+        formatted_times = []
+        for t in solution_times:
+            # Pokud je časový údaj jako řetězec v ISO formátu, parse a formátuj
+            if isinstance(t, str):
+                try:
+                    dt = datetime.fromisoformat(t)
+                    formatted_times.append(dt.strftime("%H:%M"))
+                except Exception:
+                    formatted_times.append(t)
+            # Pokud je datetime objekt
+            elif hasattr(t, 'strftime'):
+                formatted_times.append(t.strftime("%H:%M"))
+            else:
+                formatted_times.append(str(t))
+        timeline["times"] = formatted_times
 
     return render_template(
         'index.html',
@@ -296,6 +316,7 @@ def index():
         day=compare_day,  # Pro zpětnou kompatibilitu
         first_slot_data=first_slot_data,
         current_results=current_results,
+        timeline=timeline,
         version=get_current_version(),
     )
 if __name__ == "__main__":
