@@ -1,6 +1,6 @@
 """
-HomeOptim - Refactored Presentation Layer
-Modern visualization module for energy optimization dashboard
+HomeOptim - Presentation Layer
+Refactored visualization module for energy optimization dashboard
 """
 
 from plotly.subplots import make_subplots
@@ -10,7 +10,6 @@ from datetime import timedelta, datetime
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional
 from actions import mpc_to_actions_timeline
-
 
 @dataclass
 class ChartTheme:
@@ -61,7 +60,6 @@ class ChartTheme:
     ACTION_FVE_SURPLUS = "#ffeb3b"
     ACTION_BATTERY_RESERVE = "#4db6ac"
 
-
 @dataclass
 class ChartConfig:
     """Konfigurace pro jednotlivé grafy"""
@@ -73,7 +71,6 @@ class ChartConfig:
     def __post_init__(self):
         if self.margin is None:
             self.margin = dict(l=50, r=50, t=80, b=50)
-
 
 class DataProcessor:
     """Třída pro zpracování dat pro vizualizaci"""
@@ -106,7 +103,6 @@ class DataProcessor:
             'actions_timeline': actions_timeline,
             'options': options
         }
-
 
 class ChartFactory:
     """Továrna pro vytváření různých typů grafů"""
@@ -674,265 +670,637 @@ class ChartFactory:
                 'frameMargins': 0
             }
         )
+            go.Scatter(
+                x=[t + timedelta(hours=1) for t in times],
+                y=ts[key],
+                name=labels.get(key, key),
+                marker_color=ha_color.get(key, "black"),
+                line=dict(width=2),
+            ),
+            row=1,
+            col=1,
+        )
 
-
-# Hlavní API funkce pro zpětnou kompatibilitu
-def presentation(solution: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Hlavní funkce pro vytvoření všech grafů
-    Vrací slovník s HTML reprezentacemi jednotlivých grafů
-    """
-    # Zpracování dat
-    data = DataProcessor.prepare_time_series(solution)
+    # Hlavní výkony (jen nejdůležitější)
+    inverted = ["g_sell", "h_out_lower", "h_out_upper", "b_discharge"]
+    for key in main_steps:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=[-v if key in inverted else v for v in ts[key]],
+                name=labels.get(key, key),
+                line_shape="hv",
+                mode="lines",
+                marker_color=ha_color.get(key, "black"),
+            ),
+            row=2,
+            col=1,
+        )
     
-    # Vytvoření továrny grafů
-    chart_factory = ChartFactory()
+    # Režimy střídače jako barevné bloky
+    charger_modes = ["Self Use", "Back Up Mode", "Feedin Priority", "Manual"]
+    mode_colors = ["#4db6ac", "#0f9d58", "#8353d1", "#f06292"]
     
-    # Vytvoření jednotlivých grafů
-    graphs = {}
-    
-    # Graf 1: Přehled - kombinovaný graf nejdůležitějších metrik
-    graphs['overview'] = chart_factory.create_overview_chart(data, ChartConfig(height=600))
-    
-    # Graf 2: Stavy baterie a bojleru
-    graphs['states'] = chart_factory.create_states_chart(data, ChartConfig(height=400))
-    
-    # Graf 3: Výkony a energie
-    graphs['power'] = chart_factory.create_power_chart(data, ChartConfig(height=500))
-    
-    # Graf 4: Ceny elektřiny
-    graphs['prices'] = chart_factory.create_prices_chart(data, ChartConfig(height=350))
-    
-    # Graf 5: Teploty a tepelné ztráty
-    if data['heating_enabled'] or True:  # Always show for now
-        graphs['heating'] = chart_factory.create_heating_chart(data, ChartConfig(height=400))
-    
-    # Graf 6: Plán akcí
-    graphs['actions'] = chart_factory.create_actions_chart(data, ChartConfig(height=500))
-
-    return graphs
-
-
-def presentation_single(solution: Dict[str, Any]) -> str:
-    """
-    Původní funkce pro jeden velký graf - refactored
-    Zachována pro zpětnou kompatibilitu
-    """
-    data = DataProcessor.prepare_time_series(solution)
-    chart_factory = ChartFactory()
-    
-    # Vytvoření jediného velkého grafu se všemi subploty
-    fig = make_subplots(
-        rows=6 if data['heating_enabled'] or True else 5,
-        cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.03,
-        subplot_titles=(
-            "📊 Stavy energetických úložišť (SoC)",
-            "⚡ Výkony a energetické toky",
-            "💰 Ceny elektřiny",
-            "🌡️ Tepelné ztráty a venkovní teplota",
-            "🔄 Plán režimů střídače",
-            "🎯 Plán akcí ohřevu a optimalizace",
-        ),
-    )
-
-    # Stavy SoC
-    for key in data['soc_keys']:
-        if key in data['ts']:
+    for i, mode in enumerate(charger_modes):
+        mode_values = [i+1 if m == mode else None for m in actions_timeline["charger_mode"]]
+        if any(v for v in mode_values if v is not None):
             fig.add_trace(
                 go.Scatter(
-                    x=[t + timedelta(hours=1) for t in data['times']],
-                    y=data['ts'][key],
-                    name=chart_factory.labels.get(key, key),
-                    marker_color=chart_factory.color_map.get(key, chart_factory.theme.PRIMARY),
-                    line=dict(width=2),
-                ),
-                row=1,
-                col=1,
-            )
-    
-    # Přidání zónových SoC (kWh)
-    for key in ["h_soc_lower", "h_soc_upper"]:
-        if key in data['ts']:
-            fig.add_trace(
-                go.Scatter(
-                    x=[t + timedelta(hours=1) for t in data['times']],
-                    y=data['ts'][key],
-                    name=chart_factory.labels.get(key, key),
-                    line_dash="dot",
-                    marker_color=chart_factory.color_map.get(key, chart_factory.theme.SECONDARY),
-                ),
-                row=1,
-                col=1,
-            )
-
-    # Výkony
-    for key in data['power_keys']:
-        if key in data['ts']:
-            y_values = [-v if key in data['inverted_keys'] else v for v in data['ts'][key]]
-            fig.add_trace(
-                go.Scatter(
-                    x=data['times'],
-                    y=y_values,
-                    name=chart_factory.labels.get(key, key),
-                    line_shape="hv",
+                    x=times,
+                    y=mode_values,
+                    name=f"Režim: {mode}",
                     mode="lines",
-                    marker_color=chart_factory.color_map.get(key, chart_factory.theme.PRIMARY),
-                ),
-                row=2,
-                col=1,
-            )
-
-    # Sloupcové grafy pro toky energie
-    bar_offset = 1 / len(data['bar_keys'])
-    for i, key in enumerate(data['bar_keys']):
-        if key in data['ts']:
-            offset_times = [t + timedelta(minutes=i*10) for t in data['times']]
-            y_values = [-v if key in data['inverted_keys'] else v for v in data['ts'][key]]
-            fig.add_trace(
-                go.Bar(
-                    x=offset_times,
-                    y=y_values,
-                    name=chart_factory.labels.get(key, key),
-                    marker_color=chart_factory.color_map.get(key, chart_factory.theme.SECONDARY),
-                    opacity=0.7,
-                    width=bar_offset * 3600000,
-                ),
-                row=2,
-                col=1,
-            )
-
-    # Ceny elektřiny
-    for key in ["buy_price", "sell_price"]:
-        if key in data['ts']:
-            fig.add_trace(
-                go.Scatter(
-                    x=data['times'],
-                    y=data['ts'][key],
-                    name=chart_factory.labels.get(key, key),
                     line_shape="hv",
-                    mode="lines",
-                    marker_color=chart_factory.color_map.get(key, chart_factory.theme.PRIMARY),
+                    marker_color=mode_colors[i],
+                    line=dict(width=4),
                 ),
                 row=3,
                 col=1,
             )
-    
-    # Teploty a tepelné ztráty
-    if data['heating_enabled'] or True:
-        for key in ["heating_demand", "outdoor_temps"]:
-            if key in data['ts']:
-                fig.add_trace(
-                    go.Scatter(
-                        x=data['times'],
-                        y=data['ts'][key],
-                        name=chart_factory.labels.get(key, key),
-                        mode="lines",
-                        marker_color=chart_factory.color_map.get(key, chart_factory.theme.WARNING),
-                    ),
-                    row=4,
-                    col=1,
-                )
-        
-        for key in ["temp_lower", "temp_upper"]:
-            if key in data['ts'] and data['ts'][key]:
-                fig.add_trace(
-                    go.Scatter(
-                        x=data['times'],
-                        y=data['ts'][key],
-                        name=chart_factory.labels.get(key, key),
-                        line_dash="dash",
-                        marker_color=chart_factory.color_map.get(key, chart_factory.theme.SECONDARY),
-                    ),
-                    row=4,
-                    col=1,
-                )
 
-    # Režimy střídače
-    actions = data['actions_timeline']
+    fig.update_yaxes(title_text="SoC [%]", row=1, col=1)
+    fig.update_yaxes(title_text="Výkon [kW]", row=2, col=1)
+    fig.update_yaxes(title_text="Režim", row=3, col=1)
+
+    fig.update_layout(
+        height=600,
+        margin=dict(l=50, r=50, t=80, b=50),
+        showlegend=True,
+        title="🏠 Přehled optimalizace",
+        autosize=True,
+        width=None
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'modeBarButtonsToRemove': ['pan2d', 'lasso2d'],
+        'responsive': True,
+        'fillFrame': True,
+        'frameMargins': 0
+    })
+
+def create_states_graph(times, ts, socs):
+    """Graf stavů baterie a bojleru"""
+    fig = go.Figure()
+
+    for key in socs:
+        fig.add_trace(
+            go.Scatter(
+                x=[t + timedelta(hours=1) for t in times],
+                y=ts[key],
+                name=labels.get(key, key),
+                marker_color=ha_color.get(key, "black"),
+                line=dict(width=3),
+            )
+        )
+    
+    # Přidání zónových SoC (kWh)
+    for key in ["h_soc_lower", "h_soc_upper"]:
+        fig.add_trace(
+            go.Scatter(
+                x=[t + timedelta(hours=1) for t in times],
+                y=ts[key],
+                name=labels.get(key, key),
+                line_dash="dot",
+                marker_color=ha_color.get(key, "black"),
+            )
+        )
+
+    fig.update_layout(
+        height=400,
+        margin=dict(l=50, r=50, t=80, b=50),
+        title="🔋 Stavy baterie a bojleru",
+        yaxis_title="SoC [%] / Energie [kWh]",
+        xaxis_title="Čas",
+        autosize=True
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'responsive': True
+    })
+
+def create_power_graph(times, ts, steps, bars, inverted):
+    """Graf výkonů a energií"""
+    fig = go.Figure()
+
+    for key in steps:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=[-v if key in inverted else v for v in ts[key]],
+                name=labels.get(key, key),
+                line_shape="hv",
+                mode="lines",
+                marker_color=ha_color.get(key, "black"),
+            )
+        )
+
+    bar_offset = 1 / len(bars)
+    for i, key in enumerate(bars):
+        fig.add_trace(
+            go.Bar(
+                x=[t + timedelta(hours=i * bar_offset + 0.125) for t in times],
+                y=[-v if key in inverted else v for v in ts[key]],
+                name=labels.get(key, key),
+                marker_color=ha_color.get(key, "black"),
+                opacity=0.8,
+            )
+        )
+
+    fig.update_layout(
+        height=500,
+        margin=dict(l=50, r=50, t=80, b=50),
+        title="⚡ Výkony a toky energie",
+        yaxis_title="Výkon [kW]",
+        xaxis_title="Čas",
+        autosize=True
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'responsive': True
+    })
+
+def create_prices_graph(times, ts):
+    """Graf cen elektřiny"""
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts["buy_price"],
+            name=labels["buy_price"],
+            line_shape="hv",
+            mode="lines+markers",
+            marker_color=ha_color["buy_price"],
+            line=dict(width=3),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts["sell_price"],
+            name=labels["sell_price"],
+            line_shape="hv",
+            mode="lines+markers",
+            marker_color=ha_color["sell_price"],
+            line=dict(width=3),
+        )
+    )
+
+    fig.update_layout(
+        height=350,
+        margin=dict(l=50, r=50, t=80, b=50),
+        title="💰 Ceny elektřiny",
+        yaxis_title="Cena [Kč/kWh]",
+        xaxis_title="Čas",
+        autosize=True
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'responsive': True
+    })
+
+def create_heating_graph(times, ts):
+    """Graf tepelných ztrát a teplot"""
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts["heating_demand"],
+            name=labels["heating_demand"],
+            mode="lines",
+            marker_color=ha_color["heating_demand"],
+            line=dict(width=2),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts["outdoor_temps"],
+            name=labels["outdoor_temps"],
+            mode="lines",
+            marker_color=ha_color["outdoor_temps"],
+            line=dict(width=2),
+        )
+    )
+    
+    # Teploty z výstupů MPC
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts.get("temp_lower", []),
+            name=labels.get("temp_lower", "temp_lower"),
+            line_dash="dash",
+            marker_color=ha_color.get("temp_lower", "black"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts.get("temp_upper", []),
+            name=labels.get("temp_upper", "temp_upper"),
+            line_dash="dot",
+            marker_color=ha_color.get("temp_upper", "black"),
+        )
+    )
+
+    fig.update_layout(
+        height=400,
+        margin=dict(l=50, r=50, t=80, b=50),
+        title="🌡️ Teploty a tepelné ztráty",
+        yaxis_title="Teplota [°C] / Ztráty [kWh]",
+        xaxis_title="Čas",
+        autosize=True
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'responsive': True
+    })
+
+def create_actions_graph(times, actions_timeline):
+    """Graf plánovaných akcí"""
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.12,
+        subplot_titles=(
+            "Režimy střídače a FVE přebytek",
+            "Akce ohřevu a rezervovaný výkon"
+        ),
+    )
+
+    # Graf 1: Plán režimů střídače
     charger_modes = ["Self Use", "Back Up Mode", "Feedin Priority", "Manual"]
-    mode_colors = [chart_factory.theme.MODE_SELF_USE, chart_factory.theme.MODE_BACKUP, 
-                  chart_factory.theme.MODE_FEEDIN, chart_factory.theme.MODE_MANUAL]
+    mode_colors = ["#4db6ac", "#0f9d58", "#8353d1", "#f06292"]
     
     for i, mode in enumerate(charger_modes):
-        mode_values = [i+1 if m == mode else None for m in actions["charger_mode"]]
-        if any(v for v in mode_values if v is not None):
+        mode_values = [1 if m == mode else 0 for m in actions_timeline["charger_mode"]]
+        if any(mode_values):
             fig.add_trace(
                 go.Scatter(
-                    x=data['times'],
+                    x=times,
                     y=mode_values,
-                    name=mode,
-                    mode="markers",
-                    marker=dict(size=8, color=mode_colors[i], symbol="square"),
+                    name=f"Režim: {mode}",
+                    mode="lines",
+                    line_shape="hv",
+                    stackgroup="charger_modes",
+                    marker_color=mode_colors[i],
+                ),
+                row=1,
+                col=1,
+            )
+    
+    # FVE přebytek
+    max_surplus = max(actions_timeline["fve_surplus"]) if actions_timeline["fve_surplus"] and max(actions_timeline["fve_surplus"]) > 0 else 1
+    normalized_surplus = [s/max_surplus for s in actions_timeline["fve_surplus"]]
+    
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=normalized_surplus,
+            name=f"FVE přebytek (max: {max_surplus:.1f} kW)",
+            mode="lines",
+            line_shape="hv",
+            marker_color="#ffeb3b",
+            line_dash="dot",
+            customdata=actions_timeline["fve_surplus"],
+        ),
+        row=1,
+        col=1,
+    )
+    
+    # Graf 2: Plán akcí ohřevu
+    heating_actions = [
+        ("upper_accumulation", "Horní akumulace", "#c97a94"),
+        ("lower_accumulation", "Spodní akumulace", "#0f9d58"), 
+        ("max_heat", "Maximální ohřev", "#ff9800"),
+        ("heating_blocked", "Ohřev blokován", "#f44336"),
+    ]
+    
+    for action_key, action_name, color in heating_actions:
+        action_values = [1 if v else 0 for v in actions_timeline[action_key]]
+        if any(action_values):
+            fig.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=action_values,
+                    name=action_name,
+                    mode="lines",
+                    line_shape="hv",
+                    stackgroup="heating_actions",
+                    marker_color=color,
+                ),
+                row=2,
+                col=1,
+            )
+    
+    # Rezervovaný výkon
+    max_reserve = max(actions_timeline["reserve_power"]) if actions_timeline["reserve_power"] and max(actions_timeline["reserve_power"]) > 0 else 1000
+    normalized_reserve = [r/max_reserve for r in actions_timeline["reserve_power"]]
+    
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=normalized_reserve,
+            name=f"Rezerva baterie (max: {max_reserve/1000:.1f} kW)",
+            mode="lines",
+            line_shape="hv",
+            marker_color="#4db6ac",
+            line_dash="dash",
+            customdata=actions_timeline["reserve_power"],
+        ),
+        row=2,
+        col=1,
+    )
+
+    fig.update_yaxes(title_text="Aktivní", row=1, col=1)
+    fig.update_yaxes(title_text="Aktivní", row=2, col=1)
+
+    fig.update_layout(
+        height=500,
+        margin=dict(l=50, r=50, t=80, b=50),
+        title="🎯 Plán akcí a optimalizace",
+        showlegend=True,
+        autosize=True
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'responsive': True
+    })
+
+# Zachování původní funkce pro zpětnou kompatibilitu
+def presentation_single(solution):
+    """Původní funkce pro jeden velký graf"""
+    times = [datetime.fromisoformat(t) for t in solution["times"]]
+
+    ts = {**solution["inputs"], **solution["outputs"]}
+
+    socs = ["b_soc_percent", "h_soc_lower_percent", "h_soc_upper_percent"]
+    inverted = ["g_sell", "h_out_lower", "h_out_upper", "b_discharge"]
+    steps = ["h_in_lower", "h_in_upper", "h_out_lower", "h_out_upper", "fve_pred", "load_pred"]
+    bars = ["b_charge", "b_discharge", "g_buy", "g_sell", "h_to_upper"]
+
+    options = solution.get("options", {})
+    heating_enabled = options.get("heating_enabled", False)
+
+    # Generování plánu akcí pro všechny sloty
+    actions_timeline = mpc_to_actions_timeline(solution)
+
+    fig = make_subplots(
+        rows=6 if heating_enabled or True else 5,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        subplot_titles=(
+            "Stavy (SoC)",
+            "Výkony",
+            "Ceny elektřiny",
+            "Tepelné ztráty a venkovní teplota",
+            "Plán režimů střídače",
+            "Plán akcí ohřevu",
+        ),
+    )
+
+    for key in socs:
+        fig.add_trace(
+            go.Scatter(
+                x=[t + timedelta(hours=1) for t in times],
+                y=ts[key],
+                name=labels.get(key, key),
+                marker_color=ha_color.get(key, "black"),
+            ),
+            row=1,
+            col=1,
+        )
+    # Přidání zónových SoC (kWh)
+    for key in ["h_soc_lower", "h_soc_upper"]:
+        fig.add_trace(
+            go.Scatter(
+                x=[t + timedelta(hours=1) for t in times],
+                y=ts[key],
+                name=labels.get(key, key),
+                line_dash="dot",
+                marker_color=ha_color.get(key, "black"),
+            ),
+            row=1,
+            col=1,
+        )
+
+    for key in steps:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=[-v if key in inverted else v for v in ts[key]],
+                name=labels.get(key, key),
+                line_shape="hv",
+                mode="lines",
+                marker_color=ha_color.get(key, "black"),
+            ),
+            row=2,
+            col=1,
+        )
+
+    bar_offset = 1 / len(bars)
+    for i, key in enumerate(bars):
+        fig.add_trace(
+            go.Bar(
+                x=[t + timedelta(hours=i * bar_offset + 0.125) for t in times],
+                y=[-v if key in inverted else v for v in ts[key]],
+                name=labels.get(key, key),
+                marker_color=ha_color.get(key, "black"),
+                opacity=0.8,
+            ),
+            row=2,
+            col=1,
+        )
+
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts["buy_price"],
+            name=labels["buy_price"],
+            line_shape="hv",
+            mode="lines",
+            marker_color=ha_color["buy_price"],
+        ),
+        row=3,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=ts["sell_price"],
+            name=labels["sell_price"],
+            line_shape="hv",
+            mode="lines",
+            marker_color=ha_color["sell_price"],
+        ),
+        row=3,
+        col=1,
+    )
+    if heating_enabled or True:
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts["heating_demand"],
+                name=labels["heating_demand"],
+                mode="lines",
+                marker_color=ha_color["heating_demand"],
+            ),
+            row=4,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts["outdoor_temps"],
+                name=labels["outdoor_temps"],
+                mode="lines",
+                marker_color=ha_color["outdoor_temps"],
+            ),
+            row=4,
+            col=1,
+        )
+        # Teploty z výstupů MPC
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts.get("temp_lower", []),
+                name=labels.get("temp_lower", "temp_lower"),
+                line_dash="dash",
+                marker_color=ha_color.get("temp_lower", "black"),
+            ),
+            row=4,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=times,
+                y=ts.get("temp_upper", []),
+                name=labels.get("temp_upper", "temp_upper"),
+                line_dash="dot",
+                marker_color=ha_color.get("temp_upper", "black"),
+            ),
+            row=4,
+            col=1,
+        )
+
+    # === NOVÉ GRAFY PLÁNŮ AKCÍ ===
+    
+    # Graf 5: Plán režimů střídače
+    charger_modes = ["Self Use", "Back Up Mode", "Feedin Priority", "Manual"]
+    mode_colors = ["#4db6ac", "#0f9d58", "#8353d1", "#f06292"]
+    
+    for i, mode in enumerate(charger_modes):
+        mode_values = [1 if m == mode else 0 for m in actions_timeline["charger_mode"]]
+        if any(mode_values):  # Zobrazit pouze pokud se mode používá
+            fig.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=mode_values,
+                    name=f"Režim: {mode}",
+                    mode="lines",
+                    line_shape="hv",
+                    stackgroup="charger_modes",
+                    marker_color=mode_colors[i],
+                    hovertemplate=f"<b>{mode}</b><br>" +
+                                  "Čas: %{x}<br>" +
+                                  "Aktivní: %{y}<br>" +
+                                  "<extra></extra>",
                 ),
                 row=5,
                 col=1,
             )
     
-    # FVE přebytek
-    if 'fve_surplus' in actions and actions['fve_surplus']:
-        max_surplus = max(actions["fve_surplus"]) if max(actions["fve_surplus"]) > 0 else 1
-        normalized_surplus = [s/max_surplus for s in actions["fve_surplus"]]
-        
-        fig.add_trace(
-            go.Scatter(
-                x=data['times'],
-                y=normalized_surplus,
-                name=f"FVE přebytek (max: {max_surplus:.1f} kW)",
-                mode="lines",
-                line_shape="hv",
-                marker_color=chart_factory.theme.ACTION_FVE_SURPLUS,
-                line_dash="dot",
-            ),
-            row=5,
-            col=1,
-        )
+    # Přidání informací o FVE přebytku (normalizováno na 0-1 škálu)
+    max_surplus = max(actions_timeline["fve_surplus"]) if actions_timeline["fve_surplus"] and max(actions_timeline["fve_surplus"]) > 0 else 1
+    normalized_surplus = [s/max_surplus for s in actions_timeline["fve_surplus"]]
     
-    # Akce ohřevu
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=normalized_surplus,
+            name=f"FVE přebytek (max: {max_surplus:.1f} kW)",
+            mode="lines",
+            line_shape="hv",
+            marker_color="#ffeb3b",
+            line_dash="dot",
+            hovertemplate="<b>FVE přebytek</b><br>" +
+                          "Čas: %{x}<br>" +
+                          f"Přebytek: %{{customdata:.2f}} kW<br>" +
+                          "<extra></extra>",
+            customdata=actions_timeline["fve_surplus"],
+        ),
+        row=5,
+        col=1,
+    )
+    
+    # Graf 6: Plán akcí ohřevu
     heating_actions = [
-        ("upper_accumulation", "Horní akumulace", chart_factory.theme.ACTION_UPPER_ACCUMULATION),
-        ("lower_accumulation", "Spodní akumulace", chart_factory.theme.ACTION_LOWER_ACCUMULATION), 
-        ("max_heat", "Maximální ohřev", chart_factory.theme.ACTION_MAX_HEAT),
-        ("heating_blocked", "Ohřev blokován", chart_factory.theme.ACTION_HEATING_BLOCKED),
+        ("upper_accumulation", "Horní akumulace", "#c97a94"),
+        ("lower_accumulation", "Spodní akumulace", "#0f9d58"), 
+        ("max_heat", "Maximální ohřev", "#ff9800"),
+        ("heating_blocked", "Ohřev blokován", "#f44336"),
     ]
     
     for action_key, action_name, color in heating_actions:
-        if action_key in actions:
-            action_values = [1 if a else None for a in actions[action_key]]
-            if any(v for v in action_values if v is not None):
-                fig.add_trace(
-                    go.Scatter(
-                        x=data['times'],
-                        y=action_values,
-                        name=action_name,
-                        mode="markers",
-                        marker=dict(size=6, color=color, symbol="diamond"),
-                    ),
-                    row=6,
-                    col=1,
-                )
+        action_values = [1 if v else 0 for v in actions_timeline[action_key]]
+        if any(action_values):  # Zobrazit pouze pokud se akce používá
+            fig.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=action_values,
+                    name=action_name,
+                    mode="lines",
+                    line_shape="hv",
+                    stackgroup="heating_actions",
+                    marker_color=color,
+                    hovertemplate=f"<b>{action_name}</b><br>" +
+                                  "Čas: %{x}<br>" +
+                                  "Aktivní: %{y}<br>" +
+                                  "<extra></extra>",
+                ),
+                row=6,
+                col=1,
+            )
     
-    # Rezervovaný výkon
-    if 'reserve_power' in actions and actions['reserve_power']:
-        max_reserve = max(actions["reserve_power"]) if max(actions["reserve_power"]) > 0 else 1000
-        normalized_reserve = [r/max_reserve for r in actions["reserve_power"]]
-        
-        fig.add_trace(
-            go.Scatter(
-                x=data['times'],
-                y=normalized_reserve,
-                name=f"Rezervovaný výkon (max: {max_reserve/1000:.1f} kW)",
-                mode="lines",
-                line_shape="hv",
-                marker_color=chart_factory.theme.ACTION_BATTERY_RESERVE,
-                line_dash="dash",
-            ),
-            row=6,
-            col=1,
-        )
+    # Přidání informací o rezervovaném výkonu (normalizováno)
+    max_reserve = max(actions_timeline["reserve_power"]) if actions_timeline["reserve_power"] and max(actions_timeline["reserve_power"]) > 0 else 1000
+    normalized_reserve = [r/max_reserve for r in actions_timeline["reserve_power"]]
     
-    # Konfigurace os
+    fig.add_trace(
+        go.Scatter(
+            x=times,
+            y=normalized_reserve,
+            name=f"Rezervovaný výkon (max: {max_reserve/1000:.1f} kW)",
+            mode="lines",
+            line_shape="hv",
+            marker_color="#4db6ac",
+            line_dash="dash",
+            hovertemplate="<b>Rezervovaný výkon</b><br>" +
+                          "Čas: %{x}<br>" +
+                          f"Výkon: %{{customdata:.0f}} W<br>" +
+                          "<extra></extra>",
+            customdata=actions_timeline["reserve_power"],
+        ),
+        row=6,
+        col=1,
+    )
+    
+    # Aktualizace os pro nové grafy
     fig.update_yaxes(title_text="Energie [%]", row=1, col=1)
     fig.update_yaxes(title_text="Výkon [kW]", row=2, col=1)
     fig.update_yaxes(title_text="Cena [Kč/kWh]", row=3, col=1)
@@ -940,18 +1308,16 @@ def presentation_single(solution: Dict[str, Any]) -> str:
     fig.update_yaxes(title_text="Aktivní", side="left", row=5, col=1)
     fig.update_yaxes(title_text="Aktivní", side="left", row=6, col=1)
 
+    # Nastavení výšky grafu pro lepší čitelnost
     fig.update_layout(
-        height=900,
-        margin=dict(l=50, r=50, t=80, b=50),
+        height=850,  # Zvýšená výška pro více grafů
+        margin=dict(l=50, r=50, t=80, b=50),  # Okraje
         showlegend=True,
-        title="🏠 HomeOptim - Kompletní energetická analýza",
-        title_x=0.5,
-        title_font_size=24,
         legend=dict(
-            orientation="h",
+            orientation="h",  # Horizontální legenda
             yanchor="bottom",
             y=1.02,
-            xanchor="right",
+            xanchor="right", 
             x=1
         )
     )
@@ -962,51 +1328,3 @@ def presentation_single(solution: Dict[str, Any]) -> str:
         'modeBarButtonsToRemove': ['pan2d', 'lasso2d'],
         'responsive': True
     })
-
-
-# Zpětná kompatibilita - zachování starých názvů
-def create_color_compatibility():
-    """Vytvoří zpětnou kompatibilitu pro starý ha_color slovník"""
-    theme = ChartTheme()
-    return {
-        "b_soc_percent": theme.BATTERY_SOC,
-        "h_soc_percent": theme.WARNING,
-        "b_power": theme.BATTERY_SOC,
-        "b_charge": theme.BATTERY_CHARGE,
-        "b_discharge": theme.BATTERY_DISCHARGE,
-        "h_in": theme.HEATING_LOWER,
-        "g_buy": theme.GRID_BUY,
-        "g_sell": theme.GRID_SELL,
-        "h_out": theme.SUCCESS,
-        "fve_pred": theme.PV_PRODUCTION,
-        "load_pred": theme.LOAD_CONSUMPTION,
-        "buy_price": theme.PRICE_BUY,
-        "sell_price": theme.PRICE_SELL,
-        "heating_demand": theme.SUCCESS,
-        "outdoor_temps": theme.TEMPERATURE_OUTDOOR,
-        "h_in_lower": theme.HEATING_LOWER,
-        "h_in_upper": theme.HEATING_UPPER,
-        "h_out_lower": theme.HEATING_OUTPUT_LOWER,
-        "h_out_upper": theme.HEATING_OUTPUT_UPPER,
-        "h_to_upper": theme.HEATING_TRANSFER,
-        "h_soc_lower": theme.TEMPERATURE_LOWER,
-        "h_soc_upper": theme.TEMPERATURE_UPPER,
-        "h_soc_lower_percent": theme.TEMPERATURE_LOWER,
-        "h_soc_upper_percent": theme.TEMPERATURE_UPPER,
-        "temp_lower": theme.TEMPERATURE_LOWER,
-        "temp_upper": theme.TEMPERATURE_UPPER,
-        "charger_mode_self": theme.MODE_SELF_USE,
-        "charger_mode_backup": theme.MODE_BACKUP,
-        "charger_mode_feedin": theme.MODE_FEEDIN,
-        "charger_mode_manual": theme.MODE_MANUAL,
-        "upper_accumulation": theme.ACTION_UPPER_ACCUMULATION,
-        "lower_accumulation": theme.ACTION_LOWER_ACCUMULATION,
-        "max_heat": theme.ACTION_MAX_HEAT,
-        "heating_blocked": theme.ACTION_HEATING_BLOCKED,
-        "fve_surplus": theme.ACTION_FVE_SURPLUS,
-        "battery_reserve": theme.ACTION_BATTERY_RESERVE,
-    }
-
-# Pro zpětnou kompatibilitu
-ha_color = create_color_compatibility()
-labels = ChartFactory().labels

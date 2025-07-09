@@ -72,14 +72,23 @@ def settings():
                 --danger-color: #EF4444;
                 --dark-color: #1F2937;
                 --light-color: #F8FAFC;
+                --bg-primary: #F9FAFB;
+                --bg-secondary: #FFFFFF;
                 --border-color: #E5E7EB;
                 --text-primary: #111827;
                 --text-secondary: #6B7280;
+                --text-muted: #9CA3AF;
+                --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
                 --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
                 --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+                --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
                 --border-radius-sm: 0.375rem;
                 --border-radius-md: 0.5rem;
                 --border-radius-lg: 0.75rem;
+                --border-radius-xl: 1rem;
+                --transition-fast: 0.15s ease-in-out;
+                --transition-normal: 0.2s ease-in-out;
+                --transition-slow: 0.3s ease-in-out;
             }
 
             * { box-sizing: border-box; }
@@ -101,17 +110,30 @@ def settings():
             }
 
             .header {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                border-radius: var(--border-radius-lg);
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(20px);
+                border-radius: var(--border-radius-xl);
                 padding: 1.5rem 2rem;
                 margin-bottom: 2rem;
-                box-shadow: var(--shadow-lg);
+                box-shadow: var(--shadow-xl);
+                border: 1px solid rgba(255, 255, 255, 0.2);
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 flex-wrap: wrap;
                 gap: 1rem;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--success-color));
             }
 
             .header h1 {
@@ -148,11 +170,12 @@ def settings():
             }
 
             .form-container {
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                border-radius: var(--border-radius-lg);
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(20px);
+                border-radius: var(--border-radius-xl);
                 padding: 2rem;
-                box-shadow: var(--shadow-md);
+                box-shadow: var(--shadow-lg);
+                border: 1px solid rgba(255, 255, 255, 0.2);
             }
 
             .settings-table {

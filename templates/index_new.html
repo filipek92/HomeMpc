@@ -40,11 +40,6 @@
             box-sizing: border-box;
         }
 
-        html {
-            overflow-y: auto;
-            height: 100%;
-        }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             margin: 0;
@@ -54,15 +49,12 @@
             line-height: 1.6;
             min-height: 100vh;
             font-size: 14px;
-            overflow-y: auto;
         }
 
         .container {
             max-width: 1600px;
             margin: 0 auto;
             padding: 1.5rem 1rem;
-            width: 100%;
-            min-height: calc(100vh + 500px); /* Force scrollable content */
         }
 
         /* === KOMPONENTY === */
@@ -960,41 +952,6 @@
                 });
             });
         });
-        
-        // Function to regenerate optimization via POST
-        function regenerateOptimization() {
-            // Show loading indicator
-            const buttons = document.querySelectorAll('button[onclick="regenerateOptimization()"]');
-            buttons.forEach(btn => {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generuji...';
-            });
-            
-            // Send POST request
-            fetch('./regenerate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Redirect to main page after successful regeneration
-                    window.location.href = './';
-                } else {
-                    throw new Error('Regeneration failed');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Chyba při generování optimalizace. Zkuste to znovu.');
-                // Reset buttons
-                buttons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Aktualizovat';
-                });
-            });
-        }
     </script>
 </head>
 <body>
@@ -1007,7 +964,7 @@
                     HomeOptim
                 </h1>
                 <div class="header-badges">
-                    <span class="version-badge">v{{ version }}</span>
+                    <span class="version-badge">v3.0</span>
                     <span class="status-badge">
                         <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
                         Online
@@ -1019,10 +976,10 @@
                     <i class="fas fa-cog"></i>
                     Nastavení
                 </a>
-                <button onclick="regenerateOptimization()" class="btn-header" style="border: none; background: none; cursor: pointer;">
+                <a href="./regenerate" class="btn-header">
                     <i class="fas fa-sync-alt"></i>
                     Aktualizovat
-                </button>
+                </a>
             </div>
         </header>
 
@@ -1290,9 +1247,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for i in range(timeline.times|length) %}
-                                <tr {% if i >= 6 %}class="additional-slot hidden"{% endif %}>
-                                    <td>{{ timeline.times[i] }}</td>
+                                {% for i in range(min(6, timeline.times|length)) %}
+                                <tr {% if i >= 3 %}class="additional-slot"{% endif %}>
+                                    <td>{{ timeline.times[i][:5] }}</td>
                                     <td>
                                         <span class="mode-badge mode-{{ timeline.charger_mode[i].lower().replace(' ', '-') }}">
                                             {{ timeline.charger_mode[i][:8] }}
@@ -1307,7 +1264,7 @@
                         
                         {% if timeline.times|length > 6 %}
                         <button onclick="toggleAdditionalSlots()" class="btn-primary toggle-slots-btn" style="margin-top: 1rem; font-size: 0.75rem; padding: 0.5rem 1rem;">
-                            Zobrazit více slotů
+                            Skrýt dodatečné sloty
                         </button>
                         {% endif %}
                         {% endif %}
@@ -1327,11 +1284,11 @@
                         <table class="data-table">
                             <tr>
                                 <td>Verze optimalizátoru</td>
-                                <td>{{ version }}</td>
+                                <td>3.0.0</td>
                             </tr>
                             <tr>
                                 <td>Poslední aktualizace</td>
-                                <td>{{ generated_at }}</td>
+                                <td>{{ generation_time.strftime('%d.%m.%Y %H:%M') }}</td>
                             </tr>
                             <tr>
                                 <td>Doba výpočtu</td>
@@ -1388,9 +1345,9 @@
         <div class="action-section">
             <div class="generated-info">
                 <i class="fas fa-clock"></i>
-                Vygenerováno: {{ generated_at }}
+                Vygenerováno: {{ generation_time.strftime('%d.%m.%Y v %H:%M:%S') }}
             </div>
-            <button onclick="regenerateOptimization()" class="btn-regenerate">
+            <button onclick="window.location.reload()" class="btn-regenerate">
                 <i class="fas fa-sync-alt"></i>
                 Znovu vygenerovat optimalizaci
             </button>

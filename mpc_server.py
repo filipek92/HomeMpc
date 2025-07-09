@@ -276,11 +276,16 @@ def index():
         print(f"Loaded solution from {selected_file} {solution['version']}")
 
     generated_at = datetime.fromisoformat(solution.get("generated_at"))
-    graph_html = presentation(solution)
+    graphs = presentation(solution)
+    
+    # Připravit dodatečná data pro template
+    slots = solution.get("slots", [])
+    first_slot_data = slots[0] if slots else {}
+    current_results = solution.get("results", {})
 
     return render_template(
         'index.html',
-        graph=graph_html,
+        graphs=graphs,
         generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S"),
         solution=solution,
         available_days=available_days,
@@ -288,6 +293,9 @@ def index():
         available_times_display=available_times_display,
         compare_day=compare_day,
         compare_time=compare_time,
+        day=compare_day,  # Pro zpětnou kompatibilitu
+        first_slot_data=first_slot_data,
+        current_results=current_results,
         version=get_current_version(),
     )
 if __name__ == "__main__":
