@@ -302,13 +302,20 @@ def enhanced_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
         (fve_surplus > 3.0)
     )
     
-    # Maximální ohřev (12kW) - celá nádrž na 90°C
+    # Celkový topný požadavek z MPC
+    total_heating_demand = Hin_upper + Hin_lower
+    
+    # Kontrola záporné ceny energie (měl by už řešit MPC, ale pro jistotu)
+    negative_price = Gbuy < 0
+    
+    # Maximální ohřev (12kW) - pouze když máme skutečně velký přebytek energie
     max_heat_on = (
-        # Velký FVE přebytek + obě zóny pod cílem
+        # Velký FVE přebytek - využít maximum (nezatěžuje síť)
         (fve_surplus > 8.0 and battery_above_40 and 
          temp_upper < TEMP_FULL_TANK and temp_lower < TEMP_FULL_TANK) or
-        # Velmi vysoký MPC signál při levné elektřině
-        (cheap_electricity and (Hin_upper + Hin_lower) > P_HIN_GRID)
+        # Záporná cena energie - topíme na maximum (platí nám za spotřebu)
+        (negative_price and battery_above_40 and
+         (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK))
     )
     
     # Blokování nuceného ohřevu - jen když je situace kritická

@@ -2,6 +2,7 @@
 
 import os
 import json
+import csv
 from datetime import datetime, timedelta
 
 from flask import Flask, render_template, redirect, url_for, request
@@ -26,7 +27,7 @@ app = Flask(__name__)
 
 DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
 RESULTS_DIR = os.path.join(DATA_DIR, "results")
-LATEST_LINK = os.path.join(RESULTS_DIR, "latest")
+LATEST_LINK = os.path.join(RESULTS_DIR, "latest.json")
 # Ensure results directory exists on startup
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
@@ -104,10 +105,24 @@ def compute_and_cache():
     with open(result_file, "w") as f:
         json.dump(solution, f, indent=4)
 
-    # Update the latest symlink
-    if os.path.islink(LATEST_LINK) or os.path.exists(LATEST_LINK):
-        os.remove(LATEST_LINK)
-    os.symlink(abs_result_file, LATEST_LINK)
+    # Create CSV export
+    csv_file = os.path.join(RESULTS_DIR, f"result_{timestamp}.csv")
+    abs_csv_file = os.path.abspath(csv_file)
+    create_csv_export(solution, csv_file)
+
+    # Update the latest symlinks
+    latest_json_link = LATEST_LINK
+    latest_csv_link = os.path.join(RESULTS_DIR, "latest.csv")
+    
+    # JSON symlink
+    if os.path.islink(latest_json_link) or os.path.exists(latest_json_link):
+        os.remove(latest_json_link)
+    os.symlink(abs_result_file, latest_json_link)
+    
+    # CSV symlink
+    if os.path.islink(latest_csv_link) or os.path.exists(latest_csv_link):
+        os.remove(latest_csv_link)
+    os.symlink(abs_csv_file, latest_csv_link)
 
     return solution
 
@@ -123,6 +138,91 @@ def load_cache(filename=None):
         # If the file does not exist or is corrupted, return None
         print("Cache file not found or corrupted, recomputing...")
         return None
+
+def create_csv_export(solution, filename):
+    """
+    Vytvoří CSV soubor s přehlednými daty z optimalizace.
+    """
+    times = solution["times"]
+    inputs = solution["inputs"]
+    outputs = solution["outputs"]
+    actions_timeline = solution["actions_timeline"]
+    
+    # Příprava CSV dat
+    csv_data = []
+    for i, time_str in enumerate(times):
+        row = {
+            # Čas
+            "Cas": time_str,
+            
+            # Vstupy
+            "FVE_vyroba_kW": inputs["fve_pred"][i],
+            "Spotreba_kW": inputs["load_pred"][i],
+            "Cena_nakup_Kc_kWh": inputs["buy_price"][i],
+            "Cena_prodej_Kc_kWh": inputs["sell_price"][i],
+            "Pozadavek_TUV_kW": inputs["tuv_demand"][i],
+            "Pozadavek_topeni_kW": inputs["heating_demand"][i],
+            "Venkovni_teplota_C": inputs["outdoor_temps"][i],
+            
+            # Výstupy - baterie
+            "Baterie_vykon_kW": outputs["b_power"][i],
+            "Baterie_nabijeni_kW": outputs["b_charge"][i],
+            "Baterie_vybijeni_kW": outputs["b_discharge"][i],
+            "Baterie_SOC_kWh": outputs["b_soc"][i],
+            "Baterie_SOC_procenta": outputs["b_soc_percent"][i],
+            
+            # Výstupy - síť
+            "Sit_nakup_kW": outputs["g_buy"][i],
+            "Sit_prodej_kW": outputs["g_sell"][i],
+            "Naklady_nakup_Kc": outputs["buy_cost"][i],
+            "Prijmy_prodej_Kc": outputs["sell_income"][i],
+            "Celkove_naklady_Kc": outputs["net_step_cost"][i],
+            
+            # Výstupy - ohřev
+            "Ohrev_dolni_kW": outputs["h_in_lower"][i],
+            "Ohrev_horni_kW": outputs["h_in_upper"][i],
+            "Ohrev_celkem_kW": outputs["h_in_lower"][i] + outputs["h_in_upper"][i],
+            "Odber_dolni_kW": outputs["h_out_lower"][i],
+            "Odber_horni_kW": outputs["h_out_upper"][i],
+            
+            # Výstupy - akumulace
+            "Akumulace_dolni_kWh": outputs["h_soc_lower"][i],
+            "Akumulace_horni_kWh": outputs["h_soc_upper"][i],
+            "Akumulace_dolni_procenta": outputs["h_soc_lower_percent"][i],
+            "Akumulace_horni_procenta": outputs["h_soc_upper_percent"][i],
+            
+            # Teploty
+            "Teplota_dolni_C": outputs["temp_lower"][i],
+            "Teplota_horni_C": outputs["temp_upper"][i],
+            
+            # Akce
+            "Rezim_menic": actions_timeline["charger_mode"][i],
+            "Horni_akumulace": actions_timeline["upper_accumulation"][i],
+            "Dolni_akumulace": actions_timeline["lower_accumulation"][i],
+            "Maximalni_ohrev": actions_timeline["max_heat"][i],
+            "Blokovani_ohrevu": actions_timeline["heating_blocked"][i],
+            "Cilovy_SOC_procenta": actions_timeline["battery_target_soc"][i],
+            "Rezervovany_vykon_W": actions_timeline["reserve_power"][i],
+            "Minimalni_SOC_procenta": actions_timeline["minimum_soc"][i],
+            
+            # Vypočítané hodnoty
+            "FVE_prebytek_kW": max(0, inputs["fve_pred"][i] - inputs["load_pred"][i]),
+            "Nevyuzita_FVE_kW": outputs.get("fve_unused", [0] * len(times))[i],
+            "Energeticka_bilance_kW": (
+                inputs["fve_pred"][i] + outputs["b_discharge"][i] + outputs["g_buy"][i] -
+                inputs["load_pred"][i] - outputs["b_charge"][i] - outputs["g_sell"][i] -
+                outputs["h_in_lower"][i] - outputs["h_in_upper"][i]
+            ),
+        }
+        csv_data.append(row)
+    
+    # Zápis do CSV
+    if csv_data:
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = csv_data[0].keys()
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_data)
 
 # --- Web routes -----------------------------------------------------------
 

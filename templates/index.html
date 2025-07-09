@@ -221,7 +221,7 @@
         </div>
         
         <div class="table-section">
-            <h2>Plán akcí (první 12 slotů)</h2>
+            <h2>Plán akcí ({{solution.times | length}} slotů)</h2>
             {% set timeline = solution.get("actions_timeline", {}) %}
             {% if timeline %}
                 <table>
@@ -237,13 +237,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for i in range(12) %}
+                        {% for i in range(solution.times | length) %}
                             {% if i < timeline.get("charger_mode", [])|length %}
                                 {% set time_slot = solution.times[i] if i < solution.times|length else "" %}
                                 {% set formatted_time = time_slot[11:16] if time_slot|length > 15 else "--:--" %}
                                 <tr>
                                     <td>{{ formatted_time }}</td>
-                                    <td>{{ timeline["charger_mode"][i] }}</td>
+                                    <td>{{ timeline["charger_mode"][i][:6] }}</td>
                                     <td>{{ "✓" if timeline["upper_accumulation"][i] else "✗" }}</td>
                                     <td>{{ "✓" if timeline["lower_accumulation"][i] else "✗" }}</td>
                                     <td>{{ "✓" if timeline["max_heat"][i] else "✗" }}</td>
