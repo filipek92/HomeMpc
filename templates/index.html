@@ -272,7 +272,7 @@
         /* Main Content Grid */
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1fr;
             gap: 2rem;
             margin-bottom: 2rem;
         }
@@ -283,6 +283,134 @@
             border-radius: var(--border-radius-lg);
             padding: 1.5rem;
             box-shadow: var(--shadow-md);
+        }
+
+        .content-section.compact {
+            padding: 1rem;
+        }
+
+        /* Right sidebar with collapsible sections */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .collapsible-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            background: var(--light-color);
+            padding: 1rem;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .collapsible-header:hover {
+            background: #f3f4f6;
+        }
+
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .collapsible-content {
+            padding: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            padding: 0 1rem;
+            overflow: hidden;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+            color: var(--text-secondary);
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        /* Compact data table for sidebar */
+        .compact-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .compact-table tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compact-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .compact-table td {
+            padding: 0.5rem 0;
+            vertical-align: top;
+        }
+
+        .compact-table td:first-child {
+            font-weight: 500;
+            color: var(--text-primary);
+            width: 50%;
+            font-size: 0.75rem;
+        }
+
+        .compact-table td:last-child {
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+
+        /* Key metrics highlight */
+        .key-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-item {
+            background: var(--light-color);
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .section-title {
@@ -389,6 +517,11 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
+
+            .sidebar {
+                grid-row: 1;
+                margin-bottom: 2rem;
+            }
             
             .header {
                 flex-direction: column;
@@ -397,6 +530,10 @@
 
             .controls-form {
                 justify-content: center;
+            }
+
+            .key-metrics {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             }
         }
 
@@ -445,6 +582,26 @@
             .timeline-table th:nth-child(n+5),
             .timeline-table td:nth-child(n+5) {
                 display: none;
+            }
+
+            .key-metrics {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .metric-item {
+                padding: 0.5rem;
+            }
+
+            .metric-value {
+                font-size: 1rem;
+            }
+
+            .collapsible-header h3 {
+                font-size: 0.9rem;
+            }
+
+            .sidebar {
+                order: -1;
             }
         }
 
@@ -526,6 +683,40 @@
         
         window.addEventListener('load', startAutoRefresh);
         window.addEventListener('beforeunload', stopAutoRefresh);
+
+        // Collapsible sections functionality
+        function toggleSection(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.toggle-icon');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.add('rotated');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('rotated');
+            }
+        }
+
+        // Initialize sections state
+        document.addEventListener('DOMContentLoaded', function() {
+            // Keep first section (key metrics) always open
+            // Collapse others by default to save space
+            const collapsibleSections = document.querySelectorAll('.collapsible-content');
+            collapsibleSections.forEach((section, index) => {
+                if (index > 0) {  // Skip first section (key metrics)
+                    section.classList.add('collapsed');
+                }
+            });
+
+            // Update toggle icons
+            const toggleIcons = document.querySelectorAll('.toggle-icon');
+            toggleIcons.forEach((icon, index) => {
+                if (index === 0) {  // First section open
+                    icon.classList.add('rotated');
+                }
+            });
+        });
     </script>
 </head>
 <<body>
@@ -813,59 +1004,156 @@
                 {% endif %}
             </div>
 
-            <!-- Current Actions & Settings -->
-            <div class="content-section">
-                <h2 class="section-title">
-                    <i class="fas fa-play-circle"></i>
-                    Aktuální akce
-                </h2>
-                
-                {% set actions = solution["actions"] %}
-                {% if actions is mapping %}
-                    <table class="data-table">
-                        {% for k, v in actions.items() %}
-                            <tr>
-                                <td>{{ k }}</td>
-                                <td>{{ v }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
-                        Akce nejsou k dispozici
-                    </p>
-                {% endif %}
+            <!-- Sidebar with collapsible sections -->
+            <div class="sidebar">
+                <!-- Key Metrics Summary -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header">
+                        <h3>
+                            <i class="fas fa-tachometer-alt"></i>
+                            Klíčové metriky
+                        </h3>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="key-metrics">
+                            <div class="metric-item">
+                                <div class="metric-value">
+                                    {% if current_results.get("total_cost") %}
+                                        {{ current_results["total_cost"]|round(1) }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </div>
+                                <div class="metric-label">Náklady [Kč]</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value">
+                                    {% if current_results.get("total_battery_cycles") %}
+                                        {{ current_results["total_battery_cycles"]|round(2) }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </div>
+                                <div class="metric-label">Cykly baterie</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <h2 class="section-title" style="margin-top: 2rem;">
-                    <i class="fas fa-chart-bar"></i>
-                    Výsledky optimalizace
-                </h2>
-                
-                <table class="data-table">
-                    {% for k, v in solution["results"].items() %}
-                        <tr>
-                            <td>{{ k }}</td>
-                            <td>{{ v }}</td>
-                        </tr>
-                    {% endfor %}
-                </table>
+                <!-- Current Actions -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>
+                            <i class="fas fa-play-circle"></i>
+                            Aktuální akce
+                        </h3>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div class="collapsible-content">
+                        {% set actions = solution["actions"] %}
+                        {% if actions is mapping %}
+                            <table class="compact-table">
+                                {% for k, v in actions.items() %}
+                                    {% if loop.index <= 10 %}
+                                        <tr>
+                                            <td>{{ k|replace("_", " ")|title }}</td>
+                                            <td>{{ v }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if actions|length > 10 %}
+                                    <tr>
+                                        <td colspan="2" style="text-align: center; color: var(--text-secondary); font-style: italic;">
+                                            ... a {{ actions|length - 10 }} dalších
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </table>
+                        {% else %}
+                            <p style="text-align: center; color: var(--text-secondary); padding: 1rem; margin: 0;">
+                                <i class="fas fa-info-circle"></i> Akce nejsou k dispozici
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
 
-                <h2 class="section-title" style="margin-top: 2rem;">
-                    <i class="fas fa-cog"></i>
-                    Nastavení systému
-                    <a href="settings" style="margin-left: auto; font-size: 0.875rem; color: var(--primary-color); text-decoration: none;">
-                        <i class="fas fa-edit"></i> Upravit
-                    </a>
-                </h2>
-                
-                <table class="data-table">
-                    {% for k, v in solution["options"].items() %}
-                        <tr>
-                            <td>{{ k }}</td>
-                            <td>{{ v }}</td>
-                        </tr>
-                    {% endfor %}
-                </table>
+                <!-- Optimization Results -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>
+                            <i class="fas fa-chart-bar"></i>
+                            Výsledky optimalizace
+                        </h3>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div class="collapsible-content">
+                        <table class="compact-table">
+                            {% for k, v in solution["results"].items() %}
+                                {% if loop.index <= 8 %}
+                                    <tr>
+                                        <td>{{ k|replace("_", " ")|title }}</td>
+                                        <td>
+                                            {% if v is number %}
+                                                {{ v|round(2) }}
+                                            {% else %}
+                                                {{ v }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                            {% if solution["results"]|length > 8 %}
+                                <tr>
+                                    <td colspan="2" style="text-align: center; color: var(--text-secondary); font-style: italic;">
+                                        ... a {{ solution["results"]|length - 8 }} dalších
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <!-- System Settings -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <h3>
+                            <i class="fas fa-cog"></i>
+                            Nastavení systému ({{ solution["options"]|length }})
+                        </h3>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <a href="settings" style="font-size: 0.75rem; color: var(--primary-color); text-decoration: none; padding: 0.25rem 0.5rem; border-radius: var(--border-radius-sm); background: rgba(59, 130, 246, 0.1);">
+                                <i class="fas fa-edit"></i> Upravit
+                            </a>
+                            <i class="fas fa-chevron-down toggle-icon"></i>
+                        </div>
+                    </div>
+                    <div class="collapsible-content collapsed">
+                        <table class="compact-table">
+                            {% for k, v in solution["options"].items() %}
+                                <tr>
+                                    <td>{{ k|replace("_", " ")|title }}</td>
+                                    <td>
+                                        {% if v is boolean %}
+                                            <span style="color: {{ 'var(--success-color)' if v else 'var(--text-secondary)' }};">
+                                                {{ "✅ Ano" if v else "❌ Ne" }}
+                                            </span>
+                                        {% elif v is number %}
+                                            <strong>{{ v|round(3) }}</strong>
+                                        {% else %}
+                                            {{ v }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: var(--border-radius-sm); border-left: 3px solid var(--primary-color);">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Parametry použité při této optimalizaci. Aktuální nastavení může být jiné.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
