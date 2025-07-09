@@ -223,4 +223,23 @@ def presentation(solution):
     if heating_enabled:
         fig.update_yaxes(title_text="kWh, °C", row=4, col=1)
 
-    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+    # Nastavení výšky grafu pro lepší čitelnost
+    fig.update_layout(
+        height=650,  # Celková výška grafu
+        margin=dict(l=50, r=50, t=80, b=50),  # Okraje
+        showlegend=True,
+        legend=dict(
+            orientation="h",  # Horizontální legenda
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right", 
+            x=1
+        )
+    )
+
+    return pio.to_html(fig, full_html=False, include_plotlyjs="cdn", config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'modeBarButtonsToRemove': ['pan2d', 'lasso2d'],
+        'responsive': True
+    })

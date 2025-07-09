@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Optimalizace energie</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="300">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background-color: #ffffff; 
+        }
+        
+        table { 
+            border-collapse: collapse; 
+            margin-bottom: 2em; 
+        }
+        
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 0.3em 0.7em; 
+        }
+        
+        th { 
+            background: #f0f0f0; 
+        }
+        
+        .version-info {
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            font-size: 0.9em; 
+            color: #666;
+        }
+        
+        .form-container {
+            margin-bottom: 2em;
+        }
+        
+        .form-container label {
+            margin-right: 0.5em;
+        }
+        
+        .form-container select {
+            margin-right: 1em;
+        }
+        
+        .graph-container {
+            margin: 2em 0;
+            width: 100%;
+            min-height: 650px;
+            overflow-x: auto;
+        }
+        
+        .graph-container .plotly-graph-div {
+            width: 100%;
+            height: 650px;
+        }
+        
+        .tables-container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 2em; 
+            align-items: flex-start; 
+        }
+        
+        .table-section { 
+            flex: 1; 
+            min-width: 300px; 
+        }
+        
+        .table-section h2 { 
+            margin-top: 0; 
+            color: #333;
+        }
+        
+        .vertical-table { 
+            width: 100%; 
+        }
+        
+        .vertical-table td:first-child { 
+            font-weight: bold; 
+            background: #f8f8f8; 
+            width: 40%;
+        }
+        
+        .regenerate-form {
+            margin-top: 2em;
+        }
+        
+        .regenerate-form button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .regenerate-form button:hover {
+            background: #005a87;
+        }
+        
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .version-info {
+                position: static;
+                text-align: center;
+                margin-bottom: 1em;
+            }
+            
+            .tables-container { 
+                flex-direction: column; 
+                gap: 1em; 
+            }
+            
+            .table-section { 
+                min-width: unset; 
+                width: 100%; 
+            }
+            
+            .form-container {
+                font-size: 0.9em;
+            }
+            
+            .form-container select {
+                margin-bottom: 0.5em;
+            }
+            
+            .graph-container {
+                min-height: 450px;
+            }
+            
+            .graph-container .plotly-graph-div {
+                height: 450px;
+            }
+        }
+    </style>
+    <script>
+        function submitOnDayChange() {
+            document.getElementById('time').selectedIndex = 0;
+            document.getElementById('compare_form').submit();
+        }
+    </script>
+</head>
+<body>
+    <div class="version-info">
+        Verze: {{ solution["version"] }}
+    </div>
+    
+    <!-- Selector for comparing older results -->
+    <div class="form-container">
+        <form method="get" action="./" id="compare_form">
+            <label for="day">Den:</label>
+            <select name="day" id="day" onchange="submitOnDayChange()">
+                <option value="">Aktuální (latest)</option>
+                {% for d in available_days %}
+                    <option value="{{ d }}" {% if d==compare_day %}selected{% endif %}>
+                        {{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <label for="time">Čas:</label>
+            <select name="time" id="time" onchange="this.form.submit()">
+                <option value="">--:--:--</option>
+                {% for t in available_times %}
+                    <option value="{{ t }}" {% if t==compare_time %}selected{% endif %}>
+                        {{ t[:2] }}:{{ t[2:4] }}:{{ t[4:] }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit">Zobrazit</button>
+        </form>
+    </div>
+    
+    {% if compare_day and compare_time %}
+        <h1>Vizualizace výsledků {{ compare_day }}-{{ compare_time }}</h1>
+    {% else %}
+        <h1>Vizualizace aktuálních výsledků</h1>
+    {% endif %}
+    
+    <div class="graph-container">
+        {{ graph | safe }}
+    </div>
+    
+    <div class="tables-container">
+        <div class="table-section">
+            <h2>Actions</h2>
+            {% set actions = solution["actions"] %}
+            {% if actions is string %}
+                <pre>{{ actions }}</pre>
+            {% elif actions is mapping %}
+                <table class="vertical-table">
+                    {% for k, v in actions.items() %}
+                        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+                    {% endfor %}
+                </table>
+            {% elif actions is iterable %}
+                {% for action in actions %}
+                    {% if action is mapping %}
+                        <table class="vertical-table">
+                            {% for k, v in action.items() %}
+                                <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+                            {% endfor %}
+                        </table>
+                    {% else %}
+                        <pre>{{ action }}</pre>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <pre>{{ actions }}</pre>
+            {% endif %}
+        </div>
+        
+        <div class="table-section">
+            <h2>Results</h2>
+            <table class="vertical-table">
+                {% for k, v in solution["results"].items() %}
+                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+        
+        <div class="table-section">
+            <h2>Nastavení <a href="settings">Edit</a></h2>
+            <table class="vertical-table">
+                {% for k, v in solution["options"].items() %}
+                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    
+    {% if solution["version"] != version %}
+        <p>Data vygenerována: {{ generated_at }} (v{{ solution["version"] }})</p>
+    {% else %}
+        <p>Data vygenerována: {{ generated_at }}</p>
+    {% endif %}
+    
+    <div class="regenerate-form">
+        <form action="./regenerate" method="post">
+            <button type="submit">Přegenerovat</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -4,7 +4,7 @@ import os
 import json
 from datetime import datetime, timedelta
 
-from flask import Flask, render_template_string, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request
 from flask_apscheduler import APScheduler
 
 from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
@@ -172,101 +172,8 @@ def index():
     generated_at = datetime.fromisoformat(solution.get("generated_at"))
     graph_html = presentation(solution)
 
-    return render_template_string(
-        """
-        <html>
-            <head>
-                <title>Optimalizace energie</title>
-                <meta charset="utf-8" />
-                <meta http-equiv="refresh" content="300">
-                <style>
-                    table { border-collapse: collapse; margin-bottom: 2em; }
-                    th, td { border: 1px solid #ccc; padding: 0.3em 0.7em; }
-                    th { background: #f0f0f0; }
-                </style>
-                <script>
-                  function submitOnDayChange() {
-                    document.getElementById('time').selectedIndex = 0;
-                    document.getElementById('compare_form').submit();
-                  }
-                </script>
-            </head>
-            <body style="background-color: #ffffff">
-                <div style="position:absolute; top:10px; right:10px; font-size:0.9em; color:#666;">
-                  Verze: {{ solution["version"] }}
-                </div>
-                <!-- Selector for comparing older results -->
-                <form method="get" action="./" id="compare_form">
-                  <label for="day">Den:</label>
-                  <select name="day" id="day" onchange="submitOnDayChange()">
-                    <option value="">Aktuální (latest)</option>
-                    {% for d in available_days %}
-                      <option value="{{ d }}" {% if d==compare_day %}selected{% endif %}>{{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}</option>
-                    {% endfor %}
-                  </select>
-                  <label for="time">Čas:</label>
-                  <select name="time" id="time" onchange="this.form.submit()">
-                    <option value="">--:--:--</option>
-                    {% for t in available_times %}
-                      <option value="{{ t }}" {% if t==compare_time %}selected{% endif %}>{{ t[:2] }}:{{ t[2:4] }}:{{ t[4:] }}</option>
-                    {% endfor %}
-                  </select>
-                  <button type="submit">Zobrazit</button>
-                </form>
-                {% if compare_day and compare_time %}
-                <h1>Vizualizace výsledků {{compare_day}}-{{compare_time}}</h1>
-                {% else %}
-                <h1>Vizualizace aktuálních výsledků</h1>
-                {% endif %}
-                {{ graph | safe }}
-                <h2>Actions</h2>
-                {% set actions = solution["actions"] %}
-                {% if actions is string %}
-                  <pre>{{ actions }}</pre>
-                {% elif actions is mapping %}
-                  <table>
-                    <tr>{% for k in actions.keys() %}<th>{{ k }}</th>{% endfor %}</tr>
-                    <tr>{% for v in actions.values() %}<td>{{ v }}</td>{% endfor %}</tr>
-                  </table>
-                {% elif actions is iterable %}
-                  {% for action in actions %}
-                    {% if action is mapping %}
-                      <table>
-                        <tr>{% for k in action.keys() %}<th>{{ k }}</th>{% endfor %}</tr>
-                        <tr>{% for v in action.values() %}<td>{{ v }}</td>{% endfor %}</tr>
-                      </table>
-                    {% else %}
-                      <pre>{{ action }}</pre>
-                    {% endif %}
-                  {% endfor %}
-                {% else %}
-                  <pre>{{ actions }}</pre>
-                {% endif %}
-                <h2>Results</h2>
-                <table>
-                  <tr><th>Klíč</th><th>Hodnota</th></tr>
-                  {% for k, v in solution["results"].items() %}
-                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-                  {% endfor %}
-                </table>
-                <h2>Nastavnení <a href="settings">Edit</a></h2>
-                <table>
-                  <tr><th>Parametr</th><th>Hodnota</th></tr>
-                  {% for k, v in solution["options"].items() %}
-                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-                  {% endfor %}
-                </table>
-                {% if solution["version"] != version %}
-                <p>Data vygenerována: {{ generated_at }} (v{{ solution["version"] }})</p>
-                {% else %}
-                <p>Data vygenerována: {{ generated_at }}</p>
-                {% endif %}
-                <form action="./regenerate" method="post">
-                    <button type="submit">Přegenerovat</button>
-                </form>
-            </body>
-        </html>
-        """,
+    return render_template(
+        'index.html',
         graph=graph_html,
         generated_at=generated_at.strftime("%Y-%m-%d %H:%M:%S"),
         solution=solution,
