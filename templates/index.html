@@ -170,9 +170,9 @@
             <label for="time">Čas:</label>
             <select name="time" id="time" onchange="this.form.submit()">
                 <option value="">--:--:--</option>
-                {% for t in available_times %}
-                    <option value="{{ t }}" {% if t==compare_time %}selected{% endif %}>
-                        {{ t[:2] }}:{{ t[2:4] }}:{{ t[4:] }}
+                {% for i in range(available_times|length) %}
+                    <option value="{{ available_times[i] }}" {% if available_times[i]==compare_time %}selected{% endif %}>
+                        {{ available_times_display[i] }}
                     </option>
                 {% endfor %}
             </select>
@@ -227,7 +227,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Slot</th>
+                            <th>Čas</th>
                             <th>Režim střídače</th>
                             <th>Horní akumulace</th>
                             <th>Spodní akumulace</th>
@@ -239,8 +239,10 @@
                     <tbody>
                         {% for i in range(12) %}
                             {% if i < timeline.get("charger_mode", [])|length %}
+                                {% set time_slot = solution.times[i] if i < solution.times|length else "" %}
+                                {% set formatted_time = time_slot[11:16] if time_slot|length > 15 else "--:--" %}
                                 <tr>
-                                    <td>{{ i + 1 }}</td>
+                                    <td>{{ formatted_time }}</td>
                                     <td>{{ timeline["charger_mode"][i] }}</td>
                                     <td>{{ "✓" if timeline["upper_accumulation"][i] else "✗" }}</td>
                                     <td>{{ "✓" if timeline["lower_accumulation"][i] else "✗" }}</td>

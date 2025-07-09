@@ -94,6 +94,7 @@ Vstupy jsou rozděleny do tří skupin:
 - `GRID_LIMIT` – hlavní jistič [kW] (default: 18)
 - `INVERTER_LIMIT` – limit měniče [kW] (default: 15)
 - `battery_penalty` – penalizace za vybíjení baterie [Kč/kWh] (default: 0)
+- `upper_zone_priority` – bonus za ohřev horní části nádrže [Kč/kWh] (default: 0.5)
 - `BAT_THRESHOLD_PCT` – práh pro rozdělení SOC (default: 0.40)
 - `BAT_PRICE_BELOW`, `BAT_PRICE_ABOVE` – ceny pro penalizaci/odměnu koncového SOC
 - `final_boler_price` – cena pro penalizaci/odměnu zbylé energie v bojleru

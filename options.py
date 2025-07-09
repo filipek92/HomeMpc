@@ -54,6 +54,8 @@ VARIABLES_SPEC = {
         "parasitic_water_heating": {"type": "float", "unit": "-", "default": 0.05, "desc": "Podíl parazitní energie při ohřevu vody"},
         # Koeficient přenosu tepla mezi zónami: h_to_upper <= alpha * (T_upper - T_lower)
         "alpha": {"type": "float", "unit": "kW/˚C", "default": 0.1, "desc": "Koeficient přenosu tepla z dolní do horní zóny"},
+        # Priorita ohřevu horní části nádrže
+        "upper_zone_priority": {"type": "float", "unit": "Kč/kWh", "default": 0.5, "desc": "Bonus za ohřev horní části nádrže oproti dolní"},
     }
 }
 

@@ -1,4 +1,12 @@
 
+## 1.11.2 - 2025-07-09
+Priorita horní části nádrže a UI zlepšení
+- Přidán parametr `upper_zone_priority` pro upřednostnění ohřevu horní části nádrže
+- Horní část se nyní ohřívá dříve než dolní část díky bonusu v nákladové funkci
+- Parametr oceňuje jak průběžný ohřev tak konečný stav energie v horní zóně
+- Zlepšeno zobrazení časů v UI - místo `140000` se zobrazuje `14:00:00`
+- V tabulce "Plán akcí" se zobrazuje čas slotu místo čísla slotu
+
 ## 1.11.1 - 2025-07-08
 Přidá state template, failsafe migrace
 - Přidá state template, failsafe migrace

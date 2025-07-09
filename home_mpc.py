@@ -123,8 +123,7 @@ def run_mpc_optimizer(
     battery_penalty = get_option(options, "battery_penalty")
     fve_unused_penalty = get_option(options, "fve_unused_penalty")
     water_priority_bonus = get_option(options, "water_priority_bonus")
-    water_priority_bonus = get_option(options, "water_priority_bonus")
-    water_priority_bonus = get_option(options, "water_priority_bonus")
+    upper_zone_priority = get_option(options, "upper_zone_priority")
 
     # Dvou-zónový model nádrže: dolní (700L, 8kW) a horní (300L, 4kW)
     h_lower_power = get_option(options, "h_lower_power", context={})  # 8
@@ -221,12 +220,14 @@ def run_mpc_optimizer(
              + battery_penalty * b_discharge[t]
              + fve_unused_penalty * fve_unused[t]
              - water_priority_bonus * (h_in_lower[t] + h_in_upper[t])
+             - upper_zone_priority * h_in_upper[t]
              + bat_under_penalty * b_soc_under[t]) * dt[t]
             for t in indexes
         )
         - bat_price_above * b_surplus
         + bat_price_below * (threshold - b_short)
         - final_boiler_price * (h_soc_lower[t_end] + h_soc_upper[t_end])
+        - upper_zone_priority * h_soc_upper[t_end]
         - tank_value_bonus * lpSum(h_soc_upper[t] for t in tank_value_indexes)
     )
 
@@ -375,10 +376,19 @@ def run_mpc_optimizer(
     results["total_final_boiler_value"] = final_boiler_price * (
         (h_soc_lower[t_end].varValue + h_soc_upper[t_end].varValue) if hasattr(h_soc_lower[t_end], 'varValue') and hasattr(h_soc_upper[t_end], 'varValue') else 0
     )
+    # Bonus za energii v horní zóně na konci
+    results["final_upper_zone_bonus"] = upper_zone_priority * (
+        h_soc_upper[t_end].varValue if hasattr(h_soc_upper[t_end], 'varValue') else 0
+    )
     results["total_fve_unused"] = sum(fve_unused[t].varValue * dt[t] for t in indexes)
     # Bonifikace za ohřev v obou zónách
     results["total_water_priority_bonus"] = sum(
         water_priority_bonus * (h_in_lower[t].varValue + h_in_upper[t].varValue) * dt[t]
+        for t in indexes
+    )
+    # Bonus za prioritní ohřev horní zóny
+    results["total_upper_zone_priority"] = sum(
+        upper_zone_priority * h_in_upper[t].varValue * dt[t]
         for t in indexes
     )
     results["total_battery_under_penalty"] = sum(b_soc_under[t].varValue * bat_under_penalty * dt[t] for t in indexes)
