@@ -1,293 +1,892 @@
 <!DOCTYPE html>
-<html>
+<html lang="cs">
 <head>
-    <title>Optimalizace energie</title>
+    <title>HomeOptim - Energetický Dashboard</title>
     <meta charset="utf-8" />
     <meta http-equiv="refresh" content="300">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background-color: #ffffff; 
+        :root {
+            --primary-color: #3B82F6;
+            --secondary-color: #8B5CF6;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #06B6D4;
+            --dark-color: #1F2937;
+            --light-color: #F8FAFC;
+            --border-color: #E5E7EB;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --border-radius-sm: 0.375rem;
+            --border-radius-md: 0.5rem;
+            --border-radius-lg: 0.75rem;
         }
-        
-        table { 
-            border-collapse: collapse; 
-            margin-bottom: 2em; 
+
+        * {
+            box-sizing: border-box;
         }
-        
-        th, td { 
-            border: 1px solid #ccc; 
-            padding: 0.3em 0.7em; 
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
         }
-        
-        th { 
-            background: #f0f0f0; 
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
         }
-        
-        .version-info {
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            font-size: 0.9em; 
-            color: #666;
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        
-        .form-container {
-            margin-bottom: 2em;
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
-        
-        .form-container label {
-            margin-right: 0.5em;
+
+        .header h1 i {
+            color: var(--primary-color);
         }
-        
-        .form-container select {
-            margin-right: 1em;
+
+        .version-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
-        
-        .graph-container {
-            margin: 2em 0;
+
+        /* Navigation Controls */
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .controls-form {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .control-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .control-select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.875rem;
+            background: white;
+            min-width: 150px;
+        }
+
+        .control-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #2563EB;
+            transform: translateY(-1px);
+        }
+
+        /* Status Overview Cards */
+        .status-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .status-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .status-card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-card-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .status-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .status-card-unit {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .status-card-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Progress bars */
+        .progress-bar {
             width: 100%;
-            min-height: 650px;
-            overflow-x: auto;
+            height: 0.5rem;
+            background: var(--border-color);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 0.75rem;
         }
-        
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        /* Graph Container */
+        .graph-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .graph-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 1.5rem;
+        }
+
+        .graph-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .graph-container {
+            width: 100%;
+            min-height: 700px;
+            overflow-x: auto;
+            border-radius: var(--border-radius-md);
+        }
+
         .graph-container .plotly-graph-div {
             width: 100%;
             height: 850px;
         }
-        
-        .tables-container { 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 2em; 
-            align-items: flex-start; 
+
+        /* Main Content Grid */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
         }
-        
-        .table-section { 
-            flex: 1; 
-            min-width: 300px; 
+
+        .content-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
         }
-        
-        .table-section h2 { 
-            margin-top: 0; 
-            color: #333;
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        
-        .vertical-table { 
-            width: 100%; 
+
+        /* Action Timeline Table */
+        .timeline-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
         }
-        
-        .vertical-table td:first-child { 
-            font-weight: bold; 
-            background: #f8f8f8; 
+
+        .timeline-table th,
+        .timeline-table td {
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .timeline-table th {
+            background: var(--light-color);
+            font-weight: 600;
+            color: var(--text-primary);
+            position: sticky;
+            top: 0;
+        }
+
+        .timeline-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table td {
+            padding: 0.75rem 0;
+            font-size: 0.875rem;
+        }
+
+        .data-table td:first-child {
+            font-weight: 600;
+            color: var(--text-primary);
             width: 40%;
         }
-        
-        .regenerate-form {
-            margin-top: 2em;
+
+        .data-table td:last-child {
+            color: var(--text-secondary);
         }
-        
-        .regenerate-form button {
-            background: #007cba;
+
+        /* Action Buttons */
+        .action-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .generated-info {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-regenerate {
+            background: var(--success-color);
             color: white;
             border: none;
-            padding: 0.5em 1em;
-            border-radius: 4px;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        
-        .regenerate-form button:hover {
-            background: #005a87;
+
+        .btn-regenerate:hover {
+            background: #059669;
+            transform: translateY(-1px);
         }
-        
-        /* Mobile styles */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
             }
             
-            .version-info {
-                position: static;
+            .header {
+                flex-direction: column;
                 text-align: center;
-                margin-bottom: 1em;
             }
-            
-            .tables-container { 
-                flex-direction: column; 
-                gap: 1em; 
-            }
-            
-            .table-section { 
-                min-width: unset; 
-                width: 100%; 
-            }
-            
-            .form-container {
-                font-size: 0.9em;
-            }
-            
-            .form-container select {
-                margin-bottom: 0.5em;
-            }
-            
-            .graph-container {
-                min-height: 550px;
-            }
-            
-            .graph-container .plotly-graph-div {
-                height: 550px;
+
+            .controls-form {
+                justify-content: center;
             }
         }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
+
+            .header {
+                padding: 1rem;
+                border-radius: var(--border-radius-md);
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .status-overview {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-select {
+                min-width: auto;
+            }
+
+            .graph-container {
+                min-height: 500px;
+            }
+
+            .graph-container .plotly-graph-div {
+                height: 600px;
+            }
+
+            .action-section {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            /* Hide some table columns on mobile */
+            .timeline-table th:nth-child(n+5),
+            .timeline-table td:nth-child(n+5) {
+                display: none;
+            }
+        }
+
+        /* Color classes for status cards */
+        .bg-blue { background: var(--primary-color); }
+        .bg-green { background: var(--success-color); }
+        .bg-orange { background: var(--warning-color); }
+        .bg-purple { background: var(--secondary-color); }
+        .bg-cyan { background: var(--info-color); }
+        .bg-red { background: var(--danger-color); }
+
+        /* Progress bar colors */
+        .progress-blue { background: var(--primary-color); }
+        .progress-green { background: var(--success-color); }
+        .progress-orange { background: var(--warning-color); }
+
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mb-0 { margin-bottom: 0; }
+        .mt-1 { margin-top: 0.25rem; }
+        .hidden { display: none; }
+
+        /* Status indicators */
+        .status-active {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .status-inactive {
+            color: var(--text-secondary);
+        }
+
+        /* Mode badges */
+        .mode-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--light-color);
+            color: var(--text-primary);
+        }
+
+        .mode-manual { background: #FEE2E2; color: #991B1B; }
+        .mode-feedin { background: #EDE9FE; color: #5B21B6; }
+        .mode-backup { background: #D1FAE5; color: #065F46; }
+        .mode-self { background: #DBEAFE; color: #1E40AF; }
     </style>
     <script>
         function submitOnDayChange() {
             document.getElementById('time').selectedIndex = 0;
             document.getElementById('compare_form').submit();
         }
+        
+        // Auto-refresh functionality
+        let refreshTimer;
+        function startAutoRefresh() {
+            refreshTimer = setTimeout(() => {
+                if (!document.hidden) {
+                    window.location.reload();
+                }
+            }, 300000); // 5 minutes
+        }
+        
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearTimeout(refreshTimer);
+            }
+        }
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+            }
+        });
+        
+        window.addEventListener('load', startAutoRefresh);
+        window.addEventListener('beforeunload', stopAutoRefresh);
     </script>
 </head>
-<body>
-    <div class="version-info">
-        Verze: {{ solution["version"] }}
-    </div>
-    
-    <!-- Selector for comparing older results -->
-    <div class="form-container">
-        <form method="get" action="./" id="compare_form">
-            <label for="day">Den:</label>
-            <select name="day" id="day" onchange="submitOnDayChange()">
-                <option value="">Aktuální (latest)</option>
-                {% for d in available_days %}
-                    <option value="{{ d }}" {% if d==compare_day %}selected{% endif %}>
-                        {{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}
-                    </option>
-                {% endfor %}
-            </select>
-            
-            <label for="time">Čas:</label>
-            <select name="time" id="time" onchange="this.form.submit()">
-                <option value="">--:--:--</option>
-                {% for i in range(available_times|length) %}
-                    <option value="{{ available_times[i] }}" {% if available_times[i]==compare_time %}selected{% endif %}>
-                        {{ available_times_display[i] }}
-                    </option>
-                {% endfor %}
-            </select>
-            
-            <button type="submit">Zobrazit</button>
-        </form>
-    </div>
-    
-    {% if compare_day and compare_time %}
-        <h1>Vizualizace výsledků {{ compare_day }}-{{ compare_time }}</h1>
-    {% else %}
-        <h1>Vizualizace aktuálních výsledků</h1>
-    {% endif %}
-    
-    <div class="graph-container">
-        {{ graph | safe }}
-    </div>
-    
-    <div class="tables-container">
-        <div class="table-section">
-            <h2>Actions</h2>
-            {% set actions = solution["actions"] %}
-            {% if actions is string %}
-                <pre>{{ actions }}</pre>
-            {% elif actions is mapping %}
-                <table class="vertical-table">
-                    {% for k, v in actions.items() %}
-                        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+<<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>
+                <i class="fas fa-bolt"></i>
+                {% if compare_day and compare_time %}
+                    Výsledky {{ compare_day[:4] }}-{{ compare_day[4:6] }}-{{ compare_day[6:] }} {{ compare_time_display }}
+                {% else %}
+                    HomeOptim Dashboard
+                {% endif %}
+            </h1>
+            <div class="version-badge">
+                v{{ solution["version"] }}
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <form method="get" action="./" id="compare_form" class="controls-form">
+                <div class="control-group">
+                    <label for="day" class="control-label">
+                        <i class="fas fa-calendar"></i> Den
+                    </label>
+                    <select name="day" id="day" class="control-select" onchange="submitOnDayChange()">
+                        <option value="">Aktuální (latest)</option>
+                        {% for d in available_days %}
+                            <option value="{{ d }}" {% if d==compare_day %}selected{% endif %}>
+                                {{ d[:4] }}-{{ d[4:6] }}-{{ d[6:] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="time" class="control-label">
+                        <i class="fas fa-clock"></i> Čas
+                    </label>
+                    <select name="time" id="time" class="control-select" onchange="this.form.submit()">
+                        <option value="">--:--:--</option>
+                        {% for i in range(available_times|length) %}
+                            <option value="{{ available_times[i] }}" {% if available_times[i]==compare_time %}selected{% endif %}>
+                                {{ available_times_display[i] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-search"></i> Zobrazit
+                </button>
+            </form>
+        </div>
+
+        <!-- Status Overview -->
+        {% set current_actions = solution.get("actions", {}) %}
+        {% set current_results = solution.get("results", {}) %}
+        {% set timeline = solution.get("actions_timeline", {}) %}
+        {% set first_slot_data = {} %}
+        {% if timeline and timeline.get("battery_target_soc") %}
+            {% set first_slot_data = {
+                "battery_soc": timeline["battery_target_soc"][0] if timeline["battery_target_soc"] else 0,
+                "charger_mode": timeline["charger_mode"][0] if timeline["charger_mode"] else "N/A",
+                "fve_surplus": timeline["fve_surplus"][0] if timeline["fve_surplus"] else 0,
+                "reserve_power": timeline["reserve_power"][0] if timeline["reserve_power"] else 0,
+                "upper_accumulation": timeline["upper_accumulation"][0] if timeline["upper_accumulation"] else false,
+                "lower_accumulation": timeline["lower_accumulation"][0] if timeline["lower_accumulation"] else false,
+                "max_heat": timeline["max_heat"][0] if timeline["max_heat"] else false
+            } %}
+        {% endif %}
+
+        <div class="status-overview">
+            <!-- Battery Status -->
+            <div class="status-card">
+                <div class="status-card-header">
+                    <div class="status-card-title">
+                        <div class="status-card-icon bg-blue">
+                            <i class="fas fa-battery-three-quarters"></i>
+                        </div>
+                        Baterie
+                    </div>
+                </div>
+                <div class="status-card-value">{{ first_slot_data.get("battery_soc", 0)|round(1) }}%</div>
+                <div class="status-card-unit">Stav nabití</div>
+                <div class="progress-bar">
+                    <div class="progress-fill progress-blue" style="width: {{ first_slot_data.get('battery_soc', 0) }}%"></div>
+                </div>
+                <div class="status-card-subtitle">
+                    Rezerva: {{ first_slot_data.get("reserve_power", 0) }} W
+                </div>
+            </div>
+
+            <!-- Inverter Mode -->
+            <div class="status-card">
+                <div class="status-card-header">
+                    <div class="status-card-title">
+                        <div class="status-card-icon bg-purple">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        Režim střídače
+                    </div>
+                </div>
+                <div class="status-card-value">
+                    {% set mode = first_slot_data.get("charger_mode", "N/A") %}
+                    {% if mode == "Manual" %}
+                        <span class="mode-badge mode-manual">{{ mode }}</span>
+                    {% elif mode == "Feedin Priority" %}
+                        <span class="mode-badge mode-feedin">Feedin</span>
+                    {% elif mode == "Back Up Mode" %}
+                        <span class="mode-badge mode-backup">Backup</span>
+                    {% elif mode == "Self Use" %}
+                        <span class="mode-badge mode-self">Self Use</span>
+                    {% else %}
+                        <span class="mode-badge">{{ mode }}</span>
+                    {% endif %}
+                </div>
+                <div class="status-card-unit">Aktuální optimalizace</div>
+            </div>
+
+            <!-- PV Surplus -->
+            <div class="status-card">
+                <div class="status-card-header">
+                    <div class="status-card-title">
+                        <div class="status-card-icon bg-orange">
+                            <i class="fas fa-solar-panel"></i>
+                        </div>
+                        FVE Přebytek
+                    </div>
+                </div>
+                <div class="status-card-value">{{ first_slot_data.get("fve_surplus", 0)|round(2) }}</div>
+                <div class="status-card-unit">kW</div>
+                <div class="status-card-subtitle">Aktuální slot</div>
+            </div>
+
+            <!-- Water Heating Status -->
+            <div class="status-card">
+                <div class="status-card-header">
+                    <div class="status-card-title">
+                        <div class="status-card-icon bg-red">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        Ohřev TUV
+                    </div>
+                </div>
+                <div class="status-card-value">
+                    {% set heating_active = first_slot_data.get("upper_accumulation") or first_slot_data.get("lower_accumulation") %}
+                    {% if heating_active %}
+                        <span class="status-active">AKTIVNÍ</span>
+                    {% else %}
+                        <span class="status-inactive">NEAKTIVNÍ</span>
+                    {% endif %}
+                </div>
+                <div class="status-card-unit">
+                    {% if first_slot_data.get("max_heat") %}
+                        Max ohřev (12kW)
+                    {% elif first_slot_data.get("upper_accumulation") and first_slot_data.get("lower_accumulation") %}
+                        Horní + Dolní
+                    {% elif first_slot_data.get("upper_accumulation") %}
+                        Pouze horní
+                    {% elif first_slot_data.get("lower_accumulation") %}
+                        Pouze dolní
+                    {% else %}
+                        Vypnuto
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Cost Overview -->
+            <div class="status-card">
+                <div class="status-card-header">
+                    <div class="status-card-title">
+                        <div class="status-card-icon bg-green">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        Náklady dnes
+                    </div>
+                </div>
+                <div class="status-card-value">
+                    {% if current_results.get("total_cost") %}
+                        {{ current_results["total_cost"]|round(2) }}
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+                <div class="status-card-unit">Kč</div>
+                <div class="status-card-subtitle">Celkové optimalizované náklady</div>
+            </div>
+
+            <!-- System Status -->
+            <div class="status-card">
+                <div class="status-card-header">
+                    <div class="status-card-title">
+                        <div class="status-card-icon bg-cyan">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        Stav systému
+                    </div>
+                </div>
+                <div class="status-card-value">
+                    <span class="status-active">ONLINE</span>
+                </div>
+                <div class="status-card-unit">
+                    Poslední aktualizace: {{ generated_at.split('T')[1][:5] if generated_at and 'T' in generated_at else '--:--' }}
+                </div>
+                <div class="status-card-subtitle">
+                    Slotů v plánu: {{ solution.times | length }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Graph -->
+        <div class="graph-section">
+            <div class="graph-header">
+                <div class="graph-title">
+                    <i class="fas fa-chart-line"></i>
+                    Přehled optimalizace
+                </div>
+            </div>
+            <div class="graph-container">
+                {{ graph | safe }}
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Action Timeline -->
+            <div class="content-section">
+                <h2 class="section-title">
+                    <i class="fas fa-clock"></i>
+                    Plán akcí ({{solution.times | length}} slotů)
+                </h2>
+                {% if timeline %}
+                    <div style="overflow-x: auto;">
+                        <table class="timeline-table">
+                            <thead>
+                                <tr>
+                                    <th>Čas</th>
+                                    <th>Režim</th>
+                                    <th>Horní</th>
+                                    <th>Dolní</th>
+                                    <th>Max</th>
+                                    <th>Rezerva [W]</th>
+                                    <th>FVE [kW]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(solution.times | length) %}
+                                    {% if i < timeline.get("charger_mode", [])|length %}
+                                        {% set time_slot = solution.times[i] if i < solution.times|length else "" %}
+                                        {% set formatted_time = time_slot[11:16] if time_slot|length > 15 else "--:--" %}
+                                        <tr>
+                                            <td><strong>{{ formatted_time }}</strong></td>
+                                            <td>
+                                                {% set mode = timeline["charger_mode"][i] %}
+                                                {% if mode == "Manual" %}
+                                                    <span class="mode-badge mode-manual">Manual</span>
+                                                {% elif mode == "Feedin Priority" %}
+                                                    <span class="mode-badge mode-feedin">Feedin</span>
+                                                {% elif mode == "Back Up Mode" %}
+                                                    <span class="mode-badge mode-backup">Backup</span>
+                                                {% elif mode == "Self Use" %}
+                                                    <span class="mode-badge mode-self">Self</span>
+                                                {% else %}
+                                                    <span class="mode-badge">{{ mode[:6] }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">{{ "✅" if timeline["upper_accumulation"][i] else "❌" }}</td>
+                                            <td class="text-center">{{ "✅" if timeline["lower_accumulation"][i] else "❌" }}</td>
+                                            <td class="text-center">{{ "🔥" if timeline["max_heat"][i] else "❌" }}</td>
+                                            <td class="text-right">{{ timeline["reserve_power"][i] }}</td>
+                                            <td class="text-right">{{ "%.2f"|format(timeline["fve_surplus"][i]) }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Plán akcí není k dispozici
+                    </p>
+                {% endif %}
+            </div>
+
+            <!-- Current Actions & Settings -->
+            <div class="content-section">
+                <h2 class="section-title">
+                    <i class="fas fa-play-circle"></i>
+                    Aktuální akce
+                </h2>
+                
+                {% set actions = solution["actions"] %}
+                {% if actions is mapping %}
+                    <table class="data-table">
+                        {% for k, v in actions.items() %}
+                            <tr>
+                                <td>{{ k }}</td>
+                                <td>{{ v }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+                        Akce nejsou k dispozici
+                    </p>
+                {% endif %}
+
+                <h2 class="section-title" style="margin-top: 2rem;">
+                    <i class="fas fa-chart-bar"></i>
+                    Výsledky optimalizace
+                </h2>
+                
+                <table class="data-table">
+                    {% for k, v in solution["results"].items() %}
+                        <tr>
+                            <td>{{ k }}</td>
+                            <td>{{ v }}</td>
+                        </tr>
                     {% endfor %}
                 </table>
-            {% elif actions is iterable %}
-                {% for action in actions %}
-                    {% if action is mapping %}
-                        <table class="vertical-table">
-                            {% for k, v in action.items() %}
-                                <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-                            {% endfor %}
-                        </table>
-                    {% else %}
-                        <pre>{{ action }}</pre>
-                    {% endif %}
-                {% endfor %}
-            {% else %}
-                <pre>{{ actions }}</pre>
-            {% endif %}
-        </div>
-        
-        <div class="table-section">
-            <h2>Plán akcí ({{solution.times | length}} slotů)</h2>
-            {% set timeline = solution.get("actions_timeline", {}) %}
-            {% if timeline %}
-                <table>
-                    <thead>
+
+                <h2 class="section-title" style="margin-top: 2rem;">
+                    <i class="fas fa-cog"></i>
+                    Nastavení systému
+                    <a href="settings" style="margin-left: auto; font-size: 0.875rem; color: var(--primary-color); text-decoration: none;">
+                        <i class="fas fa-edit"></i> Upravit
+                    </a>
+                </h2>
+                
+                <table class="data-table">
+                    {% for k, v in solution["options"].items() %}
                         <tr>
-                            <th>Čas</th>
-                            <th>Režim střídače</th>
-                            <th>Horní akumulace</th>
-                            <th>Spodní akumulace</th>
-                            <th>Max ohřev</th>
-                            <th>Rezerva [W]</th>
-                            <th>FVE přebytek [kW]</th>
+                            <td>{{ k }}</td>
+                            <td>{{ v }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for i in range(solution.times | length) %}
-                            {% if i < timeline.get("charger_mode", [])|length %}
-                                {% set time_slot = solution.times[i] if i < solution.times|length else "" %}
-                                {% set formatted_time = time_slot[11:16] if time_slot|length > 15 else "--:--" %}
-                                <tr>
-                                    <td>{{ formatted_time }}</td>
-                                    <td>{{ timeline["charger_mode"][i][:6] }}</td>
-                                    <td>{{ "✓" if timeline["upper_accumulation"][i] else "✗" }}</td>
-                                    <td>{{ "✓" if timeline["lower_accumulation"][i] else "✗" }}</td>
-                                    <td>{{ "✓" if timeline["max_heat"][i] else "✗" }}</td>
-                                    <td>{{ timeline["reserve_power"][i] }}</td>
-                                    <td>{{ "%.2f"|format(timeline["fve_surplus"][i]) }}</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </tbody>
+                    {% endfor %}
                 </table>
-            {% else %}
-                <p>Plán akcí není k dispozici</p>
-            {% endif %}
+            </div>
         </div>
-        
-        <div class="table-section">
-            <h2>Results</h2>
-            <table class="vertical-table">
-                {% for k, v in solution["results"].items() %}
-                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-                {% endfor %}
-            </table>
+
+        <!-- Action Section -->
+        <div class="action-section">
+            <div class="generated-info">
+                <i class="fas fa-info-circle"></i>
+                {% if solution["version"] != version %}
+                    Data vygenerována: {{ generated_at }} (v{{ solution["version"] }})
+                {% else %}
+                    Data vygenerována: {{ generated_at }}
+                {% endif %}
+            </div>
+            
+            <form action="./regenerate" method="post">
+                <button type="submit" class="btn-regenerate">
+                    <i class="fas fa-sync-alt"></i>
+                    Přegenerovat optimalizaci
+                </button>
+            </form>
         </div>
-        
-        <div class="table-section">
-            <h2>Nastavení <a href="settings">Edit</a></h2>
-            <table class="vertical-table">
-                {% for k, v in solution["options"].items() %}
-                    <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
-                {% endfor %}
-            </table>
-        </div>
-    </div>
-    
-    {% if solution["version"] != version %}
-        <p>Data vygenerována: {{ generated_at }} (v{{ solution["version"] }})</p>
-    {% else %}
-        <p>Data vygenerována: {{ generated_at }}</p>
-    {% endif %}
-    
-    <div class="regenerate-form">
-        <form action="./regenerate" method="post">
-            <button type="submit">Přegenerovat</button>
-        </form>
     </div>
 </body>
 </html>
