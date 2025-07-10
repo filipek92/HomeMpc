@@ -1339,6 +1339,9 @@
                                     <th>Režim</th>
                                     <th>SoC (%)</th>
                                     <th>Rezerva</th>
+                                    <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
+                                    <th title="Spodní akumulace"><i class="fas fa-arrow-down"></i></th>
+                                    <th title="Max. ohřev"><i class="fas fa-fire"></i></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1353,6 +1356,21 @@
                                     </td>
                                     <td>{{ "%.0f"|format(timeline.battery_target_soc[i]) }}%</td>
                                     <td>{{ "%.0f"|format(timeline.reserve_power[i]/1000) }}W</td>
+                                    <td>
+                                        {% if timeline.upper_accumulation[i] %}
+                                        <i class="fas fa-arrow-up" style="color: var(--warning-color);" title="Horní akumulace"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if timeline.lower_accumulation[i] %}
+                                        <i class="fas fa-arrow-down" style="color: var(--warning-color);" title="Spodní akumulace"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if timeline.max_heat[i] %}
+                                        <i class="fas fa-fire" style="color: var(--warning-color);" title="Max. ohřev"></i>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
