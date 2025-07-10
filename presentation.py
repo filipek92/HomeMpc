@@ -464,13 +464,35 @@ class ChartFactory:
                     )
                 )
 
+        # Sloupcový graf přenosu výkonu (dolní→horní)
+        key = "h_to_upper"
+        if key in data['ts']:
+            # invert values so transfer appears upward
+            y_values = [-v for v in data['ts'][key]]
+            fig.add_trace(
+                go.Bar(
+                    x=data['times'],
+                    y=y_values,
+                    name=self.labels.get(key, key),
+                    marker_color=self.color_map.get(key, self.theme.HEATING_TRANSFER),
+                    opacity=0.7,
+                    width=3600000/5,  # tenké sloupce, 1/5 kroku
+                    yaxis="y2",  # use secondary y-axis
+                    hovertemplate=f"<b>{self.labels.get(key, key)}</b><br>" +
+                                  "Čas: %{x}<br>" +
+                                  "Výkon: %{y:.2f} kW<br>" +
+                                  "<extra></extra>"
+                )
+            )
+
         fig.update_layout(
             height=config.height,
             margin=config.margin,
             title="🌡️ Teploty a tepelné ztráty",
             title_x=0.5,
             title_font_size=16,
-            yaxis_title="Teplota [°C] / Ztráty [kWh]",
+            yaxis=dict(title="Teplota [°C] / Ztráty [kWh]"),  # primary axis
+            yaxis2=dict(title="Přenos výkonu [kW]", overlaying="y", side="right"),  # secondary axis
             xaxis_title="Čas",
             autosize=True,
             showlegend=config.show_legend

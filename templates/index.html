@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('favicon') }}" type="image/png">
     <style>
         :root {
             --primary-color: #3B82F6;
@@ -1017,6 +1018,11 @@
                 });
             });
         }
+
+        function toggleControls() {
+            const section = document.getElementById('controls-section');
+            section.style.display = (section.style.display === 'none') ? 'block' : 'none';
+        }
     </script>
 </head>
 <body>
@@ -1045,11 +1051,19 @@
                     <i class="fas fa-sync-alt"></i>
                     Aktualizovat
                 </button>
+                <button onclick="toggleControls()" class="btn-header" style="border: none; background: none; cursor: pointer;">
+                    <i class="fas fa-filter"></i>
+                    Filtry
+                </button>
+                <button onclick="window.location.href='/'" class="btn-header" style="border: none; background: none; cursor: pointer;">
+                    <i class="fas fa-home"></i>
+                    Aktuální data
+                </button>
             </div>
         </header>
 
         <!-- Enhanced Controls -->
-        <div class="controls">
+        <div id="controls-section" class="controls" {% if compare_day or compare_time %}style="display: block;"{% else %}style="display: none;"{% endif %}>
             <div class="controls-header">
                 <h2 class="controls-title">
                     <i class="fas fa-filter"></i>
@@ -1069,6 +1083,17 @@
                 </div>
                 
                 <div class="control-group">
+                    <label class="control-label">Čas optimalizace</label>
+                    <select name="time" class="control-select">
+                        {% for t in available_times %}
+                        <option value="{{ t }}" {% if t == compare_time %}selected{% endif %}>
+                            {{ available_times_display[loop.index0] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="control-group">
                     <label class="control-label">Typ zobrazení</label>
                     <select name="view_type" class="control-select">
                         <option value="tabs" {% if view_type == 'tabs' %}selected{% endif %}>Tabulky</option>
@@ -1079,6 +1104,10 @@
                 <button type="submit" class="btn-primary">
                     <i class="fas fa-search"></i>
                     Aplikovat
+                </button>
+                <button type="button" class="btn-primary" onclick="window.location.href='/'">
+                    <i class="fas fa-home"></i>
+                    Aktuální data
                 </button>
             </form>
         </div>
@@ -1112,7 +1141,7 @@
                     <div class="status-card-value">{{ "%.1f"|format(first_slot_data.get('battery_soc', 0)) }}</div>
                     <div class="status-card-unit">%</div>
                     <div class="progress-bar">
-                        <div class="progress-fill progress-blue" style="width: {{ first_slot_data.get('battery_soc', 0) }}%"></div>
+                        <div class="progress-fill progress-blue" style="width: {{ first_slot_data.get('battery_soc', 0) }}%;"></div>
                     </div>
                     <div class="status-card-subtitle">Cílový stav první hodiny</div>
                 </div>
@@ -1289,7 +1318,7 @@
                 </table>
             </div>
 
-            <!-- Enhanced Sidebar -->
+            <!-- Enhanced sidebar -->
             <div class="sidebar">
                 <!-- Action Plan Section -->
                 <div class="collapsible-section">

@@ -5,7 +5,7 @@ import json
 import csv
 from datetime import datetime, timedelta
 
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, send_from_directory
 from flask_apscheduler import APScheduler
 
 from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
@@ -319,6 +319,11 @@ def index():
         timeline=timeline,
         version=get_current_version(),
     )
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.root_path, 'icon.png', mimetype='image/png')
+
 if __name__ == "__main__":
 
     if os.environ.get("HA_ADDON"):
