@@ -484,6 +484,24 @@ class ChartFactory:
                                   "<extra></extra>"
                 )
             )
+        # Sloupcový graf výkonu spirál (dolní a horní)
+        for coil_key in ["h_in_lower", "h_in_upper"]:
+            if coil_key in data['ts']:
+                fig.add_trace(
+                    go.Bar(
+                        x=data['times'],
+                        y=data['ts'][coil_key],
+                        name=self.labels.get(coil_key, coil_key),
+                        marker_color=self.color_map.get(coil_key),
+                        opacity=0.7,
+                        width=3600000/5,  # tenké sloupce, 1/5 kroku
+                        yaxis="y2",  # use secondary y-axis
+                        hovertemplate=f"<b>{self.labels.get(coil_key, coil_key)}</b><br>" +
+                                      "Čas: %{x}<br>" +
+                                      "Výkon: %{y:.2f} kW<br>" +
+                                      "<extra></extra>"
+                    )
+                )
 
         fig.update_layout(
             height=config.height,
