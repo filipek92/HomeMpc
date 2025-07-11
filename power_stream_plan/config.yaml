@@ -24,7 +24,6 @@ schema:
 slug: power_stream_plan
 startup: services
 version: 2.0.0
-codenotary: false
 init: false
 stage: experimental
 update: true
