@@ -1,10 +1,9 @@
 {
   "name": "PowerStreamPlan Add-ons",
-  "slug": "power_stream_plan",
   "maintainer": "Filip Richter <filip.richter92@gmail.com>",
   "addons": [
     {
-      "slug": "power_stream_plan",
+      "slug": "PowerStreamPlan",
       "name": "PowerStreamPlan",
       "description": "Inteligentní optimalizace výroby a spotřeby energie",
       "url": "https://raw.githubusercontent.com/filipek92/PowerStreamPlan/refs/heads/master/",

@@ -21,7 +21,7 @@ panel_title: PowerStreamPlan
 schema:
   ha_url: str?
   token: str?
-slug: power_stream_plan
+slug: PowerStreamPlan
 startup: services
 version: 2.0.0
 codenotary: false
