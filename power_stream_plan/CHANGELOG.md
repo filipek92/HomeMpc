@@ -1,4 +1,9 @@
 
+## 2.0.3 - 2025-07-11
+fix: startup
+- fix: startup
+
+
 ## 2.0.2 - 2025-07-11
 fix: credentials file
 - fix: credentials file
