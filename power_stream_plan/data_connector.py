@@ -16,6 +16,9 @@ TOKEN = ""
 
 DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
 OPTIONS_FILE = os.path.join(DATA_DIR, "options.json")
+CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.yaml")
+
+print(f"Using credentials from {CREDENTIALS_FILE} and options from {OPTIONS_FILE}")
 
 try:
     with open(OPTIONS_FILE, "r") as f: 
@@ -31,7 +34,6 @@ if not TOKEN:
 
 
 if not TOKEN:
-    CREDENTIALS_FILE = "credentials.yaml"
     try:
         with open(CREDENTIALS_FILE, "r") as f:
             credentials = yaml.safe_load(f)
