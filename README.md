@@ -1,6 +1,6 @@
-# HomeOptim
+# PowerStreamPlan
 
-Optimalizace spotřeby a výroby energie v domácnosti pomocí MPC (Model Predictive Control).
+PowerStreamPlan – inteligentní optimalizátor spotřeby a výroby energie v domácnosti pomocí MPC (Model Predictive Control).
 
 ## Popis projektu
 Tento projekt slouží k optimalizaci řízení domácí energetiky (baterie, bojler, FVE, nákup/prodej elektřiny) s využitím lineárního MPC. Výsledky jsou vizualizovány a lze je publikovat do Home Assistant.
