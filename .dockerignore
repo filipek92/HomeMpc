@@ -1,8 +1,0 @@
-mpc_results_cache.json
-mpc_settings.json
-mpc_settings.json.bak
-
-.migration_done
-
-results/*
-credentials.yaml
