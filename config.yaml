@@ -3,7 +3,7 @@ arch:
 - aarch64
 - armv7
 boot: auto
-description: "Optimalizace energie s p\u0159\xEDstupem p\u0159es webov\xE9 rozhran\xED"
+description: "PowerStreamPlan: intelligent planner and optimizer for energy production and consumption with an intuitive web interface"
 hassio_api: true
 homeassistant_api: true
 host_network: true
@@ -11,15 +11,15 @@ icon: icon.png
 ingress: true
 ingress_entry: /
 ingress_port: 26781
-name: MPC Optimizer
+name: PowerStreamPlan
 options:
   ha_url: http://homeassistant:8123
   token: ''
 panel_icon: mdi:chart-areaspline
-panel_title: MPC Optimalizace
+panel_title: PowerStreamPlan
 schema:
   ha_url: str?
   token: str?
-slug: mpc_optimizer
+slug: power_stream_plan
 startup: services
 version: 1.11.1
