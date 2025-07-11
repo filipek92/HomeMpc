@@ -37,19 +37,6 @@ def update_config_yaml(new_version):
     with open(CONFIG_FILE, 'w') as f:
         yaml.dump(config, f)
 
-def update_repository_json(new_version):
-    with open(REPOSITORY_FILE) as f:
-        repo_data = json.load(f)
-    
-    # Aktualizuj verzi v addon sekci
-    for addon in repo_data.get('addons', []):
-        if addon.get('slug') == 'power_stream_plan':
-            addon['version'] = new_version
-            break
-    
-    with open(REPOSITORY_FILE, 'w') as f:
-        json.dump(repo_data, f, indent=2)
-
 def get_last_tag():
     try:
         tag = subprocess.check_output(['git', 'describe', '--tags', '--abbrev=0']).decode().strip()
@@ -128,7 +115,6 @@ def main():
         sys.exit(0)
 
     update_config_yaml(new_version)
-    update_repository_json(new_version)
     update_changelog(new_version, message, commits)
     git_commit_and_tag(new_version)
     print(f'Verze {new_version} publikována.')
