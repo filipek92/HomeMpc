@@ -7,7 +7,6 @@ from datetime import datetime
 
 CONFIG_FILE = 'config.yaml'
 CHANGELOG_FILE = 'CHANGELOG.md'
-REPOSITORY_FILE = 'repository.json'
 
 def get_current_version():
     with open(CONFIG_FILE) as f:
@@ -72,7 +71,7 @@ def update_changelog(new_version, message, commits):
         f.write(entry + '\n' + content)
 
 def git_commit_and_tag(new_version):
-    subprocess.check_call(['git', 'add', CONFIG_FILE, CHANGELOG_FILE, REPOSITORY_FILE])
+    subprocess.check_call(['git', 'add', CONFIG_FILE, CHANGELOG_FILE])
     subprocess.check_call(['git', 'commit', '-m', f'Release version {new_version}'])
     subprocess.check_call(['git', 'tag', f'v{new_version}'])
     subprocess.check_call(['git', 'push'])
