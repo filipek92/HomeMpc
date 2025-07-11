@@ -3,8 +3,8 @@ arch:
 - aarch64
 - armv7
 boot: auto
-description: 'intelligent planner and optimizer for energy production
-  and consumption with an intuitive web interface'
+description: intelligent planner and optimizer for energy production and consumption
+  with an intuitive web interface
 hassio_api: true
 homeassistant_api: true
 host_network: true
@@ -12,6 +12,7 @@ icon: icon.png
 ingress: true
 ingress_entry: /
 ingress_port: 26781
+init: false
 name: PowerStreamPlan
 options:
   ha_url: http://homeassistant:8123
@@ -22,8 +23,7 @@ schema:
   ha_url: str?
   token: str?
 slug: power_stream_plan
-startup: services
-version: 2.0.0
-init: false
 stage: experimental
+startup: services
 update: true
+version: 2.0.1

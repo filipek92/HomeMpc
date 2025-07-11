@@ -1,4 +1,27 @@
 
+## 2.0.1 - 2025-07-11
+fix: publish_version
+- fix: publish_version
+- gitignore
+- cleaning
+- cleaning
+- safety check eeprom writes
+- dashboard
+- migration
+- fix: config
+- enable update
+- fix slug
+- Structure change
+- revert
+- fix slug
+- fix: url
+- repository
+- repository
+- readme.md
+- HA addon repository
+- rename, gunicorn
+
+
 ## 2.0.0 - 2025-07-11
 Refactor, redesign, rename
 - readme
