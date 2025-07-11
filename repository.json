@@ -7,7 +7,7 @@
       "slug": "power_stream_plan",
       "name": "PowerStreamPlan",
       "description": "Inteligentní optimalizace výroby a spotřeby energie",
-      "url": "https://github.com/filipek92/PowerStreamPlan/tree/master/powerstreamplan",
+      "url": "https://raw.githubusercontent.com/filipek92/PowerStreamPlan/refs/heads/master/",
       "arch": ["amd64", "aarch64", "armv7"],
       "stage": "experimental"
     }
