@@ -2,373 +2,300 @@ views:
   - type: sections
     icon: mdi:trending-up
     cards: []
-    title: Plán toků energie
+    title: PowerStreamPlan
     sections:
+      # === PŘEHLED PLÁNU ===
       - type: grid
+        title: 📊 Aktuální plán
         cards:
           - type: entities
             entities:
               - entity: sensor.powerplan_charger_use_mode
-              - entity: sensor.powerplan_upper_accumulation_on
-              - entity: sensor.powerplan_lower_accumulation_on
-              - entity: sensor.powerplan_max_heat_on
-              - entity: sensor.powerplan_battery_discharge_power
-              - entity: sensor.solax_battery_capacity
+                name: Režim měniče
+                icon: mdi:transmission-tower-export
               - entity: sensor.powerplan_battery_target_soc
+                name: Cílový SOC baterie
+                icon: mdi:battery
+              - entity: sensor.powerplan_battery_discharge_power
+                name: Plánovaný výkon baterie
+                icon: mdi:battery-arrow-down
               - entity: sensor.powerplan_reserve_power_charging
-              - entity: sensor.powerplan_debug
-                name: Aktální slot
-            title: PowerPlan Plán
+                name: Rezervovaný výkon
+                icon: mdi:battery-arrow-up
+              - entity: sensor.powerplan_minimum_battery_soc
+                name: Minimální SOC
+                icon: mdi:battery-low
             state_color: true
-          - show_name: true
-            show_icon: true
-            type: button
+            show_header_toggle: false
+          - type: entities
+            entities:
+              - entity: sensor.powerplan_upper_accumulation_on
+                name: Horní akumulace
+                icon: mdi:water-pump
+              - entity: sensor.powerplan_lower_accumulation_on
+                name: Spodní akumulace
+                icon: mdi:water-pump
+              - entity: sensor.powerplan_max_heat_on
+                name: Maximální ohřev
+                icon: mdi:fire
+              - entity: sensor.powerplan_forced_heating_block
+                name: Blokování ohřevu
+                icon: mdi:block-helper
+            state_color: true
+            show_header_toggle: false
+          - type: button
+            name: Otevřít PowerStreamPlan
+            icon: mdi:chart-areaspline
             tap_action:
               action: navigate
               navigation_path: /local_mpc_optimizer/ingress
-            name: Plánovač
+            show_name: true
+            show_icon: true
+
+      # === STAV SYSTÉMU ===
       - type: grid
+        title: ⚡ Stav systému
         cards:
+          - type: entities
+            entities:
+              - entity: sensor.solax_battery_capacity
+                name: SOC baterie
+                icon: mdi:battery
+              - entity: sensor.solax_battery_power_charge
+                name: Výkon baterie
+                icon: mdi:battery-charging
+              - entity: sensor.solax_battery_temperature
+                name: Teplota baterie
+                icon: mdi:thermometer
+              - entity: sensor.solax_battery_voltage_charge
+                name: Napětí baterie
+                icon: mdi:lightning-bolt
+            state_color: true
+            show_header_toggle: false
+            title: 🔋 Baterie
+          - type: entities
+            entities:
+              - entity: sensor.solax_pv_power_total
+                name: Výkon FVE
+                icon: mdi:solar-power
+              - entity: sensor.solax_house_load
+                name: Spotřeba domu
+                icon: mdi:home-lightning-bolt
+              - entity: sensor.solax_grid_export
+                name: Export do sítě
+                icon: mdi:transmission-tower-export
+              - entity: sensor.solax_grid_import
+                name: Import ze sítě
+                icon: mdi:transmission-tower-import
+            state_color: true
+            show_header_toggle: false
+            title: ⚡ Energie
+          - type: entities
+            entities:
+              - entity: sensor.solax_run_mode
+                name: Režim měniče
+                icon: mdi:cog
+              - entity: sensor.solax_inverter_power
+                name: Výkon měniče
+                icon: mdi:solar-power-variant
+              - entity: sensor.solax_inverter_temperature
+                name: Teplota měniče
+                icon: mdi:thermometer
+            state_color: true
+            show_header_toggle: false
+            title: 🧩 Měnič
+
+      # === AKUMULACE ===
+      - type: grid
+        title: 🛢️ Tepelná akumulace
+        cards:
+          - type: entities
+            entities:
+              - entity: sensor.tepelnaakumulace_horn_senzor
+                name: Horní teplota
+                icon: mdi:thermometer-high
+              - entity: sensor.tepelnaakumulace_st_edn_senzor
+                name: Střední teplota
+                icon: mdi:thermometer
+              - entity: sensor.tepelnaakumulace_spodn_senzor
+                name: Spodní teplota
+                icon: mdi:thermometer-low
+              - entity: sensor.tepelnaakumulace_energie_n_dr_e
+                name: Energie v nádrži
+                icon: mdi:fire
+              - entity: sensor.tepelnaakumulace_nabit_n_dr_e
+                name: SOC nádrže
+                icon: mdi:water-percent
+            state_color: true
+            show_header_toggle: false
+            title: 🌡️ Teploty a stav
           - type: entities
             entities:
               - entity: switch.tepelnaakumulace_povolen_horn_akumulace
-                name: Povolení horní akumulace
+                name: Horní akumulace
+                icon: mdi:water-pump
               - entity: switch.tepelnaakumulace_povolen_spodn_akumulace
-                name: Povolení spodní akumulace
-                secondary_info: none
-              - entity: switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
-                name: ' Blokování nuceného ohřevu'
+                name: Spodní akumulace
+                icon: mdi:water-pump
               - entity: switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
-                name: Maximální ohřev ze sítě
-              - entity: select.solax_charger_use_mode
-              - entity: automation.powerplan_rizeni_akumulace_a_rezimu_menice
-                secondary_info: last-triggered
+                name: Maximální ohřev
+                icon: mdi:fire
+              - entity: switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
+                name: Blokování ohřevu
+                icon: mdi:block-helper
             state_color: true
             show_header_toggle: false
-            title: Akumulace
+            title: 🎛️ Ovládání
           - type: entities
             entities:
+              - entity: select.solax_charger_use_mode
+                name: Režim měniče
+                icon: mdi:cog
+              - entity: automation.powerplan_rizeni_akumulace_a_rezimu_menice
+                name: Automatizace
+                icon: mdi:robot
+                secondary_info: last-triggered
               - entity: counter.denni_eeprom_zapisy
-                name: Denní zápisy EEPROM
-          - type: entities
-            entities:
-              - entity: sensor.tepelnaakumulace_energie_n_dr_e
-              - entity: sensor.tepelnaakumulace_nabit_n_dr_e
-              - entity: sensor.solax_battery_capacity
-              - entity: sensor.powerplan_battery_target_soc
+                name: Denní EEPROM zápisy
+                icon: mdi:counter
+            state_color: true
+            show_header_toggle: false
+            title: 🤖 Automatizace
+
+      # === STAV A MONITORING ===
       - type: grid
+        title: 📈 Monitoring a diagnostika
         cards:
           - type: markdown
-            content: >
-              {#
-              ============================================================================
-                 🔋 PowerPlan a stav systému – přehledová šablona pro Home Assistant
-                 Upravená pro nové atributy sensor.powerplan_debug (Ceny v Kč)
-              ============================================================================
-              #}
+            content: |
+              ## 🧠 Aktuální plán
 
-
-              {# --------------------- Sběr dat --------------------- #}
-
-              {% set soc = states('sensor.solax_battery_capacity')|float(0) %}
-
-              {% set target_soc = states('sensor.powerplan_battery_target_soc')|float(0)
-              %}
-
-              {% set plan_pwr = states('sensor.powerplan_battery_discharge_power')|float(0) %}
-
-              {% set real_pwr =
-              states('sensor.solax_battery_power_charge')|float(0) %}
-
-              {% set b_power = state_attr('sensor.powerplan_debug','b_power')|float(0)
-              %}
-
-              {% set tuv_target_pct =
-              state_attr('sensor.powerplan_debug','tuv_soc_target_pct')|float(0) %}
-
-
-              {% set temp_top =
-              states('sensor.tepelnaakumulace_horn_senzor')|float(0) %}
-
-              {% set temp_mid =
-              states('sensor.tepelnaakumulace_st_edn_senzor')|float(0) %}
-
-              {% set temp_bot =
-              states('sensor.tepelnaakumulace_spodn_senzor')|float(0) %}
-
-              {% set tank_energy =
-              states('sensor.tepelnaakumulace_energie_n_dr_e')|float(0) %}
-
-              {% set tank_soc =
-              states('sensor.tepelnaakumulace_nabit_n_dr_e')|float(0) %}
-
-
-              {# --------------------- Barvy pro teplotu ---------------------
-              #}
-
-              {% macro temp_icon(t) -%}
-                {{- iif(t < 30, '🔵', iif(t < 45, '🟡', '🔴')) -}}
-              {%- endmacro %}
-
-
-              {#
-              ============================================================================
-                 🧠 Plán PowerPlan
-              ============================================================================
-              #}
-
-              ## 🧠 Plán PowerPlan (aktuální slot)
-
-              🔋 Režim: {{ states('sensor.powerplan_charger_use_mode') }}{% if
-              is_state('sensor.powerplan_charger_use_mode','Manual Mode') %} → aktivní
-              vybíjení{% elif is_state('sensor.powerplan_charger_use_mode','Feedin
-              Priority') %} → přetoky z FVE{% elif
-              is_state('sensor.powerplan_charger_use_mode','Back Up Mode') %} →
-              záložní režim{% endif %} • ♨️ {{ 'TUV' if
-              (is_state('sensor.powerplan_upper_accumulation_on','True') or 
-              is_state('sensor.powerplan_lower_accumulation_on','True')) else '~~TUV~~' }} •
-              🔥 {{ 'Max-heat' if is_state('sensor.powerplan_max_heat_on','True') else
-              '~~Max-heat~~' }} • 🎯 Cíl: {{ target_soc|round(1) }}% • ⚡ Plán:
-              {{ plan_pwr|round(0) }}W  
-
-              🔋 b_power: {{ b_power|float(0)|round(2) }}kW • 📥 b_charge: {{
-              state_attr('sensor.powerplan_debug','b_charge')|float(0)|round(2) }}kW •
-              📤 b_discharge: {{
-              state_attr('sensor.powerplan_debug','b_discharge')|float(0)|round(2)
-              }}kW  
-
-              🔌 g_sell: {{
-              state_attr('sensor.powerplan_debug','g_sell')|float(0)|round(2) }}kW •
-              📥 g_buy: {{
-              state_attr('sensor.powerplan_debug','g_buy')|float(0)|round(2) }}kW  
-
-              💲 Nákup: {{
-              state_attr('sensor.powerplan_debug','buy_cost')|float(0)|round(2) }}Kč •
-              💰 Prodej: {{
-              state_attr('sensor.powerplan_debug','sell_income')|float(0)|round(2)
-              }}Kč • 🧾 Bilance: {{
-              state_attr('sensor.powerplan_debug','net_step_cost')|float(0)|round(2)
-              }}Kč
-
-
-              ---
-
-
-              ## ⚡ Reálný stav měniče a baterie
-
-              🧩 Měnič: {{ states('sensor.solax_run_mode')|default('–') }} •
-              Výkon: {{ states('sensor.solax_inverter_power')|default('–') }}W •
-              Teplota: {{
-              states('sensor.solax_inverter_temperature')|default('–') }}°C  
-
-              🔋 SOC: {{ soc|round(1) }}% • Výkon: {{ real_pwr|round(0) }}W •
-              Napětí: {{
-              states('sensor.solax_battery_voltage_charge')|default('–') }}V •
-              Teplota: {{
-              states('sensor.solax_battery_temperature')|default('–') }}°C  
-
-              ☀️ PV: {{ states('sensor.solax_pv_power_total')|default('–') }}W •
-              🏠 Dům: {{ states('sensor.solax_house_load')|default('–') }}W • 📤
-              Export: {{ states('sensor.solax_grid_export')|default('–') }}W •
-              📥 Import: {{ states('sensor.solax_grid_import')|default('–') }}W
-
-
-              ---
-
-
-              ## 🛢️ Akumulační nádrž
-
-              🔼 {{ temp_icon(temp_top) }} {{ temp_top|round(1) }}°C • 🔁 {{
-              temp_icon(temp_mid) }} {{ temp_mid|round(1) }}°C • 🔽 {{
-              temp_icon(temp_bot) }} {{ temp_bot|round(1) }}°C • 🔋 {{
-              tank_energy|round(1) }}kWh • SOC: {{ tank_soc|round(1) }}%  
-
-              💧 H_SOC: {{
-              state_attr('sensor.powerplan_debug','h_soc_percent')|float(0)|round(1)
-              }}% ({{ state_attr('sensor.powerplan_debug','h_soc')|float(0)|round(2)
-              }}kWh) • H_in: {{
-              state_attr('sensor.powerplan_debug','h_in')|float(0)|round(2) }}kW •
-              H_out: {{ state_attr('sensor.powerplan_debug','h_out')|float(0)|round(2)
-              }}kW
-
-
-              ---
-
-
-              ## ⚙️ Finance & výkon
-
-              📊 Dobito: {{
-              state_attr('sensor.powerplan_debug','total_charged')|float(0)|round(2)
-              }}kWh • Vybito: {{
-              state_attr('sensor.powerplan_debug','total_discharged')|float(0)|round(2)
-              }}kWh  
-
-              💲 Náklady: {{
-              state_attr('sensor.powerplan_debug','total_buy_cost')|float(0)|round(2)
-              }}Kč • 💰 Výnosy: {{
-              state_attr('sensor.powerplan_debug','total_sell_income')|float(0)|round(2)
-              }}Kč • 🧾 Čistá bilance: {{
-              state_attr('sensor.powerplan_debug','net_bilance')|float(0)|round(2)
-              }}Kč  
-
-              🔥 Boiler: {{
-              state_attr('sensor.powerplan_debug','total_final_boiler_value')|float(0)|round(2)
-              }}Kč • ☀️ Nevyužito PV: {{
-              state_attr('sensor.powerplan_debug','total_fve_unused')|float(0)|round(2)
-              }}kWh  
-
-              📈 Pen_batt: {{
-              state_attr('sensor.powerplan_debug','total_battery_penalty')|float(0)|round(2)
-              }}Kč • Pen_under: {{
-              state_attr('sensor.powerplan_debug','total_battery_under_penalty')|float(0)|round(2)
-              }}Kč • Pen_PV: {{
-              state_attr('sensor.powerplan_debug','total_fve_unused_penalty')|float(0)|round(2)
-              }}Kč  
-
-              📈 PriceAbove: {{
-              state_attr('sensor.powerplan_debug','total_bat_price_above')|float(0)|round(2)
-              }} • PriceBelow: {{
-              state_attr('sensor.powerplan_debug','total_bat_price_below')|float(0)|round(2)
-              }} • Obj: {{
-              state_attr('sensor.powerplan_debug','objective_value')|float(0)|round(2)
-              }}Kč?
-
-
-              ---
-
-
-              {#
-              ============================================================================
-                 ⚠️ Varování – soulady a nesoulesy
-              ============================================================================
-              #}
-
-              {% set warn_msgs = [] %}
-
-              {% if soc - target_soc > 5 and
-              is_state('sensor.powerplan_charger_use_mode','Manual Mode') %}
-                {% do warn_msgs.append('🔋 SOC ' ~ soc|round(1) ~ '% (> cíl), ale stále se vybíjí') %}
-              {% endif %}
-
-              {% if target_soc - soc > 5 and
-              is_state('sensor.powerplan_charger_use_mode','Back Up Mode') and
-              real_pwr < 100 %}
-                {% do warn_msgs.append('🔋 SOC ' ~ soc|round(1) ~ '% (< cíl), ale nenabíjí se (' ~ real_pwr ~ ' W)') %}
-              {% endif %}
-
-              {% if plan_pwr < -100 and real_pwr > -100 %}
-                {% do warn_msgs.append('📤 Plánuje se vybíjení ' ~ plan_pwr|round(0) ~ ' W, ale baterie nevybíjí') %}
-              {% endif %}
-
-              {% if plan_pwr > 100 and real_pwr < 100 %}
-                {% do warn_msgs.append('📥 Plánuje se nabíjení ' ~ plan_pwr|round(0) ~ ' W, ale baterie nenabíjí') %}
-              {% endif %}
-
-              {% if not is_state('sensor.solax_run_mode','Normal Mode') %}
-                {% do warn_msgs.append('🧩 Měnič není v režimu Normal Mode') %}
-              {% endif %}
-
-              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
-              is_state('sensor.powerplan_lower_accumulation_on','True')) and
-              is_state('switch.tepelnaakumulace_povolen_horn_akumulace','off')
-              and
-              is_state('switch.tepelnaakumulace_povolen_spodn_akumulace','off')
-              %}
-                {% do warn_msgs.append('♨️ PowerPlan požaduje TUV, ale spirály jsou vypnuté') %}
-              {% endif %}
-
-              {% if is_state('sensor.powerplan_max_heat_on','True') and
-              is_state('switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t','off') %}
-                {% do warn_msgs.append('🔥 Max-heat je požadován, ale vypnutý') %}
-              {% endif %}
-
-              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
-              is_state('sensor.powerplan_lower_accumulation_on','True')) and tank_soc <
-              tuv_target_pct - 10 %}
-                {% do warn_msgs.append('♨️ Nádrž má nabití jen ' ~ tank_soc|round(1) ~ '%, cíl je ' ~ tuv_target_pct|round(1) ~ '%') %}
-              {% endif %}
-
-              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
-              is_state('sensor.powerplan_lower_accumulation_on','True')) and temp_top <
-              45 %}
-                {% do warn_msgs.append('🌡️ Horní část nádrže má jen ' ~ temp_top ~ ' °C') %}
-              {% endif %}
-
-              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
-              is_state('sensor.powerplan_lower_accumulation_on','True')) and temp_bot <
-              30 %}
-                {% do warn_msgs.append('🌡️ Spodní část nádrže je jen ' ~ temp_bot ~ ' °C') %}
-              {% endif %}
-
-              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
-              is_state('sensor.powerplan_lower_accumulation_on','True')) and plan_pwr >
-              500 and real_pwr < 100 %}
-                {% do warn_msgs.append('🔥 Požaduje se ohřev, ale výkon spirály je nízký (' ~ real_pwr ~ ' W)') %}
-              {% endif %}
-
-              {% if states('sensor.solax_battery_temperature')|float > 50 %}
-                {% do warn_msgs.append('⚠️ Vysoká teplota baterie: ' ~ states('sensor.solax_battery_temperature') ~ ' °C') %}
-              {% endif %}
-
-
-              {% if warn_msgs | length > 0 %}
-
-              ## ⚠️ Varování
-
-              {% for msg in warn_msgs %}- {{ msg }} {% endfor %}
-
-              {% else %}
-
-              ✅ Vše v pořádku – plán a realita jsou v souladu.
-
-              {% endif %}
-            grid_options:
-              columns: 24
-              rows: auto
-            text_only: true
-          - type: markdown
-            content: >
               {% set mode = states('sensor.powerplan_charger_use_mode') %}
+              {% set upper_acum = is_state('sensor.powerplan_upper_accumulation_on', 'True') %}
+              {% set lower_acum = is_state('sensor.powerplan_lower_accumulation_on', 'True') %}
+              {% set max_heat = is_state('sensor.powerplan_max_heat_on', 'True') %}
+              {% set target_soc = states('sensor.powerplan_battery_target_soc')|float(0) %}
+              {% set discharge_power = states('sensor.powerplan_battery_discharge_power')|float(0) %}
 
-              {% set acum = (is_state('sensor.powerplan_upper_accumulation_on', 'True') or
-              is_state('sensor.powerplan_lower_accumulation_on', 'True')) %}
+              **Režim měniče:** {{ mode }}
+              {% if mode == 'Manual' %}🔧 Ruční řízení{% elif mode == 'Feedin Priority' %}📤 Prodej přebytků{% elif mode == 'Back Up Mode' %}🔋 Záložní režim{% endif %}
 
-              {% set maxh = is_state('sensor.powerplan_max_heat_on', 'True') %}
+              **Akumulace:**
+              {% if upper_acum %}🔼 Horní spirála{% endif %}
+              {% if lower_acum %}🔽 Spodní spirála{% endif %}
+              {% if max_heat %}🔥 Maximální ohřev{% endif %}
+              {% if not (upper_acum or lower_acum or max_heat) %}❌ Vypnuto{% endif %}
+
+              **Baterie:** Cíl {{ target_soc }}%
+              {% if discharge_power > 0 %}⚡ Plánované vybíjení {{ discharge_power }}W{% endif %}
+
+          - type: markdown
+            content: |
+              ## ⚡ Aktuální stav
 
               {% set soc = states('sensor.solax_battery_capacity')|float(0) %}
+              {% set battery_power = states('sensor.solax_battery_power_charge')|float(0) %}
+              {% set fve_power = states('sensor.solax_pv_power_total')|float(0) %}
+              {% set house_load = states('sensor.solax_house_load')|float(0) %}
+              {% set grid_export = states('sensor.solax_grid_export')|float(0) %}
+              {% set grid_import = states('sensor.solax_grid_import')|float(0) %}
 
-              {% set power =
-              states('sensor.solax_battery_power_charge')|float(0) %}
+              **Baterie:** {{ soc }}% ({{ battery_power }}W)
+              {% if battery_power > 50 %}🔋 Nabíjí se{% elif battery_power < -50 %}⚡ Vybíjí se{% else %}⏸️ Standby{% endif %}
 
-              {% set fve = states('sensor.solax_pv_power_total')|float(0) %}
+              **Energie:**
+              - ☀️ FVE: {{ fve_power }}W
+              - 🏠 Spotřeba: {{ house_load }}W
+              {% if grid_export > 10 %}- 📤 Export: {{ grid_export }}W{% endif %}
+              {% if grid_import > 10 %}- 📥 Import: {{ grid_import }}W{% endif %}
 
-              {% set load = states('sensor.solax_house_load')|float(0) %}
+              {% if grid_export > 100 %}
+              💰 **Prodává se do sítě**
+              {% elif grid_import > 100 %}
+              💸 **Nakupuje se ze sítě**
+              {% else %}
+              ⚖️ **Systém v rovnováze**
+              {% endif %}
 
-              {% set export = states('sensor.solax_grid_export')|float(0) %}
+          - type: markdown
+            content: |
+              ## 🛢️ Tepelná nádrž
 
-              {% set import = states('sensor.solax_grid_import')|float(0) %}
+              {% set temp_top = states('sensor.tepelnaakumulace_horn_senzor')|float(0) %}
+              {% set temp_mid = states('sensor.tepelnaakumulace_st_edn_senzor')|float(0) %}
+              {% set temp_bot = states('sensor.tepelnaakumulace_spodn_senzor')|float(0) %}
+              {% set tank_energy = states('sensor.tepelnaakumulace_energie_n_dr_e')|float(0) %}
+              {% set tank_soc = states('sensor.tepelnaakumulace_nabit_n_dr_e')|float(0) %}
 
+              **Teploty:**
+              - 🔼 Horní: {{ temp_top | round(1) }}°C {% if temp_top > 60 %}🔥{% elif temp_top > 45 %}🟡{% else %}🔵{% endif %}
+              - 🔁 Střední: {{ temp_mid | round(1) }}°C {% if temp_mid > 60 %}🔥{% elif temp_mid > 45 %}🟡{% else %}🔵{% endif %}
+              - 🔽 Spodní: {{ temp_bot | round(1) }}°C {% if temp_bot > 60 %}🔥{% elif temp_bot > 45 %}🟡{% else %}🔵{% endif %}
 
-              Momentálně je systém nastaven do režimu {% if mode == 'Manual
-              Mode' %}aktivního vybíjení baterie{% elif mode == 'Feedin
-              Priority' %}prodeje přebytků z fotovoltaiky{% elif mode == 'Back
-              Up Mode' %}ukládání přebytků do baterie{% else %}{{ mode|lower
-              }}{% endif %}. {% if acum and not maxh %}Dochází k ohřevu vody z
-              přebytků, bez zvýšeného odběru ze sítě.{% elif maxh %}Je povolen
-              maximální ohřev ze sítě, takže voda se může ohřívat i bez
-              přebytků.{% else %}Ohřev vody je aktuálně vypnut.{% endif %} {% if
-              export > 100 %}Do sítě se právě prodává přibližně {{
-              export|round(0) }} wattů.{% elif import > 100 %}Ze sítě se
-              aktuálně odebírá asi {{ import|round(0) }} wattů.{% else %}Systém
-              je momentálně v rovnováze – prakticky neprodává ani nenakupuje.{%
-              endif %} Baterie má stav nabití {{ soc|round(0) }} % a její výkon
-              je {{ power|round(0) }} wattů. Fotovoltaika vyrábí {{ fve|round(0)
-              }} wattů a dům právě spotřebovává {{ load|round(0) }} wattů.
-            grid_options:
-              columns: 24
-              rows: auto
-        column_span: 2
+              **Stav:** {{ tank_soc | round(1) }}% ({{ tank_energy | round(1)  }}kWh)
+              {% if tank_soc > 80 %}🔥 Plně ohřátá{% elif tank_soc > 50 %}🟡 Středně ohřátá{% else %}🔵 Studená{% endif %}
+
+      # === DIAGNOSTIKA ===
       - type: grid
+        title: 🔍 Diagnostika
+        cards:
+          - type: markdown
+            content: |
+              ## ⚠️ Kontrola stavu
+
+              {% set soc = states('sensor.solax_battery_capacity')|float(0) %}
+              {% set target_soc = states('sensor.powerplan_battery_target_soc')|float(0) %}
+              {% set mode = states('sensor.powerplan_charger_use_mode') %}
+              {% set upper_acum = is_state('sensor.powerplan_upper_accumulation_on', 'True') %}
+              {% set lower_acum = is_state('sensor.powerplan_lower_accumulation_on', 'True') %}
+              {% set max_heat = is_state('sensor.powerplan_max_heat_on', 'True') %}
+              {% set upper_switch = is_state('switch.tepelnaakumulace_povolen_horn_akumulace', 'on') %}
+              {% set lower_switch = is_state('switch.tepelnaakumulace_povolen_spodn_akumulace', 'on') %}
+              {% set max_heat_switch = is_state('switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t', 'on') %}
+              {% set temp_top = states('sensor.tepelnaakumulace_horn_senzor')|float(0) %}
+              {% set battery_temp = states('sensor.solax_battery_temperature')|float(0) %}
+              {% set run_mode = states('sensor.solax_run_mode') %}
+
+              {% set warnings = [] %}
+              {% if (soc - target_soc)|abs > 10 %}
+                {% set warnings = warnings + ['🔋 SOC baterie se liší od cíle o ' + ((soc - target_soc)|abs)|string + '%'] %}
+              {% endif %}
+              {% if (upper_acum or lower_acum) and not (upper_switch or lower_switch) %}
+                {% set warnings = warnings + ['♨️ Plán požaduje akumulaci, ale spirály jsou vypnuté'] %}
+              {% endif %}
+              {% if max_heat and not max_heat_switch %}
+                {% set warnings = warnings + ['🔥 Plán požaduje max ohřev, ale je vypnutý'] %}
+              {% endif %}
+              {% if temp_top < 30 %}
+                {% set warnings = warnings + ['🌡️ Velmi nízká teplota v horní části nádrže'] %}
+              {% endif %}
+              {% if battery_temp > 45 %}
+                {% set warnings = warnings + ['⚠️ Vysoká teplota baterie: ' + battery_temp|string + '°C'] %}
+              {% endif %}
+              {% if run_mode != 'Normal Mode' %}
+                {% set warnings = warnings + ['🧩 Měnič není v normálním režimu: ' + run_mode] %}
+              {% endif %}
+
+              {% if warnings %}
+              {% for warning in warnings %}
+              - {{ warning }}
+              {% endfor %}
+              {% else %}
+              ✅ **Vše funguje správně**
+              {% endif %}
+
+          - type: entities
+            entities:
+              - entity: sensor.powerplan_debug
+                name: Debug informace
+                icon: mdi:bug
+            state_color: true
+            show_header_toggle: false
+            title: 🐛 Debug
+
+      # === WEBOVÁ APLIKACE ===
+      - type: grid
+        title: 🌐 PowerStreamPlan aplikace
         cards:
           - type: custom:addon-iframe-card
             url: local_mpc_optimizer/
