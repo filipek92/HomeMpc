@@ -1,0 +1,13 @@
+{
+  "name": "PowerStreamPlan Add-ons",
+  "slug": "powerstreamplan",
+  "maintainer": "Filip Richter <filip.richter92@gmail.com>",
+  "addons": [
+    {
+      "slug": "power_stream_plan",
+      "name": "PowerStreamPlan",
+      "description": "Intelligent planner and optimizer for energy production and consumption",
+      "url": "https://github.com/filipek92/PowerStreamPlan/tree/master/power_stream_plan"
+    }
+  ]
+}
