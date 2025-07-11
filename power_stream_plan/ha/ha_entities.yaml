@@ -1,0 +1,820 @@
+- entity: sensor.solax_today_s_export_energy_compensation
+  value: 29.7228
+  name: Prodej energie
+- entity: update.solax_ev_charger_http_api_update
+  value: off
+  name: SolaX EV Charger HTTP API update
+- entity: update.solax_inverter_modbus_update
+  value: off
+  name: SolaX Inverter Modbus update
+- entity: button.solax_api_reset
+  value: unknown
+  name: SolaX API Reset
+- entity: number.solax_api_max_charge_current_setting
+  value: unknown
+  name: SolaX API Max Charge Current Setting
+- entity: number.solax_api_smart_boost_energy
+  value: 0
+  name: SolaX API Smart boost energy
+- entity: select.solax_api_charger_use_mode
+  value: Stop
+  name: SolaX API Charger Use Mode
+- entity: select.solax_api_charger_green_mode_level
+  value: 3A
+  name: SolaX API Charger Green Mode Level
+- entity: select.solax_api_charger_eco_mode_level
+  value: 6A
+  name: SolaX API Charger Eco Mode Level
+- entity: select.solax_api_start_charge_mode
+  value: Plug & Charge
+  name: SolaX API Start Charge Mode
+- entity: select.solax_api_boost_mode
+  value: Normal
+  name: SolaX API Boost Mode
+- entity: select.solax_api_charging_mode
+  value: unknown
+  name: SolaX API Charging Mode
+- entity: select.solax_api_charge_phase
+  value: Three Phase
+  name: SolaX API Charge Phase
+- entity: sensor.solax_api_charge_start_time
+  value: unknown
+  name: SolaX API Charge start time
+- entity: sensor.solax_api_charge_current_l1
+  value: 0.0
+  name: SolaX API Charge Current L1
+- entity: sensor.solax_api_charge_current_l2
+  value: 0.0
+  name: SolaX API Charge Current L2
+- entity: sensor.solax_api_charge_current_l3
+  value: 0.0
+  name: SolaX API Charge Current L3
+- entity: sensor.solax_api_charge_power_l1
+  value: 1
+  name: SolaX API Charge Power L1
+- entity: sensor.solax_api_charge_power_total
+  value: 1
+  name: SolaX API Charge Power Total
+- entity: sensor.solax_api_charge_time
+  value: 1
+  name: SolaX API Charge Time
+- entity: sensor.solax_api_charge_added
+  value: 0.0
+  name: SolaX API Charge Added
+- entity: sensor.solax_api_available_pv_power
+  value: 0
+  name: SolaX API Available PV Power
+- entity: sensor.solax_api_charger_temperature
+  value: 29
+  name: SolaX API Charger Temperature
+- entity: sensor.solax_api_run_mode
+  value: Available
+  name: SolaX API Run Mode
+- entity: sensor.solax_api_firmware_version
+  value: 1.08
+  name: SolaX API Firmware Version
+- entity: time.solax_api_timed_boost_start
+  value: 00:00:00
+  name: SolaX API Timed boost start
+- entity: time.solax_api_timed_boost_end
+  value: 00:00:00
+  name: SolaX API Timed boost end
+- entity: time.solax_api_smart_boost_end
+  value: 00:00:00
+  name: SolaX API Smart boost end
+- entity: button.solax_sync_rtc
+  value: 2025-07-04T21:13:47.753334+00:00
+  name: SolaX Sync RTC
+- entity: button.solax_remotecontrol_trigger
+  value: 2025-07-11T11:18:27.400111+00:00
+  name: SolaX Remotecontrol Trigger
+- entity: button.solax_system_on
+  value: 2025-07-04T21:13:54.686730+00:00
+  name: SolaX System On
+- entity: button.solax_system_off
+  value: 2025-07-04T21:11:33.393819+00:00
+  name: SolaX System Off
+- entity: button.solax_battery_awaken
+  value: 2025-07-04T21:13:50.016984+00:00
+  name: SolaX Battery Awaken
+- entity: number.solax_remotecontrol_active_power
+  value: 3500.0
+  name: SolaX Remotecontrol Active Power
+- entity: number.solax_remotecontrol_reactive_power
+  value: 0.0
+  name: SolaX Remotecontrol Reactive Power
+- entity: number.solax_remotecontrol_duration
+  value: 20
+  name: SolaX Remotecontrol Duration
+- entity: number.solax_remotecontrol_autorepeat_duration
+  value: 7200.0
+  name: SolaX Remotecontrol Autorepeat Duration
+- entity: number.solax_remotecontrol_import_limit
+  value: 20000
+  name: SolaX Remotecontrol Import Limit
+- entity: number.solax_backup_discharge_min_soc
+  value: 15
+  name: Minimální stav baterie při záloze
+- entity: number.solax_backup_nightcharge_upper_soc
+  value: 86
+  name: SolaX Backup Nightcharge Upper SOC
+- entity: number.solax_battery_charge_max_current
+  value: 20.0
+  name: Maximální nabíjecí proud baterie
+- entity: number.solax_battery_discharge_max_current
+  value: 25.0
+  name: Maximální vybíjecí proud baterie
+- entity: number.solax_consume_off_power
+  value: 4000
+  name: SolaX Consume Off Power
+- entity: number.solax_export_control_user_limit
+  value: 15200
+  name: Export limit
+- entity: number.solax_feedin_discharge_min_soc
+  value: 10
+  name: SolaX Feedin Discharge Min SOC
+- entity: number.solax_feedin_nightcharge_upper_soc
+  value: 30
+  name: SolaX Feedin Nightcharge Upper SOC
+- entity: number.solax_feedin_on_power
+  value: 2000
+  name: SolaX Feedin On Power
+- entity: number.solax_selfuse_discharge_min_soc
+  value: 10
+  name: SolaX Selfuse Discharge Min SOC
+- entity: number.solax_selfuse_nightcharge_upper_soc
+  value: 28
+  name: SolaX Selfuse Nightcharge Upper SOC
+- entity: select.solax_remotecontrol_power_control
+  value: Disabled
+  name: SolaX Remotecontrol Power Control
+- entity: select.solax_remotecontrol_set_type
+  value: Set
+  name: SolaX Remotecontrol Set Type
+- entity: select.solax_lock_state
+  value: Unlocked - Advanced
+  name: SolaX Lock State
+- entity: select.solax_charger_end_time_1
+  value: 00:00
+  name: SolaX Charger End Time 1
+- entity: select.solax_charger_end_time_2
+  value: 00:00
+  name: SolaX Charger End Time 2
+- entity: select.solax_charger_start_time_1
+  value: 00:00
+  name: SolaX Charger Start Time 1
+- entity: select.solax_charger_start_time_2
+  value: 00:00
+  name: SolaX Charger Start Time 2
+- entity: select.solax_charger_use_mode
+  value: Back Up Mode
+  name: Režim elektrárny
+- entity: select.solax_device_lock
+  value: Unlock
+  name: SolaX Device Lock
+- entity: select.solax_discharger_end_time_1
+  value: 23:59
+  name: SolaX Discharger End Time 1
+- entity: select.solax_discharger_end_time_2
+  value: 00:00
+  name: SolaX Discharger End Time 2
+- entity: select.solax_discharger_start_time_1
+  value: 00:00
+  name: SolaX Discharger Start Time 1
+- entity: select.solax_discharger_start_time_2
+  value: 00:00
+  name: SolaX Discharger Start Time 2
+- entity: select.solax_battery_heating
+  value: Disabled
+  name: SolaX Battery Heating
+- entity: select.solax_battery_heating_start_time_1
+  value: 00:00
+  name: SolaX Battery Heating Start Time 1
+- entity: select.solax_battery_heating_end_time_1
+  value: 00:00
+  name: SolaX Battery Heating End Time 1
+- entity: select.solax_battery_heating_start_time_2
+  value: 00:00
+  name: SolaX Battery Heating Start Time 2
+- entity: select.solax_battery_heating_end_time_2
+  value: 00:00
+  name: SolaX Battery Heating End Time 2
+- entity: select.solax_lease_mode
+  value: Disabled
+  name: SolaX Lease Mode
+- entity: select.solax_manual_mode_control
+  value: On
+  name: SolaX Manual Mode Control
+- entity: select.solax_parallel_setting
+  value: Free
+  name: SolaX Parallel Setting
+- entity: select.solax_pgrid_bias
+  value: Disabled
+  name: SolaX Pgrid Bias
+- entity: select.solax_phase_power_balance_x3
+  value: Enabled
+  name: SolaX Phase Power Balance X3
+- entity: select.solax_selfuse_mode_backup
+  value: Disabled
+  name: SolaX Selfuse Mode Backup
+- entity: sensor.solax_battery_discharge_cut_off_voltage
+  value: 240.0
+  name: SolaX Battery Discharge Cut Off Voltage
+- entity: sensor.solax_eps_mute
+  value: On
+  name: SolaX EPS Mute
+- entity: sensor.solax_inverter_voltage
+  value: 241.2
+  name: SolaX Inverter Voltage
+- entity: sensor.solax_inverter_current
+  value: 6.7
+  name: SolaX Inverter Current
+- entity: sensor.solax_pv_voltage_1
+  value: 642.5
+  name: FV Napětí Východ
+- entity: sensor.solax_pv_voltage_2
+  value: 556.1
+  name: FV Napětí Západ
+- entity: sensor.solax_pv_current_1
+  value: 3.2
+  name: FV Proud Východ
+- entity: sensor.solax_pv_current_2
+  value: 2.6
+  name: FV Proud Západ
+- entity: sensor.solax_inverter_frequency
+  value: 50.01
+  name: SolaX Grid Frequency
+- entity: sensor.solax_inverter_temperature
+  value: 56
+  name: Teplota střídače
+- entity: sensor.solax_run_mode
+  value: Normal Mode
+  name: Režim provozu elektrárny
+- entity: sensor.solax_pv_power_1
+  value: 2111
+  name: FV Výkon Východ
+- entity: sensor.solax_pv_power_2
+  value: 1448
+  name: FV Výkon Západ
+- entity: sensor.solax_battery_voltage_charge
+  value: 363.5
+  name: Napětí baterie
+- entity: sensor.solax_battery_current_charge
+  value: 0.8
+  name: Proud baterie
+- entity: sensor.solax_battery_power_charge
+  value: 290
+  name: Aktuální výkon baterie
+- entity: sensor.solax_battery_temperature
+  value: 28
+  name: Teplota baterií
+- entity: sensor.solax_grid_status
+  value: OnGrid
+  name: SolaX Grid Status
+- entity: sensor.solax_bms_battery_capacity
+  value: 0
+  name: SolaX BMS Battery Capacity
+- entity: sensor.solax_measured_power
+  value: 0
+  name: SolaX Measured Power
+- entity: sensor.solax_grid_export_total
+  value: 2670.63
+  name: Celková dodávka do sítě
+- entity: sensor.solax_grid_import_total
+  value: 10423.08
+  name: Celkový odběr ze sítě
+- entity: sensor.solax_eps_frequency
+  value: 0.0
+  name: SolaX EPS frequency
+- entity: sensor.solax_total_yield
+  value: 24.2678
+  name: Celkový výstup střídače
+- entity: sensor.solax_inverter_voltage_l1
+  value: 241.6
+  name: Napětí střídače L1
+- entity: sensor.solax_inverter_voltage_l2
+  value: 240.6
+  name: Napětí střídače L2
+- entity: sensor.solax_inverter_voltage_l3
+  value: 242.4
+  name: Napětí střídače L3
+- entity: sensor.solax_eps_voltage_l1
+  value: 0.0
+  name: SolaX EPS Voltage L1
+- entity: sensor.solax_eps_current_l1
+  value: 0.0
+  name: SolaX EPS Current L1
+- entity: sensor.solax_eps_power_active_l1
+  value: 0
+  name: SolaX EPS Power Active L1
+- entity: sensor.solax_eps_power_l1
+  value: 0
+  name: SolaX EPS Power L1
+- entity: sensor.solax_eps_voltage_l2
+  value: 0.0
+  name: SolaX EPS Voltage L2
+- entity: sensor.solax_eps_current_l2
+  value: 0.0
+  name: SolaX EPS Current L2
+- entity: sensor.solax_eps_power_active_l2
+  value: 0
+  name: SolaX EPS Power Active L2
+- entity: sensor.solax_eps_power_l2
+  value: 0
+  name: SolaX EPS Power L2
+- entity: sensor.solax_eps_voltage_l3
+  value: 0.0
+  name: SolaX EPS Voltage L3
+- entity: sensor.solax_eps_current_l3
+  value: 0.0
+  name: SolaX EPS Current L3
+- entity: sensor.solax_eps_power_active_l3
+  value: 0
+  name: SolaX EPS Power Active L3
+- entity: sensor.solax_eps_power_l3
+  value: 0
+  name: SolaX EPS Power L3
+- entity: sensor.solax_measured_power_l1
+  value: -2
+  name: Síť L1
+- entity: sensor.solax_measured_power_l2
+  value: 79
+  name: Síť L2
+- entity: sensor.solax_measured_power_l3
+  value: -64
+  name: Síť L3
+- entity: sensor.solax_grid_mode_runtime
+  value: 17950.5
+  name: Paralelní síťový provoz
+- entity: sensor.solax_eps_mode_runtime
+  value: 375.6
+  name: Ostrovní provoz
+- entity: sensor.solax_eps_yield_total
+  value: 0.186
+  name: Celkový EPS výstup střídače
+- entity: sensor.solax_eps_yield_today
+  value: 0.0
+  name: Dnešní EPS výstup střídače
+- entity: sensor.solax_modbus_power_control
+  value: Disabled
+  name: SolaX Modbus Power Control
+- entity: sensor.solax_target_finish_flag
+  value: Unfinished
+  name: SolaX Target Finish Flag
+- entity: sensor.solax_active_power_target
+  value: 3500
+  name: SolaX Active Power Target
+- entity: sensor.solax_reactive_power_target
+  value: 0
+  name: SolaX Reactive Power Target
+- entity: sensor.solax_active_power_real
+  value: -3063
+  name: SolaX Active Power Real
+- entity: sensor.solax_reactive_power_real
+  value: -1565
+  name: SolaX Reactive Power Real
+- entity: sensor.solax_active_power_upper
+  value: 0
+  name: SolaX Active Power Upper
+- entity: sensor.solax_active_power_lower
+  value: -12028
+  name: SolaX Active Power Lower
+- entity: sensor.solax_reactive_power_upper
+  value: 11250
+  name: SolaX Reactive Power Upper
+- entity: sensor.solax_reactive_power_lower
+  value: -11250
+  name: SolaX Reactive Power Lower
+- entity: sensor.solax_grid_export
+  value: 0
+  name: Dodávka do sítě
+- entity: sensor.solax_grid_import
+  value: 0
+  name: Odběr ze sítě
+- entity: sensor.solax_house_load
+  value: 3050
+  name: Domácí spotřeba
+- entity: sensor.solax_house_load_alt
+  value: 3269
+  name: Domácí spotřeba ALT
+- entity: sensor.solax_pv_power_total
+  value: 3559
+  name: FV Výkon celkem
+- entity: sensor.solax_remotecontrol_autorepeat_remaining
+  value: 0
+  name: SolaX Remotecontrol Autorepeat Remaining
+- entity: select.solax_hotstandby
+  value: Disabled
+  name: SolaX HotStandBy
+- entity: select.solax_extend_bms_setting
+  value: Disabled
+  name: SolaX Extend BMS Setting
+- entity: sensor.solax_today_s_import_energy_cost
+  value: unavailable
+  name: solax today s import energy cost
+- entity: number.solax_battery_charge_upper_soc
+  value: 100
+  name: SolaX Battery Charge Upper SOC
+- entity: number.solax_peakshaving_charge_limit
+  value: 0
+  name: SolaX PeakShaving Charge Limit
+- entity: number.solax_peakshaving_max_soc
+  value: 50
+  name: SolaX PeakShaving Max SOC
+- entity: number.solax_peakshaving_reserved_soc
+  value: 50
+  name: SolaX PeakShaving Reserved SOC
+- entity: select.solax_peakshaving_discharge_start_time_1
+  value: 07:00
+  name: SolaX PeakShaving Discharge Start Time 1
+- entity: select.solax_peakshaving_discharge_stop_time_1
+  value: 15:00
+  name: SolaX PeakShaving Discharge Stop Time 1
+- entity: select.solax_peakshaving_discharge_start_time_2
+  value: 19:00
+  name: SolaX PeakShaving Discharge Start Time 2
+- entity: select.solax_peakshaving_discharge_stop_time_2
+  value: 23:00
+  name: SolaX PeakShaving Discharge Stop Time 2
+- entity: select.solax_ct_cycle_detection
+  value: Disabled
+  name: SolaX CT Cycle Detection
+- entity: select.solax_eps_mode_without_battery
+  value: Disabled
+  name: SolaX EPS Mode without Battery
+- entity: select.solax_peakshaving_charge_from_grid
+  value: Disabled
+  name: SolaX PeakShaving Charge from Grid
+- entity: number.solax_peakshaving_discharge_limit_1
+  value: 0
+  name: SolaX PeakShaving Discharge Limit 1
+- entity: number.solax_peakshaving_discharge_limit_2
+  value: 0
+  name: SolaX PeakShaving Discharge Limit 2
+- entity: sensor.solax_cell_voltage_high
+  value: 3.349
+  name: Nejvyšší článek baterie
+- entity: sensor.solax_cell_voltage_low
+  value: 3.346
+  name: Nejnižší článek baterie
+- entity: sensor.solax_battery_state_of_health
+  value: 0
+  name: SolaX Battery State of Health
+- entity: select.solax_discharge_cut_off_point_different
+  value: Disabled
+  name: SolaX Discharge Cut Off Point Different
+- entity: select.solax_mppt_2
+  value: Disabled
+  name: SolaX MPPT
+- entity: select.solax_shadow_fix_function_level_pv1_gmppt
+  value: Off
+  name: SolaX Shadow Fix Function Level PV1 (GMPPT)
+- entity: sensor.solax_inverter_frequency_2
+  value: 49.78
+  name: SolaX Inverter Frequency
+- entity: sensor.solax_inverter_voltage_l1_2
+  value: 242.3
+  name: SolaX Inverter Voltage L1
+- entity: sensor.solax_inverter_voltage_l2_2
+  value: 240.2
+  name: SolaX Inverter Voltage L2
+- entity: sensor.solax_inverter_voltage_l3_2
+  value: 243.0
+  name: SolaX Inverter Voltage L3
+- entity: sensor.solax_battery_capacity
+  value: 90
+  name: Nabití baterie
+- entity: sensor.solax_inverter_power_l1
+  value: 1431
+  name: Výkon střídače L1
+- entity: sensor.solax_inverter_power_l2
+  value: 92
+  name: Výkon střídače L2
+- entity: sensor.solax_inverter_power_l3
+  value: 1527
+  name: Výkon střídače L3
+- entity: sensor.solax_inverter_current_l1
+  value: 6.7
+  name: Proud střídače L1
+- entity: sensor.solax_inverter_current_l2
+  value: 3.1
+  name: Proud střídače L2
+- entity: sensor.solax_inverter_current_l3
+  value: 7.0
+  name: Proud střídače L3
+- entity: sensor.solax_total_solar_energy
+  value: 25299.1
+  name: Celková solární energie
+- entity: select.solax_charge_and_discharge_period2_enable
+  value: Enabled
+  name: SolaX Charge and Discharge Period2 Enable
+- entity: select.solax_manual_mode_select
+  value: Force Discharge
+  name: Manuální pokyn elektrárny
+- entity: select.solax_selfuse_night_charge_enable
+  value: Disabled
+  name: SolaX Selfuse Night Charge Enable
+- entity: sensor.solax_inverter_power
+  value: 3050
+  name: Celkový výkon střídače
+- entity: sensor.solax_battery_output_energy_today
+  value: 2.6
+  name: Denní energie spotřebovaná z baterie
+- entity: sensor.solax_battery_input_energy_today
+  value: 7.1
+  name: Denní energie uložená do baterie
+- entity: sensor.solax_today_s_yield
+  value: 55.2
+  name: Dnešní výstup střídače
+- entity: sensor.solax_inverter_frequency_l1
+  value: 50.1
+  name: SolaX Inverter Frequency L1
+- entity: sensor.solax_inverter_frequency_l2
+  value: 50.0
+  name: SolaX Inverter Frequency L2
+- entity: sensor.solax_inverter_frequency_l3
+  value: 50.0
+  name: SolaX Inverter Frequency L3
+- entity: sensor.solax_today_s_solar_energy
+  value: 61.5
+  name: Dnešní solární energie
+- entity: sensor.solax_today_s_export_energy
+  value: 18.04
+  name: Dnešní prodaná energie
+- entity: sensor.solax_today_s_import_energy
+  value: 0.11
+  name: Dnešní koupená energie
+- entity: select.solax_shadow_fix_function_level_pv2_gmppt
+  value: Off
+  name: SolaX Shadow Fix Function Level PV2 (GMPPT)
+- entity: number.solax_main_breaker_current_limit
+  value: 25
+  name: SolaX Main Breaker Current Limit
+- entity: number.solax_remotecontrol_active_power_direct
+  value: 0
+  name: SolaX Remotecontrol Active Power (mode 1 direct)
+- entity: number.solax_remotecontrol_reactive_power_direct
+  value: 0
+  name: SolaX Remotecontrol Reactive Power (mode 1 direct)
+- entity: number.solax_remotecontrol_duration_direct
+  value: 60
+  name: SolaX Remotecontrol Duration (mode 1 direct)
+- entity: number.solax_remotecontrol_target_soc_direct
+  value: unknown
+  name: SolaX Remotecontrol Target SOC (mode 3 direct)
+- entity: number.solax_remotecontrol_target_energy_direct
+  value: 0
+  name: SolaX Remotecontrol Target Energy (mode 2 direct)
+- entity: number.solax_remotecontrol_charge_discharge_power_direct
+  value: 0
+  name: SolaX Remotecontrol Charge/Discharge Power (mode 2,3 direct)
+- entity: number.solax_remotecontrol_timeout_direct
+  value: 0
+  name: SolaX Remotecontrol TimeOut (direct)
+- entity: number.solax_remotecontrol_push_mode_power_direct
+  value: 0
+  name: SolaX Remotecontrol Push Mode Power (mode 4 direct)
+- entity: number.solax_remotecontrol_pv_power_limit_direct
+  value: 15000
+  name: SolaX Remotecontrol PV Power Limit (mode 8,9 direct)
+- entity: number.solax_remotecontrol_push_mode_power_8_9_direct
+  value: 0
+  name: SolaX Remotecontrol Push Mode Power (mode 8,9 direct)
+- entity: number.solax_remotecontrol_duration_8_direct
+  value: 0
+  name: SolaX Remotecontrol Duration (mode 8 direct)
+- entity: number.solax_remotecontrol_target_soc_9_direct
+  value: 100
+  name: SolaX Remotecontrol Target SOC (mode 9 direct)
+- entity: number.solax_remotecontrol_timeout_8_9_direct
+  value: 0
+  name: SolaX Remotecontrol TimeOut (mode 8,9 direct)
+- entity: select.solax_modbus_power_control_direct
+  value: Disabled
+  name: SolaX Modbus Power Control (direct)
+- entity: select.solax_remote_control_target_set_type_direct
+  value: set
+  name: SolaX RemoteControl Target Set Type (direct)
+- entity: select.solax_remote_control_power_control_mode_direct
+  value: Disabled
+  name: SolaX RemoteControl Power Control Mode (direct)
+- entity: select.solax_power_control_mode_target_set_type_direct
+  value: set
+  name: SolaX Power Control Mode Target Set Type (direct)
+
+- entity: binary_sensor.tepelnaakumulace_btn
+  value: off
+  name: Tepelná akumulace BTN
+- entity: binary_sensor.tepelnaakumulace_modbus_tcp_connected
+  value: on
+  name: Tepelná akumulace Modbus TCP Connected
+- entity: binary_sensor.tepelnaakumulace_prim_rn_oh_ev
+  value: off
+  name: Tepelná akumulace Primární ohřev
+- entity: binary_sensor.tepelnaakumulace_komfortn_oh_ev
+  value: off
+  name: Tepelná akumulace Komfortní ohřev
+- entity: binary_sensor.tepelnaakumulace_akumulace_tuv
+  value: off
+  name: Tepelná akumulace Akumulace TUV
+- entity: binary_sensor.tepelnaakumulace_akumulace_tepla
+  value: on
+  name: Tepelná akumulace Akumulace tepla
+- entity: binary_sensor.tepelnaakumulace_nucen_oh_ev
+  value: off
+  name: Nucený ohřev
+- entity: binary_sensor.tepelnaakumulace_blokace_horn_ho_oh_evu
+  value: off
+  name: Blokace horního ohřevu
+- entity: binary_sensor.tepelnaakumulace_priorita_nabit_baterie
+  value: off
+  name: Tepelná akumulace Priorita nabití baterie
+- entity: binary_sensor.tepelnaakumulace_api_p_ipojeno
+  value: on
+  name: Tepelná akumulace API Připojeno
+- entity: sensor.tepelnaakumulace_number_modbus_tcp_connections
+  value: 2.0
+  name: Tepelná akumulace Number Modbus TCP connections
+- entity: sensor.tepelnaakumulace_solarn_v_roba_1
+  value: 2114.0
+  name: Tepelná akumulace Solarní výroba 1
+- entity: sensor.tepelnaakumulace_solarn_v_roba_2
+  value: 1451.0
+  name: Tepelná akumulace Solarní výroba 2
+- entity: sensor.tepelnaakumulace_sol_rn_v_roba
+  value: 3565.0
+  name: Solární výroba
+- entity: sensor.tepelnaakumulace_nabit_baterie
+  value: 90.0
+  name: Tepelná akumulace Nabití baterie
+- entity: sensor.tepelnaakumulace_v_kon_baterie
+  value: 363.0
+  name: Výkon baterie
+- entity: sensor.tepelnaakumulace_v_kon_s_t
+  value: 0.0
+  name: Výkon sítě
+- entity: sensor.tepelnaakumulace_horn_senzor
+  value: 82.5
+  name: Horní senzor akumulace
+- entity: sensor.tepelnaakumulace_st_edn_senzor
+  value: 83.375
+  name: Akumulace střed
+- entity: sensor.tepelnaakumulace_spodn_senzor
+  value: 76.375
+  name: Spodní senzor akumulace
+- entity: sensor.tepelnaakumulace_krb_studen
+  value: 27.0625
+  name: Tepelná akumulace Krb studená
+- entity: sensor.tepelnaakumulace_krb_tepl
+  value: 29.125
+  name: Tepelná akumulace Krb teplá
+- entity: sensor.tepelnaakumulace_ft_studen
+  value: 61.9375
+  name: Tepelná akumulace FT studená
+- entity: sensor.tepelnaakumulace_ft_tepl
+  value: 61.0625
+  name: Tepelná akumulace FT teplá
+- entity: sensor.tepelnaakumulace_krb_rozd_l
+  value: 2.125
+  name: Tepelná akumulace Krb rozdíl
+- entity: sensor.tepelnaakumulace_krb_v_kon
+  value: 0.0
+  name: Krb výkon
+- entity: sensor.tepelnaakumulace_krb_energie
+  value: 0.0
+  name: Krb energie
+- entity: sensor.tepelnaakumulace_ft_rozd_l
+  value: -0.8125
+  name: Tepelná akumulace FT rozdíl
+- entity: sensor.tepelnaakumulace_ft_tepeln_kapacita
+  value: 3761.08154296875
+  name: Tepelná akumulace FT Tepelná kapacita
+- entity: sensor.tepelnaakumulace_ft_v_kon
+  value: 0.0
+  name: Fototermika výkon
+- entity: sensor.tepelnaakumulace_ft_energie
+  value: 0.751416623592377
+  name: Fototermika energie
+- entity: sensor.tepelnaakumulace_optim_ln_odb_r_z_baterie
+  value: 541.666687011719
+  name: Tepelná akumulace Optimální odběr z baterie
+- entity: sensor.tepelnaakumulace_maxim_ln_teplota_n_dr_e
+  value: 83.3125
+  name: Tepelná akumulace Maximální teplota nádrže
+- entity: sensor.tepelnaakumulace_aktu_ln_v_kon_oh_evu
+  value: 2800.0
+  name: Aktuální výkon ohřevu
+- entity: sensor.tepelnaakumulace_akumula_n_v_kon_oh_evu
+  value: 2800.0
+  name: Tepelná akumulace Akumulační výkon ohřevu
+- entity: sensor.tepelnaakumulace_prioritn_v_kon_oh_evu
+  value: 0.0
+  name: Tepelná akumulace Prioritní výkon ohřevu
+- entity: sensor.tepelnaakumulace_dostupn_v_kon
+  value: 3704.66674804688
+  name: Dostupný výkon
+- entity: sensor.tepelnaakumulace_spot_ebovan_energie
+  value: 7.97533512115479
+  name: Tepelná akumulace Spotřebovaná energie
+- entity: sensor.tepelnaakumulace_akumulovan_sol_rn_energie
+  value: 7.85901021957397
+  name: Tepelná akumulace Akumulovaná solární energie
+- entity: sensor.tepelnaakumulace_prioritn_energie
+  value: 0.112547345459461
+  name: Tepelná akumulace Prioritní energie
+- entity: sensor.tepelnaakumulace_pr_tok_krbu
+  value: 0.0
+  name: Tepelná akumulace Průtok krbu
+- entity: sensor.tepelnaakumulace_pr_tok_ft
+  value: 0.0
+  name: Tepelná akumulace Průtok FT
+- entity: sensor.tepelnaakumulace_nabit_n_dr_e
+  value: 86.4873809814453
+  name: Nabití nádrže
+- entity: sensor.tepelnaakumulace_energie_n_dr_e
+  value: 50.7825775146484
+  name: Energie nádrže
+- entity: switch.tepelnaakumulace_tuv_1400
+  value: off
+  name: TUV 1.4kW
+- entity: switch.tepelnaakumulace_tuv_2800
+  value: off
+  name: TUV 2.8kW
+- entity: switch.tepelnaakumulace_aku_2800
+  value: on
+  name: AKU 2.8kW
+- entity: switch.tepelnaakumulace_aku_5600
+  value: off
+  name: AKU 5.6kW
+- entity: switch.tepelnaakumulace_cirkulace_radiator
+  value: off
+  name: Tepelná akumulace Cirkulace radiatorů
+- entity: switch.tepelnaakumulace_re6
+  value: off
+  name: Tepelná akumulace RE6
+- entity: switch.tepelnaakumulace_povolen_horn_akumulace
+  value: on
+  name: Tepelná akumulace Povolení horní akumulace
+- entity: switch.tepelnaakumulace_povolen_spodn_akumulace
+  value: on
+  name: Tepelná akumulace Povolení spodní akumulace
+- entity: switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu
+  value: off
+  name: Tepelná akumulace Povolení komfortního ohřevu
+- entity: switch.tepelnaakumulace_povolen_automatiky
+  value: on
+  name: Tepelná akumulace Povolení automatiky
+- entity: switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
+  value: off
+  name: Tepelná akumulace Blokování nuceného ohřevu
+- entity: switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
+  value: off
+  name: Tepelná akumulace Maximální ohřev ze sítě
+- entity: button.tepelnaakumulace_restart
+  value: unknown
+  name: Tepelná akumulace restart
+- entity: number.tepelnaakumulace_minim_ln_stav_nabit_baterie
+  value: 40.0
+  name: Tepelná akumulace Minimální stav nabití baterie
+- entity: number.tepelnaakumulace_po_adovan_stav_nabit_baterie
+  value: 88.0
+  name: Tepelná akumulace Požadovaný stav nabití baterie
+- entity: number.tepelnaakumulace_povolen_vyb_jec_v_kon_baterie
+  value: 3250.0
+  name: Tepelná akumulace Povolený vybíjecí výkon baterie
+- entity: number.tepelnaakumulace_rezervovan_v_kon_pro_dob_jen_baterie
+  value: 700.0
+  name: Rezervovaný výkon pro dobíjení
+- entity: number.tepelnaakumulace_komfortn_teplota_tuv
+  value: 62.5
+  name: Tepelná akumulace Komfortní teplota TUV
+- entity: number.tepelnaakumulace_akumula_n_teplota_tuv
+  value: 69.0
+  name: Tepelná akumulace Akumulační teplota TUV
+- entity: number.tepelnaakumulace_minim_ln_teplota_tuv
+  value: 42.5
+  name: Tepelná akumulace Minimální teplota TUV
+- entity: number.tepelnaakumulace_maxim_ln_teplota_akumulace
+  value: 90.0
+  name: Tepelná akumulace Maximální teplota akumulace
+- entity: number.tepelnaakumulace_hystereze
+  value: 2.5
+  name: Tepelná akumulace Hystereze
+- entity: number.tepelnaakumulace_korekce_krbu
+  value: 0.0
+  name: Tepelná akumulace Korekce krbu
+- entity: number.tepelnaakumulace_korekce_ft
+  value: 0.0
+  name: Tepelná akumulace Korekce FT
+- entity: sensor.tepelnaakumulace_nabiti_nadrze_horni
+  value: 84.2361145019531
+  name: Tepelná akumulace Nabití nádrže horní
+- entity: sensor.tepelnaakumulace_nabiti_nadrze_dolni
+  value: 87.386360168457
+  name: Tepelná akumulace Nabití nádrže dolní
+- entity: sensor.tepelnaakumulace_energie_nadrze_horni
+  value: 12.8287258148193
+  name: Energie nádrže horní
+- entity: sensor.tepelnaakumulace_energie_nadrze_dolni
+  value: 37.9538497924805
+  name: Energie nádrže dolní

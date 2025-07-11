@@ -209,12 +209,11 @@ views:
               - entity: sensor.tepelnaakumulace_spodn_senzor
                 name: Spodní teplota
                 icon: mdi:thermometer-low
-              - entity: sensor.tepelnaakumulace_energie_n_dr_e
-                name: Energie v nádrži
-                icon: mdi:fire
               - entity: sensor.tepelnaakumulace_nabit_n_dr_e
                 name: SOC nádrže
                 icon: mdi:water-percent
+              - entity: sensor.tepelnaakumulace_energie_nadrze_horni
+              - entity: sensor.tepelnaakumulace_energie_nadrze_dolni
             state_color: true
             show_header_toggle: false
             title: 🌡️ Teploty a stav
@@ -358,6 +357,9 @@ views:
             content: >
               ## 🛢️ Tepelná nádrž
 
+              {% set power =
+              states('sensor.tepelnaakumulace_aktu_ln_v_kon_oh_evu') | float /
+              1000 %}
 
               {% set temp_top =
               states('sensor.tepelnaakumulace_horn_senzor')|float(0) %}
@@ -389,6 +391,8 @@ views:
 
               **Stav:** {{ tank_soc | round(1) }}% ({{ tank_energy | round(1) 
               }}kWh)
+
+              Ohřev: {{power}} kW
 
               {% if tank_soc > 80 %}🔥 Plně ohřátá{% elif tank_soc > 50 %}🟡
               Středně ohřátá{% else %}🔵 Studená{% endif %}
