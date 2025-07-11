@@ -14,7 +14,7 @@ from models import (
 
 TOKEN = ""
 
-DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
+DATA_DIR = os.environ.get("HA_ADDON_DATA", "./data")
 OPTIONS_FILE = os.path.join(DATA_DIR, "options.json")
 CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.yaml")
 
