@@ -97,7 +97,14 @@ actions:
     action: number.set_value
 mode: restart
 variables:
-  powerplan_mode: "{{ states('sensor.powerplan_charger_use_mode') }}"
+  # Pojistka proti překročení denního limitu EEPROM zápisů
+  eeprom_counter: "{{ states('counter.denni_eeprom_zapisy') | float(0) }}"
+  safety_mode: "{{ eeprom_counter > 10 }}"
+  
+  # Pouze režim měniče se nastaví na backup při překročení limitu (chrání EEPROM)
+  powerplan_mode: "{{ 'backup' if safety_mode else states('sensor.powerplan_charger_use_mode') }}"
+  
+  # Akumulace může normálně fungovat podle PowerPlan logiky (nemá EEPROM)
   powerplan_upper_accu: "{{ is_state('sensor.powerplan_upper_accumulation_on', 'True') }}"
   powerplan_lower_accu: "{{ is_state('sensor.powerplan_lower_accumulation_on', 'True') }}"
   powerplan_maxh: "{{ is_state('sensor.powerplan_max_heat_on', 'True') }}"

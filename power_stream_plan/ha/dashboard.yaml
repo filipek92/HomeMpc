@@ -256,7 +256,13 @@ views:
               {% set battery_temp = states('sensor.solax_battery_temperature')|float(0) %}
               {% set run_mode = states('sensor.solax_run_mode') %}
 
+              {% set eeprom_counter = states('counter.denni_eeprom_zapisy')|float(0) %}
               {% set warnings = [] %}
+              {% if eeprom_counter > 10 %}
+                {% set warnings = warnings + ['🛡️ EEPROM POJISTKA AKTIVNÍ! Denní zápisy: ' + eeprom_counter|string + ' (limit 10)'] %}
+              {% elif eeprom_counter > 7 %}
+                {% set warnings = warnings + ['⚠️ EEPROM zápisy blízko limitu: ' + eeprom_counter|string + '/10'] %}
+              {% endif %}
               {% if (soc - target_soc)|abs > 10 %}
                 {% set warnings = warnings + ['🔋 SOC baterie se liší od cíle o ' + ((soc - target_soc)|abs)|string + '%'] %}
               {% endif %}
