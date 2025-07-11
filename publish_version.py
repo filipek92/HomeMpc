@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import sys
 import yaml
+import json
 import subprocess
 from datetime import datetime
 
 CONFIG_FILE = 'config.yaml'
 CHANGELOG_FILE = 'CHANGELOG.md'
+REPOSITORY_FILE = 'repository.json'
 
 def get_current_version():
     with open(CONFIG_FILE) as f:
@@ -34,6 +36,19 @@ def update_config_yaml(new_version):
     config['version'] = new_version
     with open(CONFIG_FILE, 'w') as f:
         yaml.dump(config, f)
+
+def update_repository_json(new_version):
+    with open(REPOSITORY_FILE) as f:
+        repo_data = json.load(f)
+    
+    # Aktualizuj verzi v addon sekci
+    for addon in repo_data.get('addons', []):
+        if addon.get('slug') == 'power_stream_plan':
+            addon['version'] = new_version
+            break
+    
+    with open(REPOSITORY_FILE, 'w') as f:
+        json.dump(repo_data, f, indent=2)
 
 def get_last_tag():
     try:
@@ -70,7 +85,7 @@ def update_changelog(new_version, message, commits):
         f.write(entry + '\n' + content)
 
 def git_commit_and_tag(new_version):
-    subprocess.check_call(['git', 'add', CONFIG_FILE, CHANGELOG_FILE])
+    subprocess.check_call(['git', 'add', CONFIG_FILE, CHANGELOG_FILE, REPOSITORY_FILE])
     subprocess.check_call(['git', 'commit', '-m', f'Release version {new_version}'])
     subprocess.check_call(['git', 'tag', f'v{new_version}'])
     subprocess.check_call(['git', 'push'])
@@ -113,6 +128,7 @@ def main():
         sys.exit(0)
 
     update_config_yaml(new_version)
+    update_repository_json(new_version)
     update_changelog(new_version, message, commits)
     git_commit_and_tag(new_version)
     print(f'Verze {new_version} publikována.')

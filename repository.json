@@ -1,5 +1,16 @@
 {
   "name": "PowerStreamPlan Add-on Repository",
   "url": "https://github.com/filipek92/PowerStreamPlan",
-  "maintainer": "Filip Richter"
+  "maintainer": "Filip Richter",
+  "addons": [
+    {
+      "name": "PowerStreamPlan",
+      "description": "Intelligent planner and optimizer for energy production and consumption with an intuitive web interface",
+      "slug": "power_stream_plan",
+      "url": "https://github.com/filipek92/PowerStreamPlan",
+      "version": "2.0.0",
+      "arch": ["amd64", "aarch64", "armv7"],
+      "stage": "experimental"
+    }
+  ]
 }
