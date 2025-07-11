@@ -9,7 +9,7 @@ import plotly.io as pio
 from datetime import timedelta, datetime
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional
-from actions import mpc_to_actions_timeline
+from actions import powerplan_to_actions_timeline
 
 
 @dataclass
@@ -93,7 +93,7 @@ class DataProcessor:
         options = solution.get("options", {})
         heating_enabled = options.get("heating_enabled", False)
         
-        actions_timeline = mpc_to_actions_timeline(solution)
+        actions_timeline = powerplan_to_actions_timeline(solution)
         
         return {
             'times': times,
@@ -444,7 +444,7 @@ class ChartFactory:
                     )
                 )
         
-        # Teploty z MPC výstupů
+        # Teploty z výstupů
         temp_keys = ["temp_lower", "temp_upper"]
         dash_styles = ["dash", "dot"]
         for i, key in enumerate(temp_keys):

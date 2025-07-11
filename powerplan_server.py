@@ -8,11 +8,11 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, redirect, url_for, request, send_from_directory
 from flask_apscheduler import APScheduler
 
-from home_mpc import run_mpc_optimizer, VARIABLES_SPEC
+from powerplan_optimizer import run_mpc_optimizer, VARIABLES_SPEC
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
-from actions import mpc_to_actions, mpc_to_actions_timeline, ACTION_ATTRIBUTES
-from mpc_settings import settings_bp, load_settings, save_settings
+from actions import powerplan_to_actions, powerplan_to_actions_timeline, ACTION_ATTRIBUTES
+from powerplan_settings import settings_bp, load_settings
 from publish_version import get_current_version
 
 ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
@@ -71,8 +71,8 @@ def compute_and_cache():
     # Tag solution with current app version
     solution["version"] = get_current_version()
 
-    actions = mpc_to_actions(solution)
-    actions_timeline = mpc_to_actions_timeline(solution)
+    actions = powerplan_to_actions(solution)
+    actions_timeline = powerplan_to_actions_timeline(solution)
 
     solution["actions"] = actions
     solution["actions_timeline"] = actions_timeline
@@ -86,11 +86,11 @@ def compute_and_cache():
     print("Solution results", json.dumps(solution["results"], indent=2))
 
     if ENABLE_PUBLISH:
-        publish_to_ha(actions, "mpc_", ACTION_ATTRIBUTES, extra)
+        publish_to_ha(actions, "powerplan_", ACTION_ATTRIBUTES, extra)
 
         publish_to_ha({
             "debug": extra["current_slot"]
-        }, "mpc_", {
+        }, "powerplan_", {
             "debug": solution["results"]
         })
     
@@ -324,23 +324,26 @@ def index():
 def favicon():
     return send_from_directory(app.root_path, 'icon.png', mimetype='image/png')
 
+# Inicializace scheduleru pokud běží v produkci
+if os.environ.get("HA_ADDON"):
+    # pokud běží v Dockeru, použij přepočítávej pravielně model
+    scheduler = APScheduler()                        # <-- nový objekt
+    scheduler.init_app(app)
+
+    # registrace úlohy – každých 5 minut v celou (00, 05, 10, ...)
+    scheduler.add_job(
+        id="mpc_refresh",
+        func=compute_and_cache,
+        trigger="cron",
+        minute="*/5",
+    )
+
+    scheduler.start()
+
+def create_app():
+    """Factory function pro vytvoření Flask aplikace."""
+    return app
+
 if __name__ == "__main__":
-
-    if os.environ.get("HA_ADDON"):
-        # pokud běží v Dockeru, použij přepočítávej pravielně model
-
-        scheduler = APScheduler()                        # <-- nový objekt
-        scheduler.init_app(app)
-
-        # registrace úlohy – každých 5 minut v celou (00, 05, 10, ...)
-        scheduler.add_job(
-            id="mpc_refresh",
-            func=compute_and_cache,
-            trigger="cron",
-            minute="*/5",
-        )
-
-        scheduler.start()
-
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "26781")), debug=True)
 

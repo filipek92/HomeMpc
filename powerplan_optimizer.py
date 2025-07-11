@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Linear MPC optimizer for household energy management
+"""Linear model predictive optimizer for household energy management
 
 Arguments are grouped into three dictionaries to keep the call‑site tidy and
 self‑explanatory:

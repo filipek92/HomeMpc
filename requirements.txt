@@ -4,3 +4,4 @@ pulp
 flask
 flask_apscheduler
 plotly
+gunicorn

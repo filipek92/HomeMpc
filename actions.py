@@ -84,12 +84,12 @@ TEMP_FULL_TANK = 90      # °C - cílová teplota celé nádrže
 TEMP_LOWER_WARM = 50     # °C - práh "teplá spodní zóna"
 
 # ---------------------------------------------------------------------------
-def mpc_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, Any]:
+def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, Any]:
     """
-    Převádí výstupy z MPC optimizátoru na konkrétní akce pro daný slot.
+    Převádí výstupy z optimizátoru na konkrétní akce pro daný slot.
     
     Args:
-        sol: Slovník s výstupy MPC optimizátoru
+        sol: Slovník s výstupy Powerplan optimizátoru
         slot_index: Index slotu (0 = aktuální/první slot)
     """
     out = sol["outputs"]  # outputs now use lower_snake_case keys
@@ -336,7 +336,7 @@ def enhanced_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
     }
 
 # ---------------------------------------------------------------------------
-def mpc_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
+def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
     """
     Generuje plán akcí pro všechny časové sloty podle výstupů MPC optimizátoru.
     Výsledek obsahuje časové řady pro vizualizaci v grafech.

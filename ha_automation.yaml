@@ -1,30 +1,30 @@
-alias: MPC ▸ Řízení akumulace a režimu měniče
-description: "Automatizace pro MPC řízení tepelné akumulace, baterie a měniče na základě predikce"
+alias: PowerPlan ▸ Řízení akumulace a režimu měniče
+description: "Automatizace pro PowerPlan řízení tepelné akumulace, baterie a měniče na základě predikce"
 triggers:
   - entity_id:
-      - sensor.mpc_charger_use_mode
-      - sensor.mpc_upper_accumulation_on
-      - sensor.mpc_lower_accumulation_on
-      - sensor.mpc_max_heat_on
-      - sensor.mpc_forced_heating_block
-      - sensor.mpc_battery_discharge_power
-      - sensor.mpc_battery_target_soc
-      - sensor.mpc_reserve_power_charging
-      - sensor.mpc_minimum_battery_soc
+      - sensor.powerplan_charger_use_mode
+      - sensor.powerplan_upper_accumulation_on
+      - sensor.powerplan_lower_accumulation_on
+      - sensor.powerplan_max_heat_on
+      - sensor.powerplan_forced_heating_block
+      - sensor.powerplan_battery_discharge_power
+      - sensor.powerplan_battery_target_soc
+      - sensor.powerplan_reserve_power_charging
+      - sensor.powerplan_minimum_battery_soc
     trigger: state
 actions:
   # Nastavení režimu měniče
   - target:
       entity_id: select.solax_charger_use_mode
     data:
-      option: "{{ mpc_mode }}"
+      option: "{{ powerplan_mode }}"
     action: select.select_option
   
   # Ovládání horní akumulace
   - target:
       entity_id: switch.tepelnaakumulace_povolen_horn_akumulace
     action: |
-      {% if mpc_upper_accu %}
+      {% if powerplan_upper_accu %}
         switch.turn_on
       {% else %}
         switch.turn_off
@@ -34,7 +34,7 @@ actions:
   - target:
       entity_id: switch.tepelnaakumulace_povolen_spodn_akumulace
     action: |
-      {% if mpc_lower_accu %}
+      {% if powerplan_lower_accu %}
         switch.turn_on
       {% else %}
         switch.turn_off
@@ -44,7 +44,7 @@ actions:
   - target:
       entity_id: switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
     action: |
-      {% if mpc_maxh %}
+      {% if powerplan_maxh %}
         switch.turn_on
       {% else %}
         switch.turn_off
@@ -54,7 +54,7 @@ actions:
   - target:
       entity_id: switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
     action: |
-      {% if mpc_block_heating %}
+      {% if powerplan_block_heating %}
         switch.turn_on
       {% else %}
         switch.turn_off
@@ -62,47 +62,47 @@ actions:
   
   # Nastavení povoleného vybíjecího výkonu baterie
   - condition: template
-    value_template: "{{ mpc_discharge_power is defined and mpc_discharge_power | float > 0 }}"
+    value_template: "{{ powerplan_discharge_power is defined and powerplan_discharge_power | float > 0 }}"
   - target:
       entity_id: number.tepelnaakumulace_povolen_vyb_jec_v_kon_baterie
     data:
-      value: "{{ mpc_discharge_power | float }}"
+      value: "{{ powerplan_discharge_power | float }}"
     action: number.set_value
   
   # Nastavení požadovaného stavu nabití baterie
   - condition: template
-    value_template: "{{ mpc_target_soc is defined and mpc_target_soc | float > 0 }}"
+    value_template: "{{ powerplan_target_soc is defined and powerplan_target_soc | float > 0 }}"
   - target:
       entity_id: number.tepelnaakumulace_po_adovan_stav_nabit_baterie
     data:
-      value: "{{ mpc_target_soc | float }}"
+      value: "{{ powerplan_target_soc | float }}"
     action: number.set_value
   
   # Nastavení rezervovaného výkonu pro nabíjení
   - condition: template
-    value_template: "{{ mpc_reserve_power is defined and mpc_reserve_power | float > 0 }}"
+    value_template: "{{ powerplan_reserve_power is defined and powerplan_reserve_power | float > 0 }}"
   - target:
       entity_id: number.tepelnaakumulace_rezervovan_v_kon_pro_dob_jen_baterie
     data:
-      value: "{{ mpc_reserve_power | float }}"
+      value: "{{ powerplan_reserve_power | float }}"
     action: number.set_value
   
   # Nastavení minimálního stavu nabití baterie
   - condition: template
-    value_template: "{{ mpc_min_soc is defined and mpc_min_soc | float > 0 }}"
+    value_template: "{{ powerplan_min_soc is defined and powerplan_min_soc | float > 0 }}"
   - target:
       entity_id: number.tepelnaakumulace_minim_ln_stav_nabit_baterie
     data:
-      value: "{{ mpc_min_soc | float }}"
+      value: "{{ powerplan_min_soc | float }}"
     action: number.set_value
 mode: restart
 variables:
-  mpc_mode: "{{ states('sensor.mpc_charger_use_mode') }}"
-  mpc_upper_accu: "{{ is_state('sensor.mpc_upper_accumulation_on', 'True') }}"
-  mpc_lower_accu: "{{ is_state('sensor.mpc_lower_accumulation_on', 'True') }}"
-  mpc_maxh: "{{ is_state('sensor.mpc_max_heat_on', 'True') }}"
-  mpc_block_heating: "{{ is_state('sensor.mpc_forced_heating_block', 'True') }}"
-  mpc_discharge_power: "{{ states('sensor.mpc_battery_discharge_power') | float(0) }}"
-  mpc_target_soc: "{{ states('sensor.mpc_battery_target_soc') | float(0) }}"
-  mpc_reserve_power: "{{ states('sensor.mpc_reserve_power_charging') | float(0) }}"
-  mpc_min_soc: "{{ states('sensor.mpc_minimum_battery_soc') | float(0) }}"
+  powerplan_mode: "{{ states('sensor.powerplan_charger_use_mode') }}"
+  powerplan_upper_accu: "{{ is_state('sensor.powerplan_upper_accumulation_on', 'True') }}"
+  powerplan_lower_accu: "{{ is_state('sensor.powerplan_lower_accumulation_on', 'True') }}"
+  powerplan_maxh: "{{ is_state('sensor.powerplan_max_heat_on', 'True') }}"
+  powerplan_block_heating: "{{ is_state('sensor.powerplan_forced_heating_block', 'True') }}"
+  powerplan_discharge_power: "{{ states('sensor.powerplan_battery_discharge_power') | float(0) }}"
+  powerplan_target_soc: "{{ states('sensor.powerplan_battery_target_soc') | float(0) }}"
+  powerplan_reserve_power: "{{ states('sensor.powerplan_reserve_power_charging') | float(0) }}"
+  powerplan_min_soc: "{{ states('sensor.powerplan_minimum_battery_soc') | float(0) }}"

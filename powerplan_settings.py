@@ -4,7 +4,7 @@ from options import VARIABLES_SPEC
 import os.path
 
 DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
-SETTINGS_FILE = os.path.join(DATA_DIR, "mpc_settings.json")
+SETTINGS_FILE = os.path.join(DATA_DIR, "powerplan_settings.json")
 
 settings_bp = Blueprint("settings_bp", __name__)
 

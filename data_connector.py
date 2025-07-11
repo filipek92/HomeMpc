@@ -116,7 +116,7 @@ def prepare_data():
         "temp_lower": temp_lower,
     }
 
-def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = None, extra = None) -> None:
+def publish_to_ha(payload: Dict[str, Any], prefix: str = "powerplan_", attributes = None, extra = None) -> None:
     """
     Publikuje všechny dvojice {key: value} do Home Assistantu jako entity
     'sensor.<prefix><key>' (Stringify výsledek kvůli state API).
@@ -124,9 +124,9 @@ def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = No
     Parameters
     ----------
     payload : dict
-        Slovník s klíči a hodnotami (např. výstup z mpc_to_actions()).
+        Slovník s klíči a hodnotami (např. výstup z powerplan_to_actions()).
     prefix : str, optional
-        Předpona názvu entity, defaultně 'mpc_'.
+        Předpona názvu entity, defaultně 'powerplan_'.
 
     Raises
     ------
@@ -157,7 +157,7 @@ def publish_to_ha(payload: Dict[str, Any], prefix: str = "mpc_", attributes = No
 # ---------------------------------------------------------------------------
 # Příklad použití:
 #
-# from mpc_to_actions import mpc_to_actions
-# solution = ...  # výstup z run_mpc_optimizer
-# actions   = mpc_to_actions(solution)
-# publish_to_ha(actions)        # pošle vše jako sensor.mpc_<key>
+# from powerplan_to_actions import powerplan_to_actions
+# solution = ...  # výstup z run_powerplan_optimizer
+# actions   = powerplan_to_actions(solution)
+# publish_to_ha(actions)        # pošle vše jako sensor.powerplan_<key>

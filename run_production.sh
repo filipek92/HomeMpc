@@ -1,7 +1,7 @@
 #!/bin/bash
-echo "Starting PowerStreamPlan optimizer with Gunicorn..."
+echo "Starting PowerStreamPlan optimizer with Gunicorn (Production/Docker)..."
 
-# Exportuj proměnné pro Home Assistant addon
+# Exportuj proměnné pro Home Assistant
 export HASSIO_TOKEN=$HASSIO_TOKEN
 export HA_URL="http://homeassistant:8123"
 export HA_ADDON="power_stream_plan"
