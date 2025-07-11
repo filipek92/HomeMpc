@@ -18,10 +18,10 @@ DATA_DIR = os.environ.get("HA_ADDON_DATA", "./data")
 OPTIONS_FILE = os.path.join(DATA_DIR, "options.json")
 CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.yaml")
 
-print(f"Using credentials from {CREDENTIALS_FILE} and options from {OPTIONS_FILE}")
 
 try:
-    with open(OPTIONS_FILE, "r") as f: 
+    with open(OPTIONS_FILE, "r") as f:
+        print(f"Using credentials from {OPTIONS_FILE}")
         opts = json.load(f)
         TOKEN = opts.get("token", "")
         HA_URL = opts.get("ha_url", "")
@@ -35,6 +35,7 @@ if not TOKEN:
 
 if not TOKEN:
     try:
+        print(f"Using credentials from {CREDENTIALS_FILE}")
         with open(CREDENTIALS_FILE, "r") as f:
             credentials = yaml.safe_load(f)
             HA_URL = credentials["url"]
