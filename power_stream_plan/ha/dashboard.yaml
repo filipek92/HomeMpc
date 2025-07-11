@@ -8,16 +8,17 @@ views:
         cards:
           - type: entities
             entities:
-              - entity: sensor.mpc_charger_use_mode
-              - entity: sensor.mpc_acumulation_on
-              - entity: sensor.mpc_max_heat_on
-              - entity: sensor.mpc_battery_power
+              - entity: sensor.powerplan_charger_use_mode
+              - entity: sensor.powerplan_upper_accumulation_on
+              - entity: sensor.powerplan_lower_accumulation_on
+              - entity: sensor.powerplan_max_heat_on
+              - entity: sensor.powerplan_battery_discharge_power
               - entity: sensor.solax_battery_capacity
-              - entity: sensor.mpc_battery_target
-              - entity: sensor.mpc_battery_discharge_current
-              - entity: sensor.mpc_debug
+              - entity: sensor.powerplan_battery_target_soc
+              - entity: sensor.powerplan_reserve_power_charging
+              - entity: sensor.powerplan_debug
                 name: Aktální slot
-            title: MPC Plán
+            title: PowerPlan Plán
             state_color: true
           - show_name: true
             show_icon: true
@@ -40,7 +41,7 @@ views:
               - entity: switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
                 name: Maximální ohřev ze sítě
               - entity: select.solax_charger_use_mode
-              - entity: automation.mpc_rizeni_akumulace_a_rezimu_menice
+              - entity: automation.powerplan_rizeni_akumulace_a_rezimu_menice
                 secondary_info: last-triggered
             state_color: true
             show_header_toggle: false
@@ -54,15 +55,15 @@ views:
               - entity: sensor.tepelnaakumulace_energie_n_dr_e
               - entity: sensor.tepelnaakumulace_nabit_n_dr_e
               - entity: sensor.solax_battery_capacity
-              - entity: sensor.mpc_battery_target
+              - entity: sensor.powerplan_battery_target_soc
       - type: grid
         cards:
           - type: markdown
             content: >
               {#
               ============================================================================
-                 🔋 MPC a stav systému – přehledová šablona pro Home Assistant
-                 Upravená pro nové atributy sensor.mpc_debug (Ceny v Kč)
+                 🔋 PowerPlan a stav systému – přehledová šablona pro Home Assistant
+                 Upravená pro nové atributy sensor.powerplan_debug (Ceny v Kč)
               ============================================================================
               #}
 
@@ -71,19 +72,19 @@ views:
 
               {% set soc = states('sensor.solax_battery_capacity')|float(0) %}
 
-              {% set target_soc = states('sensor.mpc_battery_target')|float(0)
+              {% set target_soc = states('sensor.powerplan_battery_target_soc')|float(0)
               %}
 
-              {% set plan_pwr = states('sensor.mpc_battery_power')|float(0) %}
+              {% set plan_pwr = states('sensor.powerplan_battery_discharge_power')|float(0) %}
 
               {% set real_pwr =
               states('sensor.solax_battery_power_charge')|float(0) %}
 
-              {% set b_power = state_attr('sensor.mpc_debug','b_power')|float(0)
+              {% set b_power = state_attr('sensor.powerplan_debug','b_power')|float(0)
               %}
 
               {% set tuv_target_pct =
-              state_attr('sensor.mpc_debug','tuv_soc_target_pct')|float(0) %}
+              state_attr('sensor.powerplan_debug','tuv_soc_target_pct')|float(0) %}
 
 
               {% set temp_top =
@@ -112,40 +113,41 @@ views:
 
               {#
               ============================================================================
-                 🧠 Plán MPC
+                 🧠 Plán PowerPlan
               ============================================================================
               #}
 
-              ## 🧠 Plán MPC (aktuální slot)
+              ## 🧠 Plán PowerPlan (aktuální slot)
 
-              🔋 Režim: {{ states('sensor.mpc_charger_use_mode') }}{% if
-              is_state('sensor.mpc_charger_use_mode','Manual Mode') %} → aktivní
-              vybíjení{% elif is_state('sensor.mpc_charger_use_mode','Feedin
+              🔋 Režim: {{ states('sensor.powerplan_charger_use_mode') }}{% if
+              is_state('sensor.powerplan_charger_use_mode','Manual Mode') %} → aktivní
+              vybíjení{% elif is_state('sensor.powerplan_charger_use_mode','Feedin
               Priority') %} → přetoky z FVE{% elif
-              is_state('sensor.mpc_charger_use_mode','Back Up Mode') %} →
+              is_state('sensor.powerplan_charger_use_mode','Back Up Mode') %} →
               záložní režim{% endif %} • ♨️ {{ 'TUV' if
-              is_state('sensor.mpc_acumulation_on','True') else '~~TUV~~' }} •
-              🔥 {{ 'Max-heat' if is_state('sensor.mpc_max_heat_on','True') else
+              (is_state('sensor.powerplan_upper_accumulation_on','True') or 
+              is_state('sensor.powerplan_lower_accumulation_on','True')) else '~~TUV~~' }} •
+              🔥 {{ 'Max-heat' if is_state('sensor.powerplan_max_heat_on','True') else
               '~~Max-heat~~' }} • 🎯 Cíl: {{ target_soc|round(1) }}% • ⚡ Plán:
               {{ plan_pwr|round(0) }}W  
 
               🔋 b_power: {{ b_power|float(0)|round(2) }}kW • 📥 b_charge: {{
-              state_attr('sensor.mpc_debug','b_charge')|float(0)|round(2) }}kW •
+              state_attr('sensor.powerplan_debug','b_charge')|float(0)|round(2) }}kW •
               📤 b_discharge: {{
-              state_attr('sensor.mpc_debug','b_discharge')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','b_discharge')|float(0)|round(2)
               }}kW  
 
               🔌 g_sell: {{
-              state_attr('sensor.mpc_debug','g_sell')|float(0)|round(2) }}kW •
+              state_attr('sensor.powerplan_debug','g_sell')|float(0)|round(2) }}kW •
               📥 g_buy: {{
-              state_attr('sensor.mpc_debug','g_buy')|float(0)|round(2) }}kW  
+              state_attr('sensor.powerplan_debug','g_buy')|float(0)|round(2) }}kW  
 
               💲 Nákup: {{
-              state_attr('sensor.mpc_debug','buy_cost')|float(0)|round(2) }}Kč •
+              state_attr('sensor.powerplan_debug','buy_cost')|float(0)|round(2) }}Kč •
               💰 Prodej: {{
-              state_attr('sensor.mpc_debug','sell_income')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','sell_income')|float(0)|round(2)
               }}Kč • 🧾 Bilance: {{
-              state_attr('sensor.mpc_debug','net_step_cost')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','net_step_cost')|float(0)|round(2)
               }}Kč
 
 
@@ -182,11 +184,11 @@ views:
               tank_energy|round(1) }}kWh • SOC: {{ tank_soc|round(1) }}%  
 
               💧 H_SOC: {{
-              state_attr('sensor.mpc_debug','h_soc_percent')|float(0)|round(1)
-              }}% ({{ state_attr('sensor.mpc_debug','h_soc')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','h_soc_percent')|float(0)|round(1)
+              }}% ({{ state_attr('sensor.powerplan_debug','h_soc')|float(0)|round(2)
               }}kWh) • H_in: {{
-              state_attr('sensor.mpc_debug','h_in')|float(0)|round(2) }}kW •
-              H_out: {{ state_attr('sensor.mpc_debug','h_out')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','h_in')|float(0)|round(2) }}kW •
+              H_out: {{ state_attr('sensor.powerplan_debug','h_out')|float(0)|round(2)
               }}kW
 
 
@@ -196,39 +198,39 @@ views:
               ## ⚙️ Finance & výkon
 
               📊 Dobito: {{
-              state_attr('sensor.mpc_debug','total_charged')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_charged')|float(0)|round(2)
               }}kWh • Vybito: {{
-              state_attr('sensor.mpc_debug','total_discharged')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_discharged')|float(0)|round(2)
               }}kWh  
 
               💲 Náklady: {{
-              state_attr('sensor.mpc_debug','total_buy_cost')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_buy_cost')|float(0)|round(2)
               }}Kč • 💰 Výnosy: {{
-              state_attr('sensor.mpc_debug','total_sell_income')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_sell_income')|float(0)|round(2)
               }}Kč • 🧾 Čistá bilance: {{
-              state_attr('sensor.mpc_debug','net_bilance')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','net_bilance')|float(0)|round(2)
               }}Kč  
 
               🔥 Boiler: {{
-              state_attr('sensor.mpc_debug','total_final_boiler_value')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_final_boiler_value')|float(0)|round(2)
               }}Kč • ☀️ Nevyužito PV: {{
-              state_attr('sensor.mpc_debug','total_fve_unused')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_fve_unused')|float(0)|round(2)
               }}kWh  
 
               📈 Pen_batt: {{
-              state_attr('sensor.mpc_debug','total_battery_penalty')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_battery_penalty')|float(0)|round(2)
               }}Kč • Pen_under: {{
-              state_attr('sensor.mpc_debug','total_battery_under_penalty')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_battery_under_penalty')|float(0)|round(2)
               }}Kč • Pen_PV: {{
-              state_attr('sensor.mpc_debug','total_fve_unused_penalty')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_fve_unused_penalty')|float(0)|round(2)
               }}Kč  
 
               📈 PriceAbove: {{
-              state_attr('sensor.mpc_debug','total_bat_price_above')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_bat_price_above')|float(0)|round(2)
               }} • PriceBelow: {{
-              state_attr('sensor.mpc_debug','total_bat_price_below')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','total_bat_price_below')|float(0)|round(2)
               }} • Obj: {{
-              state_attr('sensor.mpc_debug','objective_value')|float(0)|round(2)
+              state_attr('sensor.powerplan_debug','objective_value')|float(0)|round(2)
               }}Kč?
 
 
@@ -244,12 +246,12 @@ views:
               {% set warn_msgs = [] %}
 
               {% if soc - target_soc > 5 and
-              is_state('sensor.mpc_charger_use_mode','Manual Mode') %}
+              is_state('sensor.powerplan_charger_use_mode','Manual Mode') %}
                 {% do warn_msgs.append('🔋 SOC ' ~ soc|round(1) ~ '% (> cíl), ale stále se vybíjí') %}
               {% endif %}
 
               {% if target_soc - soc > 5 and
-              is_state('sensor.mpc_charger_use_mode','Back Up Mode') and
+              is_state('sensor.powerplan_charger_use_mode','Back Up Mode') and
               real_pwr < 100 %}
                 {% do warn_msgs.append('🔋 SOC ' ~ soc|round(1) ~ '% (< cíl), ale nenabíjí se (' ~ real_pwr ~ ' W)') %}
               {% endif %}
@@ -266,35 +268,40 @@ views:
                 {% do warn_msgs.append('🧩 Měnič není v režimu Normal Mode') %}
               {% endif %}
 
-              {% if is_state('sensor.mpc_acumulation_on','True') and
+              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
+              is_state('sensor.powerplan_lower_accumulation_on','True')) and
               is_state('switch.tepelnaakumulace_povolen_horn_akumulace','off')
               and
               is_state('switch.tepelnaakumulace_povolen_spodn_akumulace','off')
               %}
-                {% do warn_msgs.append('♨️ MPC požaduje TUV, ale spirály jsou vypnuté') %}
+                {% do warn_msgs.append('♨️ PowerPlan požaduje TUV, ale spirály jsou vypnuté') %}
               {% endif %}
 
-              {% if is_state('sensor.mpc_max_heat_on','True') and
+              {% if is_state('sensor.powerplan_max_heat_on','True') and
               is_state('switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t','off') %}
                 {% do warn_msgs.append('🔥 Max-heat je požadován, ale vypnutý') %}
               {% endif %}
 
-              {% if is_state('sensor.mpc_acumulation_on','True') and tank_soc <
+              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
+              is_state('sensor.powerplan_lower_accumulation_on','True')) and tank_soc <
               tuv_target_pct - 10 %}
                 {% do warn_msgs.append('♨️ Nádrž má nabití jen ' ~ tank_soc|round(1) ~ '%, cíl je ' ~ tuv_target_pct|round(1) ~ '%') %}
               {% endif %}
 
-              {% if is_state('sensor.mpc_acumulation_on','True') and temp_top <
+              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
+              is_state('sensor.powerplan_lower_accumulation_on','True')) and temp_top <
               45 %}
                 {% do warn_msgs.append('🌡️ Horní část nádrže má jen ' ~ temp_top ~ ' °C') %}
               {% endif %}
 
-              {% if is_state('sensor.mpc_acumulation_on','True') and temp_bot <
+              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
+              is_state('sensor.powerplan_lower_accumulation_on','True')) and temp_bot <
               30 %}
                 {% do warn_msgs.append('🌡️ Spodní část nádrže je jen ' ~ temp_bot ~ ' °C') %}
               {% endif %}
 
-              {% if is_state('sensor.mpc_acumulation_on','True') and plan_pwr >
+              {% if (is_state('sensor.powerplan_upper_accumulation_on','True') or 
+              is_state('sensor.powerplan_lower_accumulation_on','True')) and plan_pwr >
               500 and real_pwr < 100 %}
                 {% do warn_msgs.append('🔥 Požaduje se ohřev, ale výkon spirály je nízký (' ~ real_pwr ~ ' W)') %}
               {% endif %}
@@ -321,11 +328,12 @@ views:
             text_only: true
           - type: markdown
             content: >
-              {% set mode = states('sensor.mpc_charger_use_mode') %}
+              {% set mode = states('sensor.powerplan_charger_use_mode') %}
 
-              {% set acum = is_state('sensor.mpc_acumulation_on', 'True') %}
+              {% set acum = (is_state('sensor.powerplan_upper_accumulation_on', 'True') or
+              is_state('sensor.powerplan_lower_accumulation_on', 'True')) %}
 
-              {% set maxh = is_state('sensor.mpc_max_heat_on', 'True') %}
+              {% set maxh = is_state('sensor.powerplan_max_heat_on', 'True') %}
 
               {% set soc = states('sensor.solax_battery_capacity')|float(0) %}
 

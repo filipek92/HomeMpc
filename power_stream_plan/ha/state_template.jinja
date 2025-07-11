@@ -6,7 +6,7 @@
 {# --------------------- Sběr dat --------------------- #}
 {% set soc = states('sensor.solax_battery_capacity')|float(0) %}
 {% set target_soc = states('sensor.powerplan_battery_target')|float(0) %}
-{% set plan_pwr = states('sensor.powerplan_battery_power')|float(0) %}
+{% set plan_pwr = states('sensor.powerplan_battery_discharge_power')|float(0) %}
 {% set real_pwr = states('sensor.solax_battery_power_charge')|float(0) %}
 {% set b_power = state_attr('sensor.powerplan_debug','b_power')|float(0) %}
 {% set tuv_target_pct = state_attr('sensor.powerplan_debug','tuv_soc_target_pct')|float(0) %}
@@ -26,7 +26,7 @@
    🧠 Plán využití energie
 ============================================================================ #}
 ## 🧠 Plán využití energie (aktuální slot)
-🔋 Režim: {{ states('sensor.powerplan_charger_use_mode') }}{% if is_state('sensor.powerplan_charger_use_mode','Manual Mode') %} → aktivní vybíjení{% elif is_state('sensor.powerplan_charger_use_mode','Feedin Priority') %} → přetoky z FVE{% elif is_state('sensor.powerplan_charger_use_mode','Back Up Mode') %} → záložní režim{% endif %} • ♨️ {{ 'TUV' if is_state('sensor.powerplan_acumulation_on','True') else '~~TUV~~' }} • 🔥 {{ 'Max-heat' if is_state('sensor.powerplan_max_heat_on','True') else '~~Max-heat~~' }} • 🎯 Cíl: {{ target_soc|round(1) }}% • ⚡ Plán: {{ plan_pwr|round(0) }}W  
+🔋 Režim: {{ states('sensor.powerplan_charger_use_mode') }}{% if is_state('sensor.powerplan_charger_use_mode','Manual Mode') %} → aktivní vybíjení{% elif is_state('sensor.powerplan_charger_use_mode','Feedin Priority') %} → přetoky z FVE{% elif is_state('sensor.powerplan_charger_use_mode','Back Up Mode') %} → záložní režim{% endif %} • ♨️ {{ 'TUV' if (is_state('sensor.powerplan_upper_accumulation_on','True') or is_state('sensor.powerplan_lower_accumulation_on','True')) else '~~TUV~~' }} • 🔥 {{ 'Max-heat' if is_state('sensor.powerplan_max_heat_on','True') else '~~Max-heat~~' }} • 🎯 Cíl: {{ target_soc|round(1) }}% • ⚡ Plán: {{ plan_pwr|round(0) }}W  
 🔋 b_power: {{ b_power|float(0)|round(2) }}kW • 📥 b_charge: {{ state_attr('sensor.powerplan_debug','b_charge')|float(0)|round(2) }}kW • 📤 b_discharge: {{ state_attr('sensor.powerplan_debug','b_discharge')|float(0)|round(2) }}kW  
 🔌 g_sell: {{ state_attr('sensor.powerplan_debug','g_sell')|float(0)|round(2) }}kW • 📥 g_buy: {{ state_attr('sensor.powerplan_debug','g_buy')|float(0)|round(2) }}kW  
 💲 Nákup: {{ state_attr('sensor.powerplan_debug','buy_cost')|float(0)|round(2) }}Kč • 💰 Prodej: {{ state_attr('sensor.powerplan_debug','sell_income')|float(0)|round(2) }}Kč • 🧾 Bilance: {{ state_attr('sensor.powerplan_debug','net_step_cost')|float(0)|round(2) }}Kč
@@ -74,22 +74,22 @@
 {% if not is_state('sensor.solax_run_mode','Normal Mode') %}
   {% do warn_msgs.append('🧩 Měnič není v režimu Normal Mode') %}
 {% endif %}
-{% if is_state('sensor.powerplan_acumulation_on','True') and is_state('switch.tepelnaakumulace_povolen_horn_akumulace','off') and is_state('switch.tepelnaakumulace_povolen_spodn_akumulace','off') %}
+{% if (is_state('sensor.powerplan_upper_accumulation_on','True') or is_state('sensor.powerplan_lower_accumulation_on','True')) and is_state('switch.tepelnaakumulace_povolen_horn_akumulace','off') and is_state('switch.tepelnaakumulace_povolen_spodn_akumulace','off') %}
   {% do warn_msgs.append('♨️ Power plan požaduje TUV, ale spirály jsou vypnuté') %}
 {% endif %}
 {% if is_state('sensor.powerplan_max_heat_on','True') and is_state('switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t','off') %}
   {% do warn_msgs.append('🔥 Max-heat je požadován, ale vypnutý') %}
 {% endif %}
-{% if is_state('sensor.powerplan_acumulation_on','True') and tank_soc < tuv_target_pct - 10 %}
+{% if (is_state('sensor.powerplan_upper_accumulation_on','True') or is_state('sensor.powerplan_lower_accumulation_on','True')) and tank_soc < tuv_target_pct - 10 %}
   {% do warn_msgs.append('♨️ Nádrž má nabití jen ' ~ tank_soc|round(1) ~ '%, cíl je ' ~ tuv_target_pct|round(1) ~ '%') %}
 {% endif %}
-{% if is_state('sensor.powerplan_acumulation_on','True') and temp_top < 45 %}
+{% if (is_state('sensor.powerplan_upper_accumulation_on','True') or is_state('sensor.powerplan_lower_accumulation_on','True')) and temp_top < 45 %}
   {% do warn_msgs.append('🌡️ Horní část nádrže má jen ' ~ temp_top ~ ' °C') %}
 {% endif %}
-{% if is_state('sensor.powerplan_acumulation_on','True') and temp_bot < 30 %}
+{% if (is_state('sensor.powerplan_upper_accumulation_on','True') or is_state('sensor.powerplan_lower_accumulation_on','True')) and temp_bot < 30 %}
   {% do warn_msgs.append('🌡️ Spodní část nádrže je jen ' ~ temp_bot ~ ' °C') %}
 {% endif %}
-{% if is_state('sensor.powerplan_acumulation_on','True') and plan_pwr > 500 and real_pwr < 100 %}
+{% if (is_state('sensor.powerplan_upper_accumulation_on','True') or is_state('sensor.powerplan_lower_accumulation_on','True')) and plan_pwr > 500 and real_pwr < 100 %}
   {% do warn_msgs.append('🔥 Požaduje se ohřev, ale výkon spirály je nízký (' ~ real_pwr ~ ' W)') %}
 {% endif %}
 {% if states('sensor.solax_battery_temperature')|float > 50 %}

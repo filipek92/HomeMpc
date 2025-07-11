@@ -167,10 +167,6 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
         "battery_target_soc":      round(B_SOC, 1),
         "reserve_power_charging":  reserve_power_charging,
         "minimum_battery_soc":     minimum_battery_soc,
-        # Zachováváme pro kompatibilitu
-        "acumulation_on":          upper_accumulation_on or lower_accumulation_on,
-        "battery_power":           battery_power_w,
-        "battery_discharge_current": round(-battery_power_w / DC_BUS_V, 2),
     }
 
 ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
@@ -225,26 +221,6 @@ ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
         "device_class": "battery",
         "state_class": "measurement",
         "icon": "mdi:battery-low",
-    },
-    # Zachováváme pro kompatibilitu
-    "acumulation_on": {
-        "friendly_name": "Akumulace TUV povolena",
-        "device_class": "switch",
-        "icon": "mdi:water-pump",
-    },
-    "battery_power": {
-        "friendly_name": "Výkon baterie",
-        "unit_of_measurement": "W",
-        "device_class": "power",
-        "state_class": "measurement",
-        "icon": "mdi:battery-charging-high",
-    },
-    "battery_discharge_current": {
-        "friendly_name": "Vybíjecí proud baterie",
-        "unit_of_measurement": "A",
-        "device_class": "current",
-        "state_class": "measurement",
-        "icon": "mdi:current-dc",
     },
 }
 

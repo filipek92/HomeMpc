@@ -3,7 +3,7 @@ arch:
 - aarch64
 - armv7
 boot: auto
-description: 'PowerStreamPlan: intelligent planner and optimizer for energy production
+description: 'intelligent planner and optimizer for energy production
   and consumption with an intuitive web interface'
 hassio_api: true
 homeassistant_api: true
