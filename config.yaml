@@ -3,7 +3,8 @@ arch:
 - aarch64
 - armv7
 boot: auto
-description: "PowerStreamPlan: intelligent planner and optimizer for energy production and consumption with an intuitive web interface"
+description: 'PowerStreamPlan: intelligent planner and optimizer for energy production
+  and consumption with an intuitive web interface'
 hassio_api: true
 homeassistant_api: true
 host_network: true
@@ -22,4 +23,4 @@ schema:
   token: str?
 slug: power_stream_plan
 startup: services
-version: 1.11.1
+version: 2.0.0

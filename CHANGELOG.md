@@ -1,4 +1,26 @@
 
+## 2.0.0 - 2025-07-11
+Refactor, redesign, rename
+- readme
+- Project rename
+- UI
+- Icons
+- UI
+- UI
+- UI
+- UI
+- UI update
+- design change
+- New design
+- optim
+- sklots
+- Prezentace plánu
+- New model
+- Sonnet fix
+- multilayer progress
+- two zone model
+
+
 ## 1.11.2 - 2025-07-09
 Priorita horní části nádrže a UI zlepšení
 - Přidán parametr `upper_zone_priority` pro upřednostnění ohřevu horní části nádrže
