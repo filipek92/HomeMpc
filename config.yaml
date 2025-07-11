@@ -12,7 +12,7 @@ icon: icon.png
 ingress: true
 ingress_entry: /
 ingress_port: 26781
-name: PowerStreamPlan
+name: powerstreamplan
 options:
   ha_url: http://homeassistant:8123
   token: ''
