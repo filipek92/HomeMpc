@@ -242,7 +242,6 @@ def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
     
     MPC optimalizátor by měl řídit většinu rozhodnutí pomocí penalty funkcí.
     """
-    from datetime import datetime
     
     # Základní podmínky
     battery_ok = B_SOC > 20
@@ -338,7 +337,6 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         # Extrakce hodnot pro daný slot
         Hin_upper = out["h_in_upper"][slot]
         Hin_lower = out["h_in_lower"][slot]
-        Hin_total = Hin_upper + Hin_lower
         Gsell = out["g_sell"][slot]
         Gbuy = out["g_buy"][slot]
         Bdis = out["b_discharge"][slot]
