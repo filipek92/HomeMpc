@@ -97,9 +97,11 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
     fve_surplus = max(0, fve_output - load_demand)
 
     # Zjednodušená logika ohřevu pro aktuální slot
+    from datetime import datetime
+    slot_time = datetime.fromisoformat(sol["times"][slot_index])
     heating = simplified_heating_logic(
         fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy,
-        temp_upper_current, temp_lower_current
+        temp_upper_current, temp_lower_current, slot_time
     )
     
     upper_accumulation_on = heating["upper_accumulation"]
@@ -228,7 +230,7 @@ ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
 # ---------------------------------------------------------------------------
 def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float, 
                             Hin_lower: float, Gbuy: float, temp_upper: float, 
-                            temp_lower: float) -> Dict[str, bool]:
+                            temp_lower: float, slot_time: datetime) -> Dict[str, bool]:
     """
     Zjednodušená logika ohřevu - důvěřuje MPC optimalizátoru + základní bezpečnost.
     
@@ -244,8 +246,8 @@ def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
     
     # Základní podmínky
     battery_ok = B_SOC > 20
-    current_hour = datetime.now().hour
-    is_comfort_time = 18 <= current_hour <= 21
+    slot_hour = slot_time.hour
+    is_comfort_time = 18 <= slot_hour <= 21
     lower_is_warm = temp_lower > TEMP_LOWER_WARM
     negative_price = Gbuy < 0
     
@@ -351,9 +353,11 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         fve_surplus = max(0, fve_output - load_demand)
         
         # Zjednodušená logika ohřevu
+        from datetime import datetime
+        slot_time = datetime.fromisoformat(sol["times"][slot])
         heating = simplified_heating_logic(
             fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy,
-            temp_upper, temp_lower
+            temp_upper, temp_lower, slot_time
         )
         
         # Režim střídače
