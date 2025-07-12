@@ -56,6 +56,21 @@ VARIABLES_SPEC = {
         "alpha": {"type": "float", "unit": "kW/˚C", "default": 0.1, "desc": "Koeficient přenosu tepla z dolní do horní zóny"},
         # Priorita ohřevu horní části nádrže
         "upper_zone_priority": {"type": "float", "unit": "Kč/kWh", "default": 0.5, "desc": "Bonus za ohřev horní části nádrže oproti dolní"},
+        
+        # === NOVÉ: Penalty funkce pro teploty ===
+        # Penalty za nedostatečné teploty - integrace komfortní logiky do optimalizátoru
+        "temp_comfort_penalty": {"type": "float", "unit": "Kč/°C", "default": 2.0, "desc": "Penalizace za teplotu pod 45°C v horní zóně (celý den)"},
+        "temp_bath_penalty": {"type": "float", "unit": "Kč/°C", "default": 1.0, "desc": "Penalizace za nedostatečnou teplotu pro koupání (18-21h)"},
+        "temp_critical_penalty": {"type": "float", "unit": "Kč/°C", "default": 10.0, "desc": "Vysoká penalizace za kriticky nízkou teplotu (<40°C)"},
+        # Cílové teploty pro penalty
+        "temp_comfort_target": {"type": "float", "unit": "°C", "default": 45.0, "desc": "Cílová komfortní teplota v horní zóně"},
+        "temp_bath_target": {"type": "float", "unit": "°C", "default": 65.0, "desc": "Cílová teplota pro koupání (18-21h)"},
+        "temp_bath_reduced": {"type": "float", "unit": "°C", "default": 55.0, "desc": "Snížená teplota když je dole teplo"},
+        "temp_critical_min": {"type": "float", "unit": "°C", "default": 40.0, "desc": "Kriticky nízká teplota"},
+        "temp_lower_warm": {"type": "float", "unit": "°C", "default": 50.0, "desc": "Práh pro teplou spodní zónu"},
+        # Časové okno pro koupání
+        "bath_time_start": {"type": "int", "unit": "hodina", "default": 18, "desc": "Začátek období pro koupání"},
+        "bath_time_end": {"type": "int", "unit": "hodina", "default": 21, "desc": "Konec období pro koupání"},
     }
 }
 

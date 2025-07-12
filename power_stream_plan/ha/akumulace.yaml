@@ -1,0 +1,1306 @@
+globals:
+   - id: RE1_power
+     type: int
+     restore_value: no
+     initial_value: '1400'
+   - id: RE2_power
+     type: int
+     restore_value: no
+     initial_value: '2800'
+   - id: RE3_power
+     type: int
+     restore_value: no
+     initial_value: '2800'
+   - id: RE4_power
+     type: int
+     restore_value: no
+     initial_value: '5600'
+
+esphome:
+  name: tepelnaakumulace
+  friendly_name: Tepelná akumulace
+  on_boot:
+    then:
+      # read the RTC time once when the system boots
+      ds1307.read_time:
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  reboot_timeout: 2h
+  encryption:
+    key: "WvzEwHbm+9whUVQVGEMFdZwhhOIpGt4KoQXQ8wghNHQ="
+  on_client_connected:
+    - logger.log:
+        format: "Client %s connected to API with IP %s"
+        args: ["client_info.c_str()", "client_address.c_str()"]
+
+ota:
+  - platform: esphome
+    password: "169bdbd6242c1b350f06d4d2f99a570b"
+    
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: True
+  use_address: 10.6.2.25
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Tepelna Akumulace"
+    password: "50PjBZERdRBR"
+
+captive_portal:
+
+web_server:
+  port: 80
+  version: 3
+  sorting_groups:
+  - id: sg_req
+    name: "Požadavky"
+    sorting_weight: 0
+  - id: sg_ctrl
+    name: "Ovládání"
+    sorting_weight: 10
+  - id: sg_aku
+    name: "Akumulační nádrž"
+    sorting_weight: 20
+  - id: sg_fv
+    name: "Fotovoltaika"
+    sorting_weight: 30
+  - id: sg_krb
+    name: "Krb"
+    sorting_weight: 40
+  - id: sg_ft
+    name: "Fototermika"
+    sorting_weight: 50
+
+time:
+  - platform: ds1307
+    # repeated synchronization is not necessary unless the external RTC
+    # is much more accurate than the internal clock
+    update_interval: never
+  - platform: homeassistant
+    # instead try to synchronize via network repeatedly ...
+    on_time_sync:
+      then:
+        # ... and update the RTC when the synchronization was successful
+        ds1307.write_time:
+
+one_wire:
+  - platform: gpio
+    id: one_wire1
+    pin: GPIO33
+  - platform: gpio
+    id: one_wire2
+    pin: GPIO32
+
+uart:
+  - id: modbus_master
+    baud_rate: 19200
+    tx_pin: GPIO27
+    rx_pin: GPIO14
+  - id: rs232
+    baud_rate: 9600
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+
+external_components:
+  - source:
+      type: local
+      path: local_components/
+
+# Example configuration entry
+output:
+  - platform: esp32_dac
+    pin: GPIO25
+    id: dac2
+  - platform: esp32_dac
+    pin: GPIO26
+    id: dac1
+# Use the DAC output as a light
+light:
+  - platform: monochromatic
+    output: dac1
+    gamma_correct: 1.4
+    name: DAC1
+    internal: True
+  - platform: monochromatic
+    output: dac2
+    gamma_correct: 1.4
+    name: DAC2
+    internal: True
+
+modbus:
+  #flow_control_pin: GPIOXX
+  id: modbus1
+  uart_id: modbus_master
+
+modbus_controller:
+- id: solax
+  address: 0x1   ## address of the Modbus slave device on the bus
+  modbus_id: modbus1
+  setup_priority: -10
+  update_interval: 5s
+
+modbus_server:
+  id: modbus_server0
+  modbus_id: modbus1
+
+i2c:
+  sda: GPIO4
+  scl: GPIO15
+  scan: true
+  id: bus_a
+
+pcf8574:
+  - id: outputs
+    address: 0x24
+  - id: inputs
+    address: 0x22
+
+button:
+  - platform: restart
+    name: restart
+    entity_category: DIAGNOSTIC
+
+binary_sensor:
+  - platform: gpio
+    pin: 
+      pcf8574: inputs
+      number: 0
+      mode:
+        input: true
+      inverted: true
+    name: "IN1"
+    internal: True
+  - platform: gpio
+    pin: 
+      pcf8574: inputs
+      number: 1
+      mode:
+        input: true
+      inverted: true
+    name: "IN2"
+    internal: True
+  - platform: gpio
+    pin: 
+      pcf8574: inputs
+      number: 2
+      mode:
+        input: true
+      inverted: true
+    name: "IN3"
+    internal: True
+  - platform: gpio
+    pin: 
+      pcf8574: inputs
+      number: 3
+      mode:
+        input: true
+      inverted: true
+    name: "IN4"
+    internal: True
+  - platform: gpio
+    pin: 
+      pcf8574: inputs
+      number: 4
+      mode:
+        input: true
+      inverted: true
+    name: "IN5"
+    internal: True
+  - platform: gpio
+    pin: 
+      number: 0
+      mode:
+        input: true
+      inverted: true
+    name: "BTN"
+    entity_category: DIAGNOSTIC
+  - platform: modbus_server
+    connected:
+      name: Modbus TCP Connected
+
+  - platform: template
+    name: "Primární ohřev"
+    id: primary_heat
+    device_class: heat
+    lambda: |-
+      static bool status = false;
+      if(id(tank_middle_temp).state < id(min_temp).state - id(hyst).state) status = true;
+      if(id(tank_middle_temp).state > id(min_temp).state + id(hyst).state) status = false;
+      return status;
+    web_server:
+      sorting_group_id: sg_req
+
+  - platform: template
+    name: "Komfortní ohřev"
+    id: comfort_tuv_heat
+    device_class: heat
+    lambda: |-
+      static bool status = false;
+      if(id(tank_middle_temp).state < id(comfort_temp).state - id(hyst).state) status = true;
+      if(id(tank_middle_temp).state > id(comfort_temp).state + id(hyst).state) status = false;
+      return status;
+    web_server:
+      sorting_group_id: sg_req
+
+  - platform: template
+    name: "Akumulace TUV"
+    id: accu_tuv_heat
+    device_class: heat
+    lambda: |-
+      static bool status = false;
+      if(id(tank_middle_temp).state < id(accu_temp).state - id(hyst).state) status = true;
+      if(id(tank_middle_temp).state > id(accu_temp).state + id(hyst).state) status = false;
+      return status;
+    web_server:
+      sorting_group_id: sg_req
+
+  - platform: template
+    name: "Akumulace tepla"
+    id: accu_heat
+    device_class: heat
+    lambda: |-
+      static bool status = false;
+      if(id(tank_max_temp).state < id(accu_maxtemp).state - id(hyst).state) status = true;
+      if(id(tank_max_temp).state > id(accu_maxtemp).state) status = false;
+      return status;
+    web_server:
+      sorting_group_id: sg_req
+
+  - platform: template
+    name: "Nucený ohřev"
+    id: force_heat
+    device_class: heat
+    lambda: |-
+      if(id(accu_heat).state && id(full_power).state) return true;
+      if(id(primary_heat).state && !id(block_force).state) return true;
+      if(id(comfort_tuv_heat).state && id(comfort_heat_en).state && !id(block_force).state) return true;
+      return false;
+    web_server:
+      sorting_group_id: sg_req
+
+  - platform: template
+    name: "Blokace horního ohřevu"
+    id: block_upper_part
+    device_class: safety
+    lambda:
+      |-
+      if(id(tank_upper_temp).state > id(accu_maxtemp).state - id(hyst).state * 2) return true;
+      if(id(tank_middle_temp).state > id(accu_maxtemp).state - id(hyst).state * 2) return true;
+      return false;
+    web_server:
+      sorting_group_id: sg_req
+  
+  - platform: template
+    name: "Priorita nabití baterie"
+    id: bat_prio
+    device_class: battery_charging
+    lambda: |-
+      return id(battery_soc).state < id(bat_min).state;
+    web_server:
+      sorting_group_id: sg_req
+
+  - platform: status
+    name: "API Připojeno"
+    id: api_connected
+
+  - platform: homeassistant
+    id: solar_circulation
+    entity_id: binary_sensor.iqr23_solarcirculation
+
+  - platform: homeassistant
+    id: krb_circulation
+    entity_id: binary_sensor.iqr23_fireplacecirculation
+
+switch:
+  - platform: gpio
+    name: "TUV 1400"
+    id: re1
+    pin:
+      pcf8574: outputs
+      number: 0
+      mode:
+        output: true
+      inverted: true
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: gpio
+    name: "TUV 2800"
+    id: re2
+    pin:
+      pcf8574: outputs
+      number: 1
+      mode:
+        output: true
+      inverted: true
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: gpio
+    name: "AKU 2800"
+    id: re3
+    pin:
+      pcf8574: outputs
+      number: 2
+      mode:
+        output: true
+      inverted: true
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: gpio
+    name: "AKU 5600"
+    id: re4
+    pin:
+      pcf8574: outputs
+      number: 3
+      mode:
+        output: true
+      inverted: true
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: gpio
+    name: "Cirkulace radiatorů"
+    id: re5
+    pin:
+      pcf8574: outputs
+      number: 4
+      mode:
+        output: true
+      inverted: true
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: gpio
+    name: "RE6"
+    id: re6
+    pin:
+      pcf8574: outputs
+      number: 5
+      mode:
+        output: true
+      inverted: true
+    entity_category: DIAGNOSTIC
+
+# Configuration
+
+  - platform: template
+    name: "Povolení horní akumulace"
+    optimistic: True
+    device_class: switch
+    id: accu_tuv_en
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Povolení spodní akumulace"
+    optimistic: True
+    device_class: switch
+    id: accu_en
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Povolení komfortního ohřevu"
+    optimistic: True
+    device_class: switch
+    id: comfort_heat_en
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_group_id: sg_ctrl
+  
+  - platform: template
+    name: "Povolení automatiky"
+    optimistic: True
+    device_class: switch
+    id: auto_en
+    restore_mode: RESTORE_DEFAULT_ON
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Blokování nuceného ohřevu"
+    optimistic: True
+    device_class: switch
+    id: block_force
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Maximální ohřev ze sítě"
+    optimistic: True
+    device_class: switch
+    id: full_power
+    restore_mode: RESTORE_DEFAULT_OFF
+    web_server:
+      sorting_group_id: sg_ctrl
+
+number:
+  - platform: template
+    name: "Minimální stav nabití baterie"
+    id: bat_min
+    optimistic: true
+    min_value: 30
+    max_value: 100
+    step: 1
+    restore_value: True
+    initial_value: 40
+    unit_of_measurement: '%'
+    device_class: battery
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Požadovaný stav nabití baterie"
+    id: bat_req
+    optimistic: true
+    min_value: 50
+    max_value: 100
+    step: 1
+    restore_value: True
+    initial_value: 92
+    unit_of_measurement: '%'
+    device_class: battery
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Povolený vybíjecí výkon baterie"
+    id: bat_discharge
+    optimistic: true
+    min_value: 0
+    max_value: 10000
+    step: 50
+    restore_value: True
+    initial_value: 1200
+    unit_of_measurement: W
+    device_class: power
+    mode: SLIDER
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Rezervovaný výkon pro dobíjení baterie"
+    id: bat_charge_reserve
+    optimistic: true
+    min_value: 0
+    max_value: 3000
+    step: 50
+    restore_value: True
+    initial_value: 500
+    unit_of_measurement: W
+    device_class: power
+    mode: SLIDER
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Komfortní teplota TUV"
+    id: comfort_temp
+    optimistic: true
+    min_value: 25
+    max_value: 85
+    step: 0.5
+    restore_value: True
+    initial_value: 62.5
+    unit_of_measurement: ˚C
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Akumulační teplota TUV"
+    id: accu_temp
+    optimistic: true
+    min_value: 25
+    max_value: 88
+    step: 0.5
+    restore_value: True
+    initial_value: 70
+    unit_of_measurement: ˚C
+    web_server:
+      sorting_group_id: sg_ctrl
+    
+  - platform: template
+    name: "Minimální teplota TUV"
+    id: min_temp
+    optimistic: true
+    min_value: 25
+    max_value: 85
+    step: 0.5
+    restore_value: True
+    initial_value: 42.5 
+    unit_of_measurement: ˚C
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Maximální teplota akumulace"
+    id: accu_maxtemp
+    optimistic: true
+    min_value: 60
+    max_value: 90
+    step: 0.5
+    restore_value: True
+    initial_value: 88
+    unit_of_measurement: ˚C
+    device_class: temperature
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Hystereze"
+    id: hyst
+    optimistic: true
+    min_value: 0
+    max_value: 5
+    step: 0.1
+    restore_value: True
+    initial_value: 2.5
+    unit_of_measurement: ˚C
+    device_class: temperature
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_ctrl
+
+  - platform: template
+    name: "Korekce krbu"
+    id: krb_correction
+    optimistic: true
+    min_value: -5
+    max_value: 5
+    step: 0.1
+    restore_value: True
+    initial_value: 0
+    unit_of_measurement: °C
+    mode: SLIDER
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: template
+    name: "Korekce FT"
+    id: ft_correction
+    optimistic: true
+    min_value: -5
+    max_value: 5
+    step: 0.1
+    restore_value: True
+    initial_value: 0
+    unit_of_measurement: °C
+    mode: SLIDER
+    entity_category: CONFIG
+    web_server:
+      sorting_group_id: sg_ft
+
+sensor:
+  - platform: adc
+    pin: GPIO36
+    name: "ADC1"
+    internal: True
+    update_interval: 5s
+    filters:
+    - delta: 0.01
+  - platform: adc
+    pin: GPIO39
+    name: "ADC2"
+    internal: True
+    update_interval: 5s
+    filters:
+    - delta: 0.01
+  - platform: adc
+    pin: GPIO34
+    name: "ADC3"
+    internal: True
+    update_interval: 5s
+    filters:
+    - delta: 0.01
+  - platform: adc
+    pin: GPIO35
+    name: "ADC4"
+    internal: True
+    update_interval: 5s
+    filters:
+    - delta: 0.01
+  - platform: modbus_server
+    connection_count:
+      name: Number Modbus TCP connections
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    name: "Solarní výroba 1"
+    id: power_solar1
+    register_type: read
+    address: 0x000A
+    device_class: power
+    unit_of_measurement: 'W'
+    value_type: U_WORD
+    web_server:
+      sorting_group_id: sg_fv
+    
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    name: "Solarní výroba 2"
+    id: power_solar2
+    register_type: read
+    address: 0x000B
+    device_class: power
+    unit_of_measurement: 'W'
+    value_type: U_WORD
+    web_server:
+      sorting_group_id: sg_fv
+
+  - platform: template    
+    id: power_solar
+    name: "Solární výroba"
+    device_class: power
+    unit_of_measurement: 'W'
+    update_interval: 5s
+    lambda: |-
+      return id(power_solar1).state + id(power_solar2).state;
+    accuracy_decimals: 0
+    web_server:
+      sorting_group_id: sg_fv
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    id: battery_soc
+    name: "Nabití baterie"
+    register_type: read
+    address: 0x001C
+    accuracy_decimals: 0
+    device_class: battery
+    unit_of_measurement: '%'
+    value_type: U_WORD
+    web_server:
+      sorting_group_id: sg_fv
+
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    id: power_battery
+    name: "Výkon baterie"
+    accuracy_decimals: 0
+    register_type: read
+    address: 0x0016
+    device_class: power
+    unit_of_measurement: 'W'
+    value_type: S_WORD
+    web_server:
+      sorting_group_id: sg_fv
+      
+  - platform: modbus_controller
+    modbus_controller_id: solax
+    id: power_grid
+    name: "Výkon sítě"
+    accuracy_decimals: 0
+    register_type: read
+    address: 0x0046
+    device_class: power
+    unit_of_measurement: 'W'
+    value_type: S_WORD
+    web_server:
+      sorting_group_id: sg_fv
+
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0x345a4ed443f76e28
+    name: Horní senzor
+    id: tank_upper_temp
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0x4e2e32d443f6a328
+    name: Střední senzor
+    id: tank_middle_temp
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0x302bf1d443e92028
+    name: Spodní senzor
+    id: tank_lower_temp
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_aku
+  
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0xcd03129794078d28
+    name: Krb studená
+    entity_category: DIAGNOSTIC
+    id: krb_fw
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0x1003089794608428
+    name: Krb teplá
+    entity_category: DIAGNOSTIC
+    id: krb_rw
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0x094843d443986b28
+    name: FT studená
+    entity_category: DIAGNOSTIC
+    id: ft_fw
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_ft
+
+  - platform: dallas_temp
+#  - platform: template
+    one_wire_id: one_wire1
+    address: 0xdf3ebfd4437dbe28
+    name: FT teplá
+    entity_category: DIAGNOSTIC
+    id: ft_rw
+    filters:
+    - filter_out: 85.0
+    update_interval: 15s
+    web_server:
+      sorting_group_id: sg_ft
+
+  - platform: template
+    name: "Krb rozdíl"
+    id: krb_delta
+    lambda: |-
+      return id(krb_rw).state - id(krb_fw).state + id(krb_correction).state;
+    update_interval: 15s
+    device_class: temperature
+    entity_category: DIAGNOSTIC
+    unit_of_measurement: °C
+    accuracy_decimals: 1
+    web_server:
+      sorting_group_id: sg_krb
+
+    # Křivka dle wiki
+  - platform: template
+    name: "Krb Tepelná kapacita"
+    id: krb_cap
+    lambda: |-
+      float a = 0;
+      float b = -2;
+      float c = 4217;
+      float t = (id(krb_rw).state + id(krb_fw).state) / 2;
+      float cap = a*t*t + b*t + c;
+      return cap;
+    update_interval: 15s
+    entity_category: DIAGNOSTIC
+    unit_of_measurement: "J/(kg*K)"
+    accuracy_decimals: 1
+    disabled_by_default: True
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: template
+    name: "Krb výkon"
+    id: krb_power
+    lambda: |-
+      float power = id(krb_flow).state * 1 * id(krb_cap).state * id(krb_delta).state / 60;
+      return power > 200 ? power : 0;
+    update_interval: 15s
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: integration
+    name: "Krb energie"
+    id: krb_energy
+    sensor: krb_power
+    time_unit: h
+    unit_of_measurement: kWh
+    device_class: energy
+    state_class: total_increasing
+    filters:
+      - multiply: 0.001
+      - throttle: 15s
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: template
+    name: "FT rozdíl"
+    id: ft_delta
+    lambda: |-
+      return id(ft_rw).state - id(ft_fw).state + id(krb_correction).state;
+    update_interval: 15s
+    device_class: temperature
+    entity_category: DIAGNOSTIC
+    unit_of_measurement: °C
+    accuracy_decimals: 1
+    web_server:
+      sorting_group_id: sg_ft
+
+  # Křivka dle https://eshop.amvczech.cz/prilohy/27-o-kolekton-p-super-technicky-list.pdf
+  - platform: template
+    name: "FT Tepelná kapacita"
+    id: ft_cap
+    lambda: |-
+      float a = -0.01333;
+      float b = 4.706;
+      float c = 3522.08;
+      float t = (id(ft_rw).state + id(ft_fw).state) / 2;
+      float cap = a*t*t + b*t + c;
+      return cap;
+    update_interval: 15s
+    entity_category: DIAGNOSTIC
+    unit_of_measurement: "J/(kg*K)"
+    accuracy_decimals: 1
+    disabled_by_default: True
+    web_server:
+      sorting_group_id: sg_ft
+
+  - platform: template
+    name: "FT výkon"
+    id: ft_power
+    lambda: |-
+      
+      float power = id(ft_flow).state * 1 * id(ft_cap).state * id(ft_delta).state / 60;
+      return power > 200 ? power : 0;
+    update_interval: 15s
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    web_server:
+      sorting_group_id: sg_ft
+
+  - platform: integration
+    name: "FT energie"
+    id: ft_energy
+    sensor: ft_power
+    time_unit: h
+    unit_of_measurement: kWh
+    device_class: energy
+    state_class: total_increasing
+    filters:
+      - multiply: 0.001
+      - throttle: 15s
+    web_server:
+      sorting_group_id: sg_ft
+
+  - platform: template
+    name: "Optimální odběr z baterie"
+    id: bat_opt
+    lambda: |-
+      if (id(battery_soc).state <= id(bat_req).state) return 0.0;
+      return id(bat_discharge).state * ((id(battery_soc).state - id(bat_req).state)/(100-id(bat_req).state));
+    update_interval: 5s
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    web_server:
+      sorting_group_id: sg_fv
+
+  - platform: template
+    name: "Maximální teplota nádrže"
+    id: tank_max_temp
+    lambda: |-
+      if (id(tank_upper_temp).state > id(tank_middle_temp).state && id(tank_upper_temp).state > id(tank_lower_temp).state) return id(tank_upper_temp).state;
+      if (id(tank_middle_temp).state > id(tank_lower_temp).state) return id(tank_middle_temp).state;
+      return id(tank_lower_temp).state;
+    update_interval: 5s
+    device_class: temperature
+    unit_of_measurement: ˚C
+    accuracy_decimals: 1
+    on_value_range: 
+      above: 88.0
+      then: 
+        - switch.turn_off: re1
+        - switch.turn_off: re2
+        - switch.turn_off: re3
+        - switch.turn_off: re4
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Aktuální výkon ohřevu"
+    id: heat_power
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    lambda: |-
+      int total = 0;
+      if(id(re1).state) total += id(RE1_power);
+      if(id(re2).state) total += id(RE2_power);
+      if(id(re3).state) total += id(RE3_power);
+      if(id(re4).state) total += id(RE4_power);
+      return total;
+    update_interval: 5s
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: template
+    name: "Akumulační výkon ohřevu"
+    id: acumulation_power
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    lambda: |-
+      float hp = id(heat_power).state;
+      float ap = id(available_power).state;
+      return (hp < ap) ? hp : ap;
+    update_interval: 5s
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: template
+    name: "Prioritní výkon ohřevu"
+    id: priority_power
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    lambda: |-
+      float hp = id(heat_power).state;
+      float ap = id(available_power).state;
+      return (hp < ap) ? 0 : hp-ap;
+    update_interval: 5s
+    web_server:
+      sorting_group_id: sg_aku
+  - platform: template
+    name: "Dostupný výkon"
+    id: available_power
+    device_class: power
+    unit_of_measurement: W
+    accuracy_decimals: 0
+    lambda: |-
+      float available = id(power_grid).state;
+      float solar = id(power_solar).state;
+
+      if(!isnan(id(power_battery).state) && (!id(bat_prio).state)) { // Bez prioritního nabíjení umožnit použití aktuálního výkonu k vytěžování
+        available += id(power_battery).state; // Umožnít celý výkon baterie pro vytěžování
+        if(id(bat_charge_reserve).state > 0 && id(battery_soc).state <= id(bat_req).state && !id(comfort_tuv_heat).state) {
+          available -= id(bat_charge_reserve).state; // Případně část rezervovat
+        }
+      } else {
+        available -= 100; // Jinak nechat 100W k dispozici pro nárůst nabíjecího výkonu dle potřeb baterie
+      } 
+
+      if(id(heat_power).state  > 0) available += id(heat_power).state;
+
+      if(available > solar) available = solar;
+
+      if(id(bat_opt).state > 0) available += id(bat_opt).state;
+
+      return available > 0 ? available : 0.0;
+    update_interval: 5s
+    web_server:
+      sorting_group_id: sg_fv
+
+  - platform: integration
+    name: "Spotřebovaná energie"
+    sensor: heat_power
+    time_unit: h
+    unit_of_measurement: kWh
+    state_class: total_increasing
+    device_class: energy
+    integration_method: left
+    filters:
+      - multiply: 0.001
+      - throttle: 1min
+    web_server:
+      sorting_group_id: sg_fv
+  - platform: integration
+    name: "Akumulovaná solární energie"
+    sensor: acumulation_power
+    time_unit: h
+    unit_of_measurement: kWh
+    device_class: energy
+    state_class: total_increasing
+    integration_method: left
+    filters:
+      - multiply: 0.001
+      - throttle: 1min
+    web_server:
+      sorting_group_id: sg_fv
+  - platform: integration
+    name: "Prioritní energie"
+    sensor: priority_power
+    time_unit: h
+    unit_of_measurement: kWh
+    device_class: energy
+    state_class: total_increasing
+    integration_method: left
+    filters:
+      - multiply: 0.001
+      - throttle: 1min
+    web_server:
+      sorting_group_id: sg_fv
+  - platform: template
+    name: "Průtok krbu"
+    id: krb_flow
+    unit_of_measurement: l/min
+    accuracy_decimals: 1
+    lambda: |-
+      if (id(krb_circulation).state) {
+        return 28.0;
+      } else {
+        return 0;
+      }
+    web_server:
+      sorting_group_id: sg_krb
+
+  - platform: template
+    name: "Průtok FT"
+    id: ft_flow
+    unit_of_measurement: l/min
+    accuracy_decimals: 1
+    lambda: |-
+      if (id(solar_circulation).state) {
+        return 5.7;
+      } else {
+        return 0;
+      }
+    web_server:
+      sorting_group_id: sg_ft
+
+  - platform: template
+    name: "Průměrná teplota nádrže"
+    id: accu_mean
+    unit_of_measurement: ˚C
+    disabled_by_default: True
+    accuracy_decimals: 1
+    lambda: |-
+      float mean = 0; int cnt = 0;
+      mean += id(tank_lower_temp).state; cnt++;
+      mean += id(tank_lower_temp).state; cnt++;
+      mean += id(tank_middle_temp).state; cnt++;
+      mean += id(tank_upper_temp).state; cnt++;
+      return mean/cnt;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Teplota horní část"
+    id: accu_top
+    unit_of_measurement: ˚C
+    disabled_by_default: True
+    accuracy_decimals: 1
+    lambda: |-
+      float mean = 0; int cnt = 0;
+      mean += id(tank_middle_temp).state; cnt++;
+      mean += id(tank_upper_temp).state; cnt++;
+      return mean/cnt;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Teplota dolní část"
+    id: accu_bot
+    unit_of_measurement: ˚C
+    disabled_by_default: True
+    accuracy_decimals: 1
+    lambda: |-
+      float mean = 0; int cnt = 0;
+      mean += id(tank_middle_temp).state; cnt++;
+      mean += id(tank_lower_temp).state; cnt++;
+      mean += id(tank_lower_temp).state; cnt++;
+      mean += id(tank_lower_temp).state; cnt++;
+      return mean/cnt;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Nabití nádrže"
+    id: accu_soc
+    unit_of_measurement: '%'
+    accuracy_decimals: 1
+    lambda: |-
+      return id(accu_energy).state / id(accu_capacity).state * 100;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Nabití nádrže horní"
+    id: accu_top_soc
+    unit_of_measurement: '%'
+    accuracy_decimals: 1
+    lambda: |-
+      return id(accu_top_energy).state / id(accu_top_energy_max).state * 100;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Nabití nádrže dolní"
+    id: accu_bot_soc
+    unit_of_measurement: '%'
+    accuracy_decimals: 1
+    lambda: |-
+      return id(accu_bot_energy).state / id(accu_bot_energy_max).state * 100;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Energie nádrže horní"
+    id: accu_top_energy
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    lambda: |-
+      float minT = 45;
+      float maxT = 90;
+      float volume = 300;
+      float weight = volume * 0.97;
+      float meanT = id(accu_top).state;
+      return (meanT-minT)*1.163*weight/1000;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Energie nádrže dolní"
+    id: accu_bot_energy
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    lambda: |-
+      float minT = 30;
+      float maxT = 85;
+      float volume = 700;
+      float weight = volume * 0.97;
+      float meanT = id(accu_bot).state;
+      return (meanT-minT)*1.163*weight/1000;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    id: accu_top_energy_max
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    lambda: |-      
+      float minT_top = 45;
+      float maxT_top = 90;
+      float volume_top = 300;
+      float weight_top = volume_top * 0.97;
+      return (maxT_top-minT_top)*1.163*weight_top/1000;
+
+  - platform: template
+    id: accu_bot_energy_max
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    lambda: |-      
+      float minT_bot = 30;
+      float maxT_bot = 85;
+      float volume_bot = 700;
+      float weight_bot = volume_bot * 0.97;
+      return (maxT_bot-minT_bot)*1.163*weight_bot/1000;
+  - platform: template
+    name: "Energie nádrže"
+    id: accu_energy
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    lambda: |-
+      return id(accu_top_energy).state + id(accu_bot_energy).state;
+    web_server:
+      sorting_group_id: sg_aku
+
+  - platform: template
+    name: "Kapacita nádrže"
+    id: accu_capacity
+    unit_of_measurement: kWh
+    accuracy_decimals: 1
+    disabled_by_default: True
+    lambda: |-
+      return id(accu_top_energy_max).state + id(accu_bot_energy_max).state;
+    web_server:
+      sorting_group_id: sg_aku
+  
+      
+interval:
+  - interval: 15s
+    then:
+      - lambda: |-
+          bool re1_active = 0;
+          bool re2_active = 0;
+          bool re3_active = 0;
+          bool re4_active = 0;
+
+          float current_power = 0;
+          float avail_power = id(available_power).state;
+          
+          if(id(accu_heat).state && id(full_power).state) {
+            re1_active = true;
+            re2_active = true;
+            re3_active = true;
+            re4_active = true;
+            current_power = id(RE1_power) + id(RE2_power) + id(RE3_power) + id(RE4_power);
+          }
+
+          if(id(primary_heat).state && !id(block_force).state) {
+            re1_active = true;
+            re2_active = true;
+            current_power += id(RE1_power) + id(RE2_power);
+          } else if(id(comfort_tuv_heat).state && id(comfort_heat_en).state && !id(block_force).state) {
+            re1_active = true;
+            re2_active = true;
+            current_power += id(RE1_power) + id(RE2_power);
+          }
+
+          if(id(accu_tuv_heat).state && id(accu_tuv_en).state && !id(block_upper_part).state) {
+            // priority RE2, RE1
+            if(!re2_active &&(current_power + id(RE2_power) <= avail_power)) {re2_active = true; current_power += id(RE2_power);}
+            if(!re1_active &&(current_power + id(RE1_power) <= avail_power)) {re1_active = true; current_power += id(RE1_power);}
+          } 
+          
+          if(id(accu_heat).state){
+            // priority RE3, RE4, RE2, RE1
+            if(id(accu_en).state) {
+              if(!re4_active &&(current_power + id(RE4_power) <= avail_power)) {re4_active = true; current_power += id(RE4_power);}
+              if(!re3_active &&(current_power + id(RE3_power) <= avail_power)) {re3_active = true; current_power += id(RE3_power);}
+            }
+            if(id(accu_tuv_en).state && !id(block_upper_part).state) {
+              if(!re2_active &&(current_power + id(RE2_power) <= avail_power)) {re2_active = true; current_power += id(RE2_power);}
+              if(!re1_active &&(current_power + id(RE1_power) <= avail_power)) {re1_active = true; current_power += id(RE1_power);}
+            }
+          }
+
+          if(id(auto_en).state){
+            if(re1_active && !id(re1).state) id(re1).turn_on(); 
+            if(!re1_active && id(re1).state) id(re1).turn_off();
+            
+            if(re2_active && !id(re2).state) id(re2).turn_on();
+            if(!re2_active && id(re2).state) id(re2).turn_off();
+
+            if(re3_active && !id(re3).state) id(re3).turn_on();
+            if(!re3_active && id(re3).state) id(re3).turn_off();
+
+            if(re4_active && !id(re4).state) id(re4).turn_on();
+            if(!re4_active && id(re4).state) id(re4).turn_off();
+          }

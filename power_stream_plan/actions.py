@@ -25,17 +25,13 @@ LOGIKA:
 - Automatické režimy využívají inteligenci střídače pro 0W na elektroměru
 
 LOGIKA OHŘEVU AKUMULACE:
-- Respektuje automatické režimy akumulace (pokud nejsou blokovány):
-  * Udržuje alespoň 45°C nahoře pro základní komfort
-  * Po 16h připravuje 65°C nahoře pro koupání (55°C pokud je dole teplo)
-  * Při FVE přebytku: nejdříve nahoře na 70°C, pak celou nádrž na 90°C
-- Horní a spodní akumulace se ovládají podle MPC signálů a aktuálních teplot
-- Maximální ohřev (12kW) se zapíná při velkém přebytku pro celou nádrž
-- Blokování nuceného ohřevu pouze v kritických situacích (zachovává komfort)
-- NOVÉ: Komfortní ohřev ze sítě (comfort_heating_grid):
-  * Povoluje ohřev horní části nádrže na 65°C i ze sítě (bez FVE)
-  * Aktivuje se při teplotě pod komfort, před koupáním, nebo MPC signálu
-  * Připojuje se na switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu
+- ZJEDNODUŠENÁ LOGIKA - důvěřuje MPC optimalizátoru:
+  * upper_on/lower_on: pouze povolují ukládání energie z FVE přebytku
+  * comfort_heating_grid: povoluje ohřev ze sítě pro komfort (45°C celý den, 65°C/55°C od 18-21h)
+  * max_heat_on: povoluje maximální ohřev ze sítě (12kW) při velkém přebytku nebo záporné ceně
+  * block_heating: blokuje veškerý ohřev pouze v extrémních situacích
+- MPC optimalizátor by měl řídit většinu rozhodnutí pomocí penalty funkcí pro teploty
+- Zachovává pouze základní bezpečnostní logiku pro kritické situace
 """
 
 from datetime import datetime
@@ -100,8 +96,8 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
     load_demand = inp.get("load_pred", [])[slot_index] if slot_index < len(inp.get("load_pred", [])) else 0
     fve_surplus = max(0, fve_output - load_demand)
 
-    # Vylepšená logika ohřevu pro aktuální slot
-    heating = enhanced_heating_logic(
+    # Zjednodušená logika ohřevu pro aktuální slot
+    heating = simplified_heating_logic(
         fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy,
         temp_upper_current, temp_lower_current
     )
@@ -230,96 +226,75 @@ ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
 }
 
 # ---------------------------------------------------------------------------
-def enhanced_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float, 
-                          Hin_lower: float, Gbuy: float, temp_upper: float, 
-                          temp_lower: float) -> Dict[str, bool]:
+def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float, 
+                            Hin_lower: float, Gbuy: float, temp_upper: float, 
+                            temp_lower: float) -> Dict[str, bool]:
     """
-    Vylepšená logika ohřevu podle aktuálních teplot a požadavků:
+    Zjednodušená logika ohřevu - důvěřuje MPC optimalizátoru + základní bezpečnost.
     
-    Automatické režimy akumulace (pokud nejsou blokovány):
-    - Udržuje alespoň 45°C nahoře pro komfort
-    - Po 18h cílí na 65°C nahoře pro koupání (55°C pokud je dole teplo)
-    - Při FVE přebytku: nejdříve nahoře na 70°C, pak celá nádrž na 90°C
+    LOGIKA:
+    - upper_on/lower_on: pouze povolují ukládání energie z FVE
+    - comfort_heating_grid: povoluje ohřev ze sítě pro komfort (45°C celý den, 65°C/55°C od 18-21h)
+    - max_heat_on: povoluje maximální ohřev ze sítě (12kW při velkém přebytku nebo záporné ceně)
+    - block_heating: blokuje veškerý ohřev v kritických situacích
     
-    MPC optimalizátor by měl toto chování řídit podle budoucích podmínek.
+    MPC optimalizátor by měl řídit většinu rozhodnutí pomocí penalty funkcí.
     """
     from datetime import datetime
     
     # Základní podmínky
-    battery_above_40 = B_SOC > 40
-    cheap_electricity = Gbuy < P_GBUY_GRID
-    expensive_electricity = Gbuy > P_HIN_GRID
+    battery_ok = B_SOC > 20
     current_hour = datetime.now().hour
-    is_evening_prep = current_hour >= 16  # Příprava na večerní koupání
+    is_comfort_time = 18 <= current_hour <= 21
     lower_is_warm = temp_lower > TEMP_LOWER_WARM
-    
-    # Kontrola základních komfortních teplot
-    upper_needs_comfort = temp_upper < TEMP_COMFORT_MIN
-    upper_needs_bath = is_evening_prep and temp_upper < (TEMP_BATH_REDUCED if lower_is_warm else TEMP_BATH_TARGET)
-    
-    # Logika pro horní akumulaci
-    upper_on = (
-        # Kritické - pod komfortní teplotou (nutné nezávisle na energii)
-        upper_needs_comfort or
-        # Příprava na koupání podle času
-        upper_needs_bath or
-        # FVE přebytek - akumulace nad 70°C
-        (fve_surplus > FVE_SURPLUS_THRESHOLD and battery_above_40 and temp_upper < TEMP_ACCUMULATION) or
-        # MPC signál + levná elektřina
-        (cheap_electricity and Hin_upper > 0.1) or
-        # Velký FVE přebytek - vždy využít
-        (fve_surplus > 5.0)
-    )
-    
-    # Logika pro spodní akumulaci
-    lower_on = (
-        # MPC signál pro topení (heating_demand > 0)
-        (Hin_lower > 0.1) or
-        # FVE přebytek + dobrá baterie
-        (fve_surplus > 1.0 and battery_above_40) or
-        # Levná elektřina + MPC signál
-        (cheap_electricity and Hin_lower > 0.1) or
-        # Střední FVE přebytek
-        (fve_surplus > 3.0)
-    )
-    
-    # Celkový topný požadavek z MPC
-    total_heating_demand = Hin_upper + Hin_lower
-    
-    # Kontrola záporné ceny energie (měl by už řešit MPC, ale pro jistotu)
     negative_price = Gbuy < 0
     
-    # Maximální ohřev (12kW) - pouze když máme skutečně velký přebytek energie
+    # Kritické teploty pro bezpečnost
+    critical_upper = temp_upper < 40  # Kriticky nízká teplota
+    
+    # Komfortní teploty podle času
+    comfort_target = (TEMP_BATH_REDUCED if lower_is_warm else TEMP_BATH_TARGET) if is_comfort_time else TEMP_COMFORT_MIN
+    needs_comfort_heating = temp_upper < comfort_target
+    
+    # === FVE AKUMULACE (pouze z přebytku FVE) ===
+    # Horní akumulace - přebytek FVE
+    upper_on = (
+        fve_surplus > 0.5 and battery_ok and temp_upper < TEMP_ACCUMULATION
+    )
+    
+    # Spodní akumulace - přebytek FVE pro topení
+    lower_on = (
+        fve_surplus > 1.0 and battery_ok and temp_lower < TEMP_FULL_TANK
+    )
+    
+    # === OHŘEV ZE SÍTĚ ===
+    # Komfortní ohřev ze sítě (horní zóna na komfortní teplotu)
+    comfort_heating_grid = (
+        # Kritická situace - vždy povolit
+        critical_upper or
+        # Komfortní teploty podle času a MPC signálu
+        (needs_comfort_heating and (Hin_upper > 0.1 or is_comfort_time)) or
+        # Záporná cena - vždy využít
+        negative_price
+    )
+    
+    # Maximální ohřev ze sítě (12kW - celá nádrž)
     max_heat_on = (
-        # Velký FVE přebytek - využít maximum (nezatěžuje síť)
-        (fve_surplus > 8.0 and battery_above_40 and 
-         temp_upper < TEMP_FULL_TANK and temp_lower < TEMP_FULL_TANK) or
-        # Záporná cena energie - topíme na maximum (platí nám za spotřebu)
-        (negative_price and battery_above_40 and
+        # Velký FVE přebytek - využít maximum
+        (fve_surplus > 8.0 and battery_ok and 
+         (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK)) or
+        # Záporná cena - topíme na maximum
+        (negative_price and battery_ok and
          (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK))
     )
     
-    # Blokování nuceného ohřevu - jen když je situace kritická
-    # POZOR: blokuje i základní komfortní ohřevy!
+    # === BLOKOVÁNÍ OHŘEVU ===
+    # Blokuje VŠE - pouze v extrémních situacích
     block_heating = (
-        # Velmi kritická situace - málo energie + slabá baterie + drahá elektřina
-        (fve_surplus < 0.2 and B_SOC < 20 and expensive_electricity and 
-         not upper_needs_comfort) or  # Neblokuj při kritickém nedostatku tepla
         # Extrémně slabá baterie (ale ne při kritických teplotách)
-        (B_SOC < 15 and not upper_needs_comfort)
-    )
-    
-    # NOVÉ: Komfortní ohřev ze sítě - povolí ohřev horní části na 65°C i ze sítě
-    # Připojuje se na switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu
-    comfort_heating_grid = (
-        # Teplota pod komfortní - vždy povolit ohřev ze sítě
-        upper_needs_comfort or
-        # Příprava na koupání - povolit ohřev ze sítě (i když není FVE)
-        upper_needs_bath or
-        # MPC signál pro horní ohřev + rozumná cena elektřiny
-        (Hin_upper > 0.1 and cheap_electricity) or
-        # Záporná cena - vždy nahřát
-        negative_price
+        (B_SOC < 15 and not critical_upper) or
+        # Velmi drahá elektřina + slabá baterie + žádný FVE
+        (Gbuy > P_HIN_GRID and B_SOC < 30 and fve_surplus < 0.2 and not critical_upper)
     )
     
     return {
@@ -375,8 +350,8 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         load_demand = inp.get("load_pred", [])[slot] if slot < len(inp.get("load_pred", [])) else 0
         fve_surplus = max(0, fve_output - load_demand)
         
-        # Vylepšená logika ohřevu
-        heating = enhanced_heating_logic(
+        # Zjednodušená logika ohřevu
+        heating = simplified_heating_logic(
             fve_surplus, B_SOC, Hin_upper, Hin_lower, Gbuy,
             temp_upper, temp_lower
         )
