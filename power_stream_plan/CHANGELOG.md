@@ -1,4 +1,11 @@
 
+## 2.1.1 - 2025-07-12
+logic
+- logic
+- Idle logic
+- Manual Idle
+
+
 ## 2.1.0 - 2025-07-12
 Separate manual mode control
 - Separate manual mode control
