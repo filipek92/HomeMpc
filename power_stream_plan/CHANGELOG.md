@@ -1,4 +1,17 @@
 
+## 2.2.1 - 2025-07-12
+remove not necessary  conditions
+- remove not necessary  conditions
+- cleaning
+- fix: comfort heating
+- csv generation
+- fix: icons
+- fix: doc
+- Dokumentace
+- Temperatures
+- dash
+
+
 ## 2.2.0 - 2025-07-12
 comfort heatimg
 - comfort heatimg
