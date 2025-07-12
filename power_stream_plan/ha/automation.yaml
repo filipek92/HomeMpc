@@ -1,5 +1,7 @@
 alias: PowerPlan ▸ Řízení akumulace a režimu měniče
-description: "Automatizace pro PowerPlan řízení tepelné akumulace, baterie a měniče na základě predikce"
+description: >-
+  Automatizace pro PowerPlan řízení tepelné akumulace, baterie a měniče na
+  základě predikce
 triggers:
   - entity_id:
       - sensor.powerplan_charger_use_mode
@@ -11,11 +13,10 @@ triggers:
       - sensor.powerplan_battery_target_soc
       - sensor.powerplan_reserve_power_charging
       - sensor.powerplan_minimum_battery_soc
+      - input_boolean.eeprom_fuse
     trigger: state
 actions:
-  # Nastavení režimu měniče a manuálního režimu
   - choose:
-      # Manual Charge
       - conditions:
           - condition: template
             value_template: "{{ powerplan_mode == 'Manual Charge' }}"
@@ -23,15 +24,13 @@ actions:
           - target:
               entity_id: select.solax_charger_use_mode
             data:
-              option: "Manual Mode"
+              option: Manual Mode
             action: select.select_option
           - target:
               entity_id: select.solax_manual_mode_select
             data:
-              option: "Force Charge"
+              option: Force Charge
             action: select.select_option
-      
-      # Manual Discharge  
       - conditions:
           - condition: template
             value_template: "{{ powerplan_mode == 'Manual Discharge' }}"
@@ -39,15 +38,13 @@ actions:
           - target:
               entity_id: select.solax_charger_use_mode
             data:
-              option: "Manual Mode"
+              option: Manual Mode
             action: select.select_option
           - target:
               entity_id: select.solax_manual_mode_select
             data:
-              option: "Force Discharge"
+              option: Force Discharge
             action: select.select_option
-      
-      # Manual Idle
       - conditions:
           - condition: template
             value_template: "{{ powerplan_mode == 'Manual Idle' }}"
@@ -55,23 +52,19 @@ actions:
           - target:
               entity_id: select.solax_charger_use_mode
             data:
-              option: "Manual Mode"
+              option: Manual Mode
             action: select.select_option
           - target:
               entity_id: select.solax_manual_mode_select
             data:
-              option: "Stop Charge and Discharge"
+              option: Stop Charge and Discharge
             action: select.select_option
-    
-    # Ostatní režimy (Feedin Priority, Back Up Mode)
     default:
       - target:
           entity_id: select.solax_charger_use_mode
         data:
           option: "{{ powerplan_mode }}"
         action: select.select_option
-  
-  # Ovládání horní akumulace
   - target:
       entity_id: switch.tepelnaakumulace_povolen_horn_akumulace
     action: |
@@ -80,8 +73,6 @@ actions:
       {% else %}
         switch.turn_off
       {% endif %}
-  
-  # Ovládání spodní akumulace  
   - target:
       entity_id: switch.tepelnaakumulace_povolen_spodn_akumulace
     action: |
@@ -90,8 +81,6 @@ actions:
       {% else %}
         switch.turn_off
       {% endif %}
-  
-  # Maximální ohřev ze sítě
   - target:
       entity_id: switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
     action: |
@@ -100,8 +89,6 @@ actions:
       {% else %}
         switch.turn_off
       {% endif %}
-  
-  # Blokování nuceného ohřevu
   - target:
       entity_id: switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
     action: |
@@ -110,16 +97,20 @@ actions:
       {% else %}
         switch.turn_off
       {% endif %}
+  - target:
+      entity_id: switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu
+    action: |
+      {% if powerplan_comfort_grid %}
+        switch.turn_on
+      {% else %}
+        switch.turn_off
+      {% endif %}
 mode: restart
 variables:
-  # Pojistka proti překročení denního limitu EEPROM zápisů
-  eeprom_counter: "{{ states('counter.denni_eeprom_zapisy') | float(0) }}"
-  safety_mode: "{{ eeprom_counter > 10 }}"
-  
-  # Pouze režim měniče se nastaví na backup při překročení limitu (chrání EEPROM)
-  powerplan_mode: "{{ 'Back Up Mode' if safety_mode else states('sensor.powerplan_charger_use_mode') }}"
-  
-  # Akumulace může normálně fungovat podle PowerPlan logiky (nemá EEPROM)
+  safety_mode: "{{ states('input_boolean.eeprom_fuse') == 'on' }}"
+  powerplan_mode: >-
+    {{ 'Back Up Mode' if safety_mode else
+    states('sensor.powerplan_charger_use_mode') }}
   powerplan_upper_accu: "{{ is_state('sensor.powerplan_upper_accumulation_on', 'True') }}"
   powerplan_lower_accu: "{{ is_state('sensor.powerplan_lower_accumulation_on', 'True') }}"
   powerplan_maxh: "{{ is_state('sensor.powerplan_max_heat_on', 'True') }}"
@@ -128,3 +119,4 @@ variables:
   powerplan_target_soc: "{{ states('sensor.powerplan_battery_target_soc') | float(0) }}"
   powerplan_reserve_power: "{{ states('sensor.powerplan_reserve_power_charging') | float(0) }}"
   powerplan_min_soc: "{{ states('sensor.powerplan_minimum_battery_soc') | float(0) }}"
+  powerplan_comfort_grid: "{{ is_state('sensor.powerplan_comfort_heating_grid', 'True') }}"

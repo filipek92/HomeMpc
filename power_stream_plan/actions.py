@@ -10,6 +10,7 @@ ZMĚNY v mapování entit:
 • lower_accumulation_on      → switch.tepelnaakumulace_povolen_spodn_akumulace  
 • max_heat_on               → switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
 • forced_heating_block      → switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
+• comfort_heating_grid      → switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu (NOVÉ)
 
 LOGIKA:
 - Využívá oficiální režimy X3 G4: Feedin Priority, Back Up Mode, Manual Mode
@@ -31,6 +32,10 @@ LOGIKA OHŘEVU AKUMULACE:
 - Horní a spodní akumulace se ovládají podle MPC signálů a aktuálních teplot
 - Maximální ohřev (12kW) se zapíná při velkém přebytku pro celou nádrž
 - Blokování nuceného ohřevu pouze v kritických situacích (zachovává komfort)
+- NOVÉ: Komfortní ohřev ze sítě (comfort_heating_grid):
+  * Povoluje ohřev horní části nádrže na 65°C i ze sítě (bez FVE)
+  * Aktivuje se při teplotě pod komfort, před koupáním, nebo MPC signálu
+  * Připojuje se na switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu
 """
 
 from datetime import datetime
@@ -105,6 +110,7 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
     lower_accumulation_on = heating["lower_accumulation"] 
     max_heat_on = heating["max_heat"]
     forced_heating_block = heating["block_heating"]
+    comfort_heating_grid = heating["comfort_heating_grid"]
 
     # Režim střídače
     if Bdis > P_MAN_DIS:
@@ -156,6 +162,7 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
         "lower_accumulation_on":   lower_accumulation_on,
         "max_heat_on":             max_heat_on,
         "forced_heating_block":    forced_heating_block,
+        "comfort_heating_grid":    comfort_heating_grid,
         "battery_discharge_power": battery_discharge_power,
         "battery_target_soc":      round(B_SOC, 1),
         "reserve_power_charging":  reserve_power_charging,
@@ -186,6 +193,11 @@ ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
         "friendly_name": "Blokování nuceného ohřevu",
         "device_class": "switch",
         "icon": "mdi:block-helper",
+    },
+    "comfort_heating_grid": {
+        "friendly_name": "Komfortní ohřev ze sítě povolen",
+        "device_class": "switch",
+        "icon": "mdi:water-thermometer",
     },
     "battery_discharge_power": {
         "friendly_name": "Povolený vybíjecí výkon baterie",
@@ -297,11 +309,25 @@ def enhanced_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
         (B_SOC < 15 and not upper_needs_comfort)
     )
     
+    # NOVÉ: Komfortní ohřev ze sítě - povolí ohřev horní části na 65°C i ze sítě
+    # Připojuje se na switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu
+    comfort_heating_grid = (
+        # Teplota pod komfortní - vždy povolit ohřev ze sítě
+        upper_needs_comfort or
+        # Příprava na koupání - povolit ohřev ze sítě (i když není FVE)
+        upper_needs_bath or
+        # MPC signál pro horní ohřev + rozumná cena elektřiny
+        (Hin_upper > 0.1 and cheap_electricity) or
+        # Záporná cena - vždy nahřát
+        negative_price
+    )
+    
     return {
         "upper_accumulation": upper_on,
         "lower_accumulation": lower_on, 
         "max_heat": max_heat_on,
-        "block_heating": block_heating
+        "block_heating": block_heating,
+        "comfort_heating_grid": comfort_heating_grid
     }
 
 # ---------------------------------------------------------------------------
@@ -321,6 +347,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         "lower_accumulation": [],
         "max_heat": [],
         "heating_blocked": [],
+        "comfort_heating_grid": [],
         "battery_target_soc": [],
         "reserve_power": [],
         "minimum_soc": [],
@@ -382,6 +409,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         timeline["lower_accumulation"].append(heating["lower_accumulation"])
         timeline["max_heat"].append(heating["max_heat"])
         timeline["heating_blocked"].append(heating["block_heating"])
+        timeline["comfort_heating_grid"].append(heating["comfort_heating_grid"])
         timeline["battery_target_soc"].append(round(B_SOC, 1))
         timeline["reserve_power"].append(reserve_power)
         timeline["minimum_soc"].append(minimum_soc)
@@ -393,6 +421,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
             "heating_active": heating_active,
             "max_heat_active": heating["max_heat"],
             "heating_blocked": heating["block_heating"],
+            "comfort_heating_grid": heating["comfort_heating_grid"],
             "charger_manual": charger_mode in ["Manual Charge", "Manual Discharge", "Manual Idle"],
             "charger_feedin": charger_mode == "Feedin Priority",
         })

@@ -1416,6 +1416,7 @@
                                     <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
                                     <th title="Spodní akumulace"><i class="fas fa-arrow-down"></i></th>
                                     <th title="Max. ohřev"><i class="fas fa-fire"></i></th>
+                                    <th title="Komfortní ohřev ze sítě"><i class="fas fa-bath"></i></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1442,6 +1443,11 @@
                                     <td>
                                         {% if timeline.max_heat[i] %}
                                         <i class="fas fa-fire" style="color: var(--warning-color);" title="Max. ohřev"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if timeline.comfort_heating_grid and timeline.comfort_heating_grid[i] %}
+                                        <i class="fas fa-bath" style="color: var(--info-color);" title="Komfortní ohřev ze sítě"></i>
                                         {% endif %}
                                     </td>
                                 </tr>
