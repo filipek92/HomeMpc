@@ -248,7 +248,6 @@ def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
     slot_hour = slot_time.hour
     is_comfort_time = 18 <= slot_hour <= 21
     lower_is_warm = temp_lower > TEMP_LOWER_WARM
-    negative_price = Gbuy < 0
     
     # Kritické teploty pro bezpečnost
     critical_upper = temp_upper < 40  # Kriticky nízká teplota
@@ -274,18 +273,13 @@ def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
         # Kritická situace - vždy povolit
         critical_upper or
         # Komfortní teploty podle času a MPC signálu
-        (needs_comfort_heating and (Hin_upper > 0.1 or is_comfort_time)) or
-        # Záporná cena - vždy využít
-        negative_price
+        (needs_comfort_heating and (Hin_upper > 0.1 or is_comfort_time))
     )
     
     # Maximální ohřev ze sítě (12kW - celá nádrž)
     max_heat_on = (
         # Velký FVE přebytek - využít maximum
         (fve_surplus > 8.0 and battery_ok and 
-         (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK)) or
-        # Záporná cena - topíme na maximum
-        (negative_price and battery_ok and
          (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK))
     )
     
