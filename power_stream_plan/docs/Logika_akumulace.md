@@ -56,16 +56,15 @@ Systém řídí tepelnou akumulaci v nádrži pomocí 4 elektrických topných p
 - `accu_maxtemp` - maximální teplota akumulace (°C)
 
 ### Řídící přepínače
-- `accu_tuv_en` - povolení horní akumulace
-- `accu_en` - povolení spodní akumulace
-- `comfort_heat_en` - povolení komfortního ohřevu
-- `auto_en` - povolení automatiky
-- `block_force` - blokování nuceného ohřevu
-- `full_power` - maximální ohřev ze sítě
+- `accu_tuv_en` - povolení horní akumulace v HA k dispozici `switch.tepelnaakumulace_povolen_horn_akumulace`
+- `accu_en` - povolení spodní akumulace v HA k jako `switch.tepelnaakumulace_povolen_spodn_akumulace`
+- `comfort_heat_en` - povolení komfortního ohřevu v HA jako `switch.tepelnaakumulace_povolen_komfortn_ho_oh_evu`
+- `block_force` - blokování nuceného ohřevu v HA jako `switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu`
+- `full_power` - maximální ohřev ze sítě v HA jako `switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t`
 
 ## Logické stavy (binary_sensor)
 
-### Požadavky na ohřev
+### Požadavky na ohřev (informace v HA)
 - `primary_heat` - primární ohřev (kritický)
 - `comfort_tuv_heat` - komfortní ohřev TUV
 - `accu_tuv_heat` - akumulace TUV (horní zóna)
