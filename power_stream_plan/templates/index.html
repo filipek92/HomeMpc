@@ -1412,7 +1412,8 @@
                                     <th>Čas</th>
                                     <th>Režim střídače</th>
                                     <th>SoC (%)</th>
-                                    <th>Rezerva</th>
+                                    <th><i class="fas fa-thermometer-high" title="Horní teplota"></i></th>
+                                    <th><i class="fas fa-thermometer-low" title="Spodní teplota"></i></th>
                                     <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
                                     <th title="Spodní akumulace"><i class="fas fa-arrow-down"></i></th>
                                     <th title="Max. ohřev"><i class="fas fa-fire"></i></th>
@@ -1429,7 +1430,8 @@
                                         </span>
                                     </td>
                                     <td>{{ "%.0f"|format(timeline.battery_target_soc[i]) }}%</td>
-                                    <td>{{ "%.0f"|format(timeline.reserve_power[i]/1000) }}W</td>
+                                    <td>{% if timeline.temp_upper and timeline.temp_upper[i] is defined %}{{ "%.1f"|format(timeline.temp_upper[i]) }}°C{% else %}N/A{% endif %}</td>
+                                    <td>{% if timeline.temp_lower and timeline.temp_lower[i] is defined %}{{ "%.1f"|format(timeline.temp_lower[i]) }}°C{% else %}N/A{% endif %}</td>
                                     <td>
                                         {% if timeline.upper_accumulation[i] %}
                                         <i class="fas fa-arrow-up" style="color: var(--warning-color);" title="Horní akumulace"></i>

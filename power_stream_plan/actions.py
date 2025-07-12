@@ -353,6 +353,8 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         "minimum_soc": [],
         "fve_surplus": [],
         "heating_logic": [],
+        "temp_upper": [],  # Nové: horní teplota
+        "temp_lower": [],  # Nové: spodní teplota
     }
     
     for slot in range(num_slots):
@@ -412,6 +414,8 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         timeline["comfort_heating_grid"].append(heating["comfort_heating_grid"])
         timeline["battery_target_soc"].append(round(B_SOC, 1))
         timeline["reserve_power"].append(reserve_power)
+        timeline["temp_upper"].append(temp_upper)  # Nové: uložit horní teplotu
+        timeline["temp_lower"].append(temp_lower)  # Nové: uložit spodní teplotu
         timeline["minimum_soc"].append(minimum_soc)
         timeline["fve_surplus"].append(fve_surplus)
         
