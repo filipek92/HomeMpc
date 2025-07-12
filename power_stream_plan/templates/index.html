@@ -1024,6 +1024,50 @@
             });
         }
 
+        // Function to download CSV with user feedback
+        function downloadCSV(baseUrl) {
+            // Získej aktuální den a čas z formuláře, pokud existuje
+            const daySelect = document.querySelector('select[name="day"]');
+            const timeSelect = document.querySelector('select[name="time"]');
+            
+            let url = baseUrl;
+            const params = new URLSearchParams();
+            
+            if (daySelect && daySelect.value) {
+                params.append('day', daySelect.value);
+            }
+            if (timeSelect && timeSelect.value) {
+                params.append('time', timeSelect.value);
+            }
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+            
+            // Show loading indicator
+            const downloadButtons = document.querySelectorAll('a[href*="download_csv"]');
+            downloadButtons.forEach(btn => {
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
+            });
+            
+            // Create temporary download link
+            const tempLink = document.createElement('a');
+            tempLink.href = url;
+            tempLink.download = '';
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            document.body.removeChild(tempLink);
+            
+            // Reset buttons after a short delay
+            setTimeout(() => {
+                downloadButtons.forEach(btn => {
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                });
+            }, 2000);
+        }
+
         function toggleControls() {
             const section = document.getElementById('controls-section');
             section.style.display = (section.style.display === 'none') ? 'block' : 'none';
@@ -1051,6 +1095,10 @@
                 <a href="./settings" class="btn-header">
                     <i class="fas fa-cog"></i>
                     Nastavení
+                </a>
+                <a href="./download_csv" class="btn-header" onclick="downloadCSV('./download_csv'); return false;" title="Stáhnout úplná data optimalizace ve formátu CSV">
+                    <i class="fas fa-download"></i>
+                    Stáhnout CSV
                 </a>
                 <button onclick="regenerateOptimization()" class="btn-header" style="border: none; background: none; cursor: pointer;">
                     <i class="fas fa-sync-alt"></i>
@@ -1501,6 +1549,14 @@
                                 <td>Počet slotů</td>
                                 <td>{{ solution.get('times', [])|length }}</td>
                             </tr>
+                            <tr>
+                                <td>Export dat</td>
+                                <td>
+                                    <a href="./download_csv" onclick="downloadCSV('./download_csv'); return false;" style="color: var(--info-color); text-decoration: none;">
+                                        <i class="fas fa-download"></i> Stáhnout CSV
+                                    </a>
+                                </td>
+                            </tr>
                         </table>
                     </div>
                 </div>
@@ -1542,10 +1598,16 @@
                 <i class="fas fa-clock"></i>
                 Vygenerováno: {{ generated_at }}
             </div>
-            <button onclick="regenerateOptimization()" class="btn-regenerate">
-                <i class="fas fa-sync-alt"></i>
-                Znovu vygenerovat optimalizaci
-            </button>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <a href="./download_csv" class="btn-regenerate" style="background: var(--info-color); text-decoration: none; color: white;" onclick="downloadCSV('./download_csv'); return false;" title="Stáhnout kompletní data optimalizace ve formátu CSV">
+                    <i class="fas fa-download"></i>
+                    Stáhnout CSV
+                </a>
+                <button onclick="regenerateOptimization()" class="btn-regenerate">
+                    <i class="fas fa-sync-alt"></i>
+                    Znovu vygenerovat optimalizaci
+                </button>
+            </div>
         </div>
     </div>
 </body>

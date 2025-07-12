@@ -359,11 +359,89 @@ def index():
         current_results=current_results,
         timeline=timeline,
         version=get_current_version(),
+        selected_file=selected_file,  # Pro možnost stažení specifického CSV
     )
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(app.root_path, 'icon.png', mimetype='image/png')
+
+@app.route('/download_csv')
+def download_csv():
+    """Stáhne CSV soubor s aktuálními optimalizačními daty"""
+    try:
+        # Zkontroluj, zda je specifikován konkrétní den/čas
+        day = request.args.get('day')
+        time = request.args.get('time')
+        
+        csv_filename = None
+        solution = None
+        
+        if day and time:
+            # Najdi konkrétní soubor
+            all_files = sorted(
+                (f for f in os.listdir(RESULTS_DIR)
+                 if f.startswith('result_') and f.endswith('.json')),
+                reverse=True
+            )
+            # Seskup podle data
+            from collections import defaultdict
+            grouped_files = defaultdict(list)
+            for fname in all_files:
+                date_part = fname.split('_')[1]
+                time_part = fname.split('_')[2].split('.')[0]
+                grouped_files[date_part].append((time_part, fname))
+            
+            if day in grouped_files:
+                for t, json_file in grouped_files[day]:
+                    if t == time:
+                        # Název odpovídajícího CSV souboru
+                        csv_filename = json_file.replace('.json', '.csv')
+                        break
+        
+        # Pokud máme specifický soubor, zkus ho použít
+        if csv_filename and os.path.exists(os.path.join(RESULTS_DIR, csv_filename)):
+            download_name = f"powerplan_export_{day}_{time}.csv"
+            return send_from_directory(RESULTS_DIR, csv_filename, as_attachment=True, 
+                                     download_name=download_name)
+        
+        # Jinak použij latest.csv
+        latest_csv = os.path.join(RESULTS_DIR, "latest.csv")
+        if os.path.exists(latest_csv):
+            download_name = f"powerplan_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            return send_from_directory(RESULTS_DIR, "latest.csv", as_attachment=True, 
+                                     download_name=download_name)
+        else:
+            # Pokud latest.csv neexistuje, vygeneruj nový
+            solution = load_cache()
+            if solution:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                csv_filename = f"export_{timestamp}.csv"
+                csv_path = os.path.join(RESULTS_DIR, csv_filename)
+                create_csv_export(solution, csv_path)
+                return send_from_directory(RESULTS_DIR, csv_filename, as_attachment=True,
+                                         download_name=f"powerplan_export_{timestamp}.csv")
+            else:
+                return "CSV data nejsou dostupná", 404
+    except Exception as e:
+        return f"Chyba při generování CSV: {str(e)}", 500
+
+@app.route('/download_csv/<filename>')
+def download_csv_specific(filename):
+    """Stáhne specifický CSV soubor podle názvu"""
+    try:
+        # Ověř, že soubor existuje a je to CSV
+        if not filename.endswith('.csv') or not filename.startswith('result_'):
+            return "Neplatný soubor", 400
+        
+        csv_path = os.path.join(RESULTS_DIR, filename)
+        if not os.path.exists(csv_path):
+            return "Soubor nenalezen", 404
+            
+        return send_from_directory(RESULTS_DIR, filename, as_attachment=True,
+                                 download_name=f"powerplan_{filename}")
+    except Exception as e:
+        return f"Chyba při stahování souboru: {str(e)}", 500
 
 # Inicializace scheduleru pokud běží v produkci
 if os.environ.get("HA_ADDON"):
