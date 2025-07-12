@@ -15,9 +15,11 @@ LOGIKA:
 - Využívá oficiální režimy X3 G4: Feedin Priority, Back Up Mode, Manual Mode
 - Manual Charge → Manual Mode + Force Charge
 - Manual Discharge → Manual Mode + Force Discharge  
-- Manual Idle → Manual Mode + Stop Charge and Discharge
+- Manual Idle → Manual Mode + Stop Charge and Discharge (jen při specifických podmínkách)
+  * Používá se pouze když: nákup ze sítě (>0.2kW) a nízký výkon FVE (<0.6kW)
+  * Zamezuje zbytečnému vybíjení baterie při nedostatku FVE a nákupu ze sítě
 - Feedin Priority pro optimalizaci prodeje přebytků
-- Back Up Mode: optimalizuje vlastní spotřebu + záložní napájení
+- Back Up Mode: optimalizuje vlastní spotřebu + záložní napájení (standardní režim)
 - Konfigurovatelný preferovaný standardní režim (PREFERRED_STANDARD_MODE)
 - Automatické režimy využívají inteligenci střídače pro 0W na elektroměru
 
@@ -108,8 +110,13 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
         charger_use_mode = "Manual Discharge"
     elif Bchrg > P_MAN_DIS:
         charger_use_mode = "Manual Charge"
-    elif abs(Bdis) < 0.1 and abs(Bchrg) < 0.1:
-        # Explicitní idle režim - baterie se nepoužívá
+    elif (abs(Bdis) < 0.1 and abs(Bchrg) < 0.1 and 
+          Gbuy > 0.2 and fve_output < 0.6):
+        # Manual Idle pouze při specifických podmínkách:
+        # - žádné nabíjení/vybíjení baterie
+        # - nákup ze sítě (Gbuy > 0.2 kW)
+        # - nízký výkon FVE (< 0.6 kW)
+        # Zamezuje vybíjení baterie při nedostatku FVE a nákupu ze sítě
         charger_use_mode = "Manual Idle"
     elif Gsell > P_EXTRA_EXP:
         charger_use_mode = "Feedin Priority"
@@ -348,8 +355,13 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
             charger_mode = "Manual Discharge"
         elif Bchrg > P_MAN_DIS:
             charger_mode = "Manual Charge"
-        elif abs(Bdis) < 0.1 and abs(Bchrg) < 0.1:
-            # Explicitní idle režim - baterie se nepoužívá
+        elif (abs(Bdis) < 0.1 and abs(Bchrg) < 0.1 and 
+              Gbuy > 0.2 and fve_output < 0.6):
+            # Manual Idle pouze při specifických podmínkách:
+            # - žádné nabíjení/vybíjení baterie
+            # - nákup ze sítě (Gbuy > 0.2 kW)
+            # - nízký výkon FVE (< 0.6 kW)
+            # Zamezuje vybíjení baterie při nedostatku FVE a nákupu ze sítě
             charger_mode = "Manual Idle"
         elif Gsell > P_EXTRA_EXP:
             charger_mode = "Feedin Priority"
