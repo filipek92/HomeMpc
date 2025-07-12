@@ -41,6 +41,9 @@ views:
               - entity: sensor.powerplan_forced_heating_block
                 name: Blokování ohřevu
                 icon: mdi:block-helper
+              - entity: sensor.powerplan_comfort_heating_grid
+                name: Komfortní ohřev ze sítě
+                icon: mdi:bath
             state_color: true
             show_header_toggle: false
           - type: markdown
@@ -85,14 +88,14 @@ views:
 
 
               {% set eeprom_counter =
-              states('counter.denni_eeprom_zapisy')|float(0) %}
+              states('counter.denni_eeprom_zapisy')|int(0) %}
 
               {% set warnings = [] %}
 
-              {% if eeprom_counter > 10 %}
+              {% if states("input_boolean.eeprom_fuse") == "on" %}
                 {% set warnings = warnings + ['🛡️ EEPROM POJISTKA AKTIVNÍ! Denní zápisy: ' + eeprom_counter|string + ' (limit 10)'] %}
               {% elif eeprom_counter > 7 %}
-                {% set warnings = warnings + ['⚠️ EEPROM zápisy blízko limitu: ' + eeprom_counter|string + '/10'] %}
+                {% set warnings = warnings + ['⚠️ EEPROM zápisy: ' + eeprom_counter|string + '/10'] %}
               {% endif %}
 
               {% if (soc - target_soc)|abs > 10 %}
@@ -231,6 +234,7 @@ views:
               - entity: switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
                 name: Blokování ohřevu
                 icon: mdi:block-helper
+              - entity: input_boolean.eeprom_fuse
             state_color: true
             show_header_toggle: false
             title: 🎛️ Ovládání
@@ -396,10 +400,6 @@ views:
 
               {% if tank_soc > 80 %}🔥 Plně ohřátá{% elif tank_soc > 50 %}🟡
               Středně ohřátá{% else %}🔵 Studená{% endif %}
-      - type: grid
-        cards:
-          - type: heading
-            heading: 🔍 Diagnostika
       - type: grid
         cards:
           - type: heading
