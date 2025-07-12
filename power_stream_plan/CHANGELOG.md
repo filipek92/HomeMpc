@@ -1,4 +1,9 @@
 
+## 2.2.0 - 2025-07-12
+comfort heatimg
+- comfort heatimg
+
+
 ## 2.1.1 - 2025-07-12
 logic
 - logic
