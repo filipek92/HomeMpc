@@ -156,10 +156,23 @@
             color: white;
             display: inline-block;
         }
-        .mode-self-use { background-color: #4db6ac; }
         .mode-back-up-mode { background-color: #0f9d58; }
         .mode-feedin-priority { background-color: #8353d1; }
-        .mode-manual { background-color: #f06292; }
+        .mode-manual-mode { background-color: #f06292; }
+        
+        /* Badge pro manual mode select */
+        .manual-mode-badge {
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.375rem;
+            font-size: 0.65rem;
+            font-weight: 500;
+            margin-left: 0.25rem;
+            display: inline-block;
+        }
+        .manual-stop-charge-and-discharge { background-color: #e5e7eb; color: #374151; }
+        .manual-force-charge { background-color: #dcfce7; color: #166534; }
+        .manual-force-discharge { background-color: #fef3c7; color: #92400e; }
+        
         /* Malý barevný puntík pod badge režimu */
         .mode-dot {
             width: 8px;
@@ -714,7 +727,7 @@
         .mt-1 { margin-top: 0.25rem; }
         .hidden { display: none; }
 
-        /* Mode badges */
+        /* Mode badges - sjednocená definice */
         .mode-badge {
             padding: 0.25rem 0.5rem;
             border-radius: var(--border-radius-sm);
@@ -722,10 +735,9 @@
             font-weight: 500;
         }
 
-        .mode-manual { background: #FEE2E2; color: #991B1B; }
-        .mode-feedin { background: #EDE9FE; color: #5B21B6; }
-        .mode-backup { background: #D1FAE5; color: #065F46; }
-        .mode-self { background: #DBEAFE; color: #1E40AF; }
+        .mode-manual-mode { background: #FEE2E2; color: #991B1B; }
+        .mode-feedin-priority { background: #EDE9FE; color: #5B21B6; }
+        .mode-back-up-mode { background: #D1FAE5; color: #065F46; }
 
         .status-active {
             color: var(--success-color);
@@ -779,8 +791,8 @@
                 grid-template-columns: 1fr;
             }
 
-            .timeline-table th:nth-child(n+4),
-            .timeline-table td:nth-child(n+4) {
+            .timeline-table th:nth-child(n+5),
+            .timeline-table td:nth-child(n+5) {
                 display: none;
             }
 
@@ -1123,6 +1135,7 @@
             {% set first_slot_data = {
                 'battery_soc': timeline.get("battery_target_soc", [0])[0],
                 'charger_mode': timeline.get("charger_mode", ["Unknown"])[0],
+                'manual_mode': current_actions.get("manual_mode_select", "Stop Charge and Discharge"),
                 'fve_surplus': timeline.get("fve_surplus", [0])[0],
                 'reserve_power': timeline.get("reserve_power", [0])[0]
             } %}
@@ -1164,6 +1177,11 @@
                         <span class="mode-badge mode-{{ first_slot_data.get('charger_mode', 'Unknown').lower().replace(' ', '-') }}">
                             {{ first_slot_data.get('charger_mode', 'Unknown') }}
                         </span>
+                        {% if first_slot_data.get('charger_mode') == 'Manual Mode' %}
+                            <span class="manual-mode-badge manual-{{ first_slot_data.get('manual_mode', 'stop-charge-and-discharge').lower().replace(' ', '-') }}">
+                                {{ first_slot_data.get('manual_mode', 'Stop Charge and Discharge') }}
+                            </span>
+                        {% endif %}
                     </div>
                     <div class="status-card-subtitle">Aktuální plánovaný režim</div>
                 </div>
@@ -1298,6 +1316,85 @@
                     </div>
                 </div>
 
+                <!-- Current Actions Table -->
+                <h4 style="margin: 1.5rem 0 1rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-play-circle"></i> Aktuální akce
+                </h4>
+                <table class="data-table">
+                    {% if current_actions.get('charger_use_mode') %}
+                    <tr>
+                        <td>Režim střídače</td>
+                        <td>
+                            <span class="mode-badge mode-{{ current_actions.charger_use_mode.lower().replace(' ', '-') }}">
+                                {{ current_actions.charger_use_mode }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('manual_mode_select') %}
+                    <tr>
+                        <td>Ruční režim</td>
+                        <td>
+                            <span class="manual-mode-badge manual-{{ current_actions.manual_mode_select.lower().replace(' ', '-') }}">
+                                {{ current_actions.manual_mode_select }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('upper_accumulation_on') is not none %}
+                    <tr>
+                        <td>Horní akumulace</td>
+                        <td>
+                            <span class="status-{{ 'active' if current_actions.upper_accumulation_on else 'inactive' }}">
+                                {{ 'Zapnuto' if current_actions.upper_accumulation_on else 'Vypnuto' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('lower_accumulation_on') is not none %}
+                    <tr>
+                        <td>Spodní akumulace</td>
+                        <td>
+                            <span class="status-{{ 'active' if current_actions.lower_accumulation_on else 'inactive' }}">
+                                {{ 'Zapnuto' if current_actions.lower_accumulation_on else 'Vypnuto' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('max_heat_on') is not none %}
+                    <tr>
+                        <td>Maximální ohřev</td>
+                        <td>
+                            <span class="status-{{ 'active' if current_actions.max_heat_on else 'inactive' }}">
+                                {{ 'Zapnuto' if current_actions.max_heat_on else 'Vypnuto' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('forced_heating_block') is not none %}
+                    <tr>
+                        <td>Blokování ohřevu</td>
+                        <td>
+                            <span class="status-{{ 'active' if current_actions.forced_heating_block else 'inactive' }}">
+                                {{ 'Zapnuto' if current_actions.forced_heating_block else 'Vypnuto' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('battery_target_soc') %}
+                    <tr>
+                        <td>Cílový SOC</td>
+                        <td>{{ "%.1f%%"|format(current_actions.battery_target_soc) }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if current_actions.get('reserve_power_charging') %}
+                    <tr>
+                        <td>Rezervní výkon</td>
+                        <td>{{ "%.0f W"|format(current_actions.reserve_power_charging) }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+
                 <!-- Enhanced results table -->
                 <table class="data-table">
                     {% for key, value in current_results.items() %}
@@ -1338,7 +1435,8 @@
                             <thead>
                                 <tr>
                                     <th>Čas</th>
-                                    <th>Režim</th>
+                                    <th>Režim střídače</th>
+                                    <th>Manual Mode</th>
                                     <th>SoC (%)</th>
                                     <th>Rezerva</th>
                                     <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
@@ -1354,7 +1452,15 @@
                                         <span class="mode-badge mode-{{ timeline.charger_mode[i].lower().replace(' ', '-') }}">
                                             {{ timeline.charger_mode[i] }}
                                         </span>
-                                        <span class="mode-dot mode-{{ timeline.charger_mode[i].lower().replace(' ', '-') }}"></span>
+                                    </td>
+                                    <td>
+                                        {% if timeline.charger_mode[i] == 'Manual Mode' and timeline.get('manual_mode_select') and i < timeline.manual_mode_select|length %}
+                                            <span class="manual-mode-badge manual-{{ timeline.manual_mode_select[i].lower().replace(' ', '-') }}">
+                                                {{ timeline.manual_mode_select[i] }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ "%.0f"|format(timeline.battery_target_soc[i]) }}%</td>
                                     <td>{{ "%.0f"|format(timeline.reserve_power[i]/1000) }}W</td>

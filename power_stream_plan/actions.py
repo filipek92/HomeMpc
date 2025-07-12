@@ -2,43 +2,21 @@
 """
 actions.py
 ----------
-Převádí výstupy z `run_mpc_optimizer` na konkré    # Výpočet výkonů a proudů baterie
-    if charger_use_mode == "Manual":
-        # Manual režim - explicitní řízení (servisní účely)
-        if Bdis > P_MAN_DIS:
-            # Vybíjení
-            battery_power_w = -int(Bdis * 1000)
-            battery_discharge_power = max(0, int(Bdis * 1000))
-        elif Bchrg > P_MAN_DIS:
-            # Nabíjení
-            battery_power_w = int(Bchrg * 1000)
-            battery_discharge_power = 0
-        else:
-            battery_power_w = 0
-            battery_discharge_power = 0
-    else:
-        # Automatické režimy (Self Use, Feedin Priority, Back Up) - střídač řídí sám
-        battery_power_w = 0
-        battery_discharge_power = 0ome Assistant.
+Převádí výstupy z `run_mpc_optimizer` na konkrétní akce pro Home Assistant.
 
 ZMĚNY v mapování entit:
 • charger_use_mode           → select.solax_charger_use_mode
+• manual_mode_select         → select.solax_manual_mode_select
 • upper_accumulation_on      → switch.tepelnaakumulace_povolen_horn_akumulace
 • lower_accumulation_on      → switch.tepelnaakumulace_povolen_spodn_akumulace  
 • max_heat_on               → switch.tepelnaakumulace_maxim_ln_oh_ev_ze_s_t
 • forced_heating_block      → switch.tepelnaakumulace_blokov_n_nucen_ho_oh_evu
-• battery_discharge_power   → number.tepelnaakumulace_povolen_vyb_jec_v_kon_baterie
-• battery_target_soc        → number.tepelnaakumulace_po_adovan_stav_nabit_baterie
-• reserve_power_charging    → number.tepelnaakumulace_rezervovan_v_kon_pro_dob_jen_baterie
-• minimum_battery_soc       → number.tepelnaakumulace_minim_ln_stav_nabit_baterie
 
 LOGIKA:
-- Využívá oficiální režimy X3 G4: Self Use, Feedin Priority, Back Up Mode, Manual
-- Manual režim pouze pro servisní účely (nucené nabíjení/vybíjení)
+- Využívá oficiální režimy X3 G4: Feedin Priority, Back Up Mode, Manual Mode
+- Manual Mode pouze pro servisní účely s explicitním řízením přes manual_mode_select
 - Feedin Priority pro optimalizaci prodeje přebytků
-- Self Use vs Back Up Mode: oba optimalizují vlastní spotřebu, ale:
-  * Self Use: při min SOC střídač "usne" (úspora energie)
-  * Back Up Mode: střídač zůstává aktivní pro okamžité záložní napájení
+- Back Up Mode: optimalizuje vlastní spotřebu + záložní napájení
 - Konfigurovatelný preferovaný standardní režim (PREFERRED_STANDARD_MODE)
 - Automatické režimy využívají inteligenci střídače pro 0W na elektroměru
 
@@ -64,9 +42,11 @@ MIN_SOC_RESERVE = 40     # % - minimální rezerva baterie
 MAX_HEAT_POWER = 12000   # W - maximální výkon ohřevu
 
 # Konfigurace režimů střídače
-# "Self Use" - optimalizuje vlastní spotřebu, při min SOC střídač "usne"
-# "Back Up Mode" - podobné jako Self Use, ale střídač zůstává aktivní pro záložní napájení
-PREFERRED_STANDARD_MODE = "Back Up Mode"  # nebo "Self Use"
+# Dostupné režimy: "Feedin Priority", "Back Up Mode", "Manual Mode"
+# "Back Up Mode" - optimalizuje vlastní spotřebu + záložní napájení  
+# "Feedin Priority" - priorita prodeje přebytků do sítě
+# "Manual Mode" - ruční řízení nabíjení/vybíjení
+PREFERRED_STANDARD_MODE = "Back Up Mode"
 
 # Heuristiky
 P_MAN_DIS   = 3.5        # kW - práh pro Manual režim (reálný minimální výkon)
@@ -124,17 +104,21 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
 
     # Režim střídače
     if Bdis > P_MAN_DIS:
-        charger_use_mode = "Manual"
+        charger_use_mode = "Manual Mode"
+        manual_mode_select = "Force Discharge"
     elif Bchrg > P_MAN_DIS:
-        charger_use_mode = "Manual"
+        charger_use_mode = "Manual Mode" 
+        manual_mode_select = "Force Charge"
     elif Gsell > P_EXTRA_EXP:
         charger_use_mode = "Feedin Priority"
+        manual_mode_select = "Stop Charge and Discharge"
     else:
         charger_use_mode = PREFERRED_STANDARD_MODE
+        manual_mode_select = "Stop Charge and Discharge"
 
     # Výpočet výkonů a proudů baterie
-    if charger_use_mode == "Manual":
-        # Manual režim - explicitní řízení (servisní účely)
+    if charger_use_mode == "Manual Mode":
+        # Manual režim - explicitní řízení přes manual_mode_select
         if Bdis > P_MAN_DIS:
             # Vybíjení
             battery_power_w = -int(Bdis * 1000)
@@ -147,7 +131,7 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
             battery_power_w = 0
             battery_discharge_power = 0
     else:
-        # Automatické režimy (Self Use, Feedin Priority, Back Up) - střídač řídí sám
+        # Automatické režimy (Feedin Priority, Back Up Mode) - střídač řídí sám
         battery_power_w = 0
         battery_discharge_power = 0
     
@@ -159,6 +143,7 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
 
     return {
         "charger_use_mode":        charger_use_mode,
+        "manual_mode_select":      manual_mode_select,
         "upper_accumulation_on":   upper_accumulation_on,
         "lower_accumulation_on":   lower_accumulation_on,
         "max_heat_on":             max_heat_on,
@@ -171,8 +156,12 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
 
 ACTION_ATTRIBUTES: dict[str, dict[str, str]] = {
     "charger_use_mode": {
-        "friendly_name": "Režim měniče (Self Use/Feedin Priority/Back Up/Manual)",
+        "friendly_name": "Režim měniče (Feedin Priority/Back Up Mode/Manual Mode)",
         "icon": "mdi:transmission-tower-export",
+    },
+    "manual_mode_select": {
+        "friendly_name": "Ruční režim baterie (Stop/Force Charge/Force Discharge)",
+        "icon": "mdi:battery-sync",
     },
     "upper_accumulation_on": {
         "friendly_name": "Horní akumulace povolena", 
@@ -323,6 +312,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
     # Příprava výstupních časových řad
     timeline = {
         "charger_mode": [],
+        "manual_mode_select": [],
         "upper_accumulation": [],
         "lower_accumulation": [],
         "max_heat": [],
@@ -360,13 +350,17 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         
         # Režim střídače
         if Bdis > P_MAN_DIS:
-            charger_mode = "Manual"
+            charger_mode = "Manual Mode"
+            manual_mode_select = "Force Discharge"
         elif Bchrg > P_MAN_DIS:
-            charger_mode = "Manual"
+            charger_mode = "Manual Mode"
+            manual_mode_select = "Force Charge"
         elif Gsell > P_EXTRA_EXP:
             charger_mode = "Feedin Priority"
+            manual_mode_select = "Stop Charge and Discharge"
         else:
             charger_mode = PREFERRED_STANDARD_MODE
+            manual_mode_select = "Stop Charge and Discharge"
         
         # Rezervovaný výkon pro dobíjení
         reserve_power = max(0, int(Bchrg * 1000)) if B_SOC < 90 else 0
@@ -376,6 +370,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         
         # Uložení do časových řad
         timeline["charger_mode"].append(charger_mode)
+        timeline["manual_mode_select"].append(manual_mode_select)
         timeline["upper_accumulation"].append(heating["upper_accumulation"])
         timeline["lower_accumulation"].append(heating["lower_accumulation"])
         timeline["max_heat"].append(heating["max_heat"])
@@ -391,7 +386,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
             "heating_active": heating_active,
             "max_heat_active": heating["max_heat"],
             "heating_blocked": heating["block_heating"],
-            "charger_manual": charger_mode == "Manual",
+            "charger_manual": charger_mode == "Manual Mode",
             "charger_feedin": charger_mode == "Feedin Priority",
         })
     

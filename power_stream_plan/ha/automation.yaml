@@ -3,6 +3,7 @@ description: "Automatizace pro PowerPlan řízení tepelné akumulace, baterie a
 triggers:
   - entity_id:
       - sensor.powerplan_charger_use_mode
+      - sensor.powerplan_manual_mode_select
       - sensor.powerplan_upper_accumulation_on
       - sensor.powerplan_lower_accumulation_on
       - sensor.powerplan_max_heat_on
@@ -18,6 +19,15 @@ actions:
       entity_id: select.solax_charger_use_mode
     data:
       option: "{{ powerplan_mode }}"
+    action: select.select_option
+  
+  # Nastavení manuálního režimu baterie (pouze pokud je aktivní Manual Mode)
+  - condition: template
+    value_template: "{{ powerplan_mode == 'Manual Mode' }}"
+  - target:
+      entity_id: select.solax_manual_mode_select
+    data:
+      option: "{{ powerplan_manual_mode }}"
     action: select.select_option
   
   # Ovládání horní akumulace
@@ -59,42 +69,6 @@ actions:
       {% else %}
         switch.turn_off
       {% endif %}
-  
-  # Nastavení povoleného vybíjecího výkonu baterie
-  - condition: template
-    value_template: "{{ powerplan_discharge_power is defined and powerplan_discharge_power | float > 0 }}"
-  - target:
-      entity_id: number.tepelnaakumulace_povolen_vyb_jec_v_kon_baterie
-    data:
-      value: "{{ powerplan_discharge_power | float }}"
-    action: number.set_value
-  
-  # Nastavení požadovaného stavu nabití baterie
-  - condition: template
-    value_template: "{{ powerplan_target_soc is defined and powerplan_target_soc | float > 0 }}"
-  - target:
-      entity_id: number.tepelnaakumulace_po_adovan_stav_nabit_baterie
-    data:
-      value: "{{ powerplan_target_soc | float }}"
-    action: number.set_value
-  
-  # Nastavení rezervovaného výkonu pro nabíjení
-  - condition: template
-    value_template: "{{ powerplan_reserve_power is defined and powerplan_reserve_power | float > 0 }}"
-  - target:
-      entity_id: number.tepelnaakumulace_rezervovan_v_kon_pro_dob_jen_baterie
-    data:
-      value: "{{ powerplan_reserve_power | float }}"
-    action: number.set_value
-  
-  # Nastavení minimálního stavu nabití baterie
-  - condition: template
-    value_template: "{{ powerplan_min_soc is defined and powerplan_min_soc | float > 0 }}"
-  - target:
-      entity_id: number.tepelnaakumulace_minim_ln_stav_nabit_baterie
-    data:
-      value: "{{ powerplan_min_soc | float }}"
-    action: number.set_value
 mode: restart
 variables:
   # Pojistka proti překročení denního limitu EEPROM zápisů
@@ -102,7 +76,8 @@ variables:
   safety_mode: "{{ eeprom_counter > 10 }}"
   
   # Pouze režim měniče se nastaví na backup při překročení limitu (chrání EEPROM)
-  powerplan_mode: "{{ 'backup' if safety_mode else states('sensor.powerplan_charger_use_mode') }}"
+  powerplan_mode: "{{ 'Back Up Mode' if safety_mode else states('sensor.powerplan_charger_use_mode') }}"
+  powerplan_manual_mode: "{{ states('sensor.powerplan_manual_mode_select') }}"
   
   # Akumulace může normálně fungovat podle PowerPlan logiky (nemá EEPROM)
   powerplan_upper_accu: "{{ is_state('sensor.powerplan_upper_accumulation_on', 'True') }}"
