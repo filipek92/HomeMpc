@@ -1,4 +1,12 @@
 
+## 2.1.0 - 2025-07-12
+Separate manual mode control
+- Separate manual mode control
+- Refactor, docs
+- add Optimization docs
+- credentials debug
+
+
 ## 2.0.3 - 2025-07-11
 fix: startup
 - fix: startup
