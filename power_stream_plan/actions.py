@@ -76,6 +76,7 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
         slot_index: Index slotu (0 = aktuální/první slot)
     """
     out = sol["outputs"]  # outputs now use lower_snake_case keys
+    inp = sol.get("inputs", {})  # inputs contain predictions
     Hin_upper = out["h_in_upper"][slot_index]
     Hin_lower = out["h_in_lower"][slot_index]
     Hin_total = Hin_upper + Hin_lower
@@ -90,8 +91,8 @@ def powerplan_to_actions(sol: Dict[str, Any], slot_index: int = 0) -> Dict[str, 
     temp_lower_current = out["temp_lower"][slot_index]  # °C
 
     # Výpočet FVE přebytku
-    fve_output = out.get("fve_pred", [0] * len(out["h_in_upper"]))[slot_index]
-    load_demand = out.get("load_pred", [0] * len(out["h_in_upper"]))[slot_index]
+    fve_output = inp.get("fve_pred", [])[slot_index] if slot_index < len(inp.get("fve_pred", [])) else 0
+    load_demand = inp.get("load_pred", [])[slot_index] if slot_index < len(inp.get("load_pred", [])) else 0
     fve_surplus = max(0, fve_output - load_demand)
 
     # Vylepšená logika ohřevu pro aktuální slot
@@ -310,6 +311,7 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
     Výsledek obsahuje časové řady pro vizualizaci v grafech.
     """
     out = sol["outputs"]
+    inp = sol.get("inputs", {})  # inputs contain predictions
     num_slots = len(out["h_in_upper"])
     
     # Příprava výstupních časových řad
@@ -340,8 +342,8 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
         temp_lower = out["temp_lower"][slot]
         
         # Výpočet FVE přebytku
-        fve_output = out.get("fve_pred", [0] * num_slots)[slot]
-        load_demand = out.get("load_pred", [0] * num_slots)[slot]
+        fve_output = inp.get("fve_pred", [])[slot] if slot < len(inp.get("fve_pred", [])) else 0
+        load_demand = inp.get("load_pred", [])[slot] if slot < len(inp.get("load_pred", [])) else 0
         fve_surplus = max(0, fve_output - load_demand)
         
         # Vylepšená logika ohřevu
