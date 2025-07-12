@@ -3,7 +3,6 @@ description: "Automatizace pro PowerPlan řízení tepelné akumulace, baterie a
 triggers:
   - entity_id:
       - sensor.powerplan_charger_use_mode
-      - sensor.powerplan_manual_mode_select
       - sensor.powerplan_upper_accumulation_on
       - sensor.powerplan_lower_accumulation_on
       - sensor.powerplan_max_heat_on
@@ -14,21 +13,63 @@ triggers:
       - sensor.powerplan_minimum_battery_soc
     trigger: state
 actions:
-  # Nastavení režimu měniče
-  - target:
-      entity_id: select.solax_charger_use_mode
-    data:
-      option: "{{ powerplan_mode }}"
-    action: select.select_option
-  
-  # Nastavení manuálního režimu baterie (pouze pokud je aktivní Manual Mode)
-  - condition: template
-    value_template: "{{ powerplan_mode == 'Manual Mode' }}"
-  - target:
-      entity_id: select.solax_manual_mode_select
-    data:
-      option: "{{ powerplan_manual_mode }}"
-    action: select.select_option
+  # Nastavení režimu měniče a manuálního režimu
+  - choose:
+      # Manual Charge
+      - conditions:
+          - condition: template
+            value_template: "{{ powerplan_mode == 'Manual Charge' }}"
+        sequence:
+          - target:
+              entity_id: select.solax_charger_use_mode
+            data:
+              option: "Manual Mode"
+            action: select.select_option
+          - target:
+              entity_id: select.solax_manual_mode_select
+            data:
+              option: "Force Charge"
+            action: select.select_option
+      
+      # Manual Discharge  
+      - conditions:
+          - condition: template
+            value_template: "{{ powerplan_mode == 'Manual Discharge' }}"
+        sequence:
+          - target:
+              entity_id: select.solax_charger_use_mode
+            data:
+              option: "Manual Mode"
+            action: select.select_option
+          - target:
+              entity_id: select.solax_manual_mode_select
+            data:
+              option: "Force Discharge"
+            action: select.select_option
+      
+      # Manual Idle
+      - conditions:
+          - condition: template
+            value_template: "{{ powerplan_mode == 'Manual Idle' }}"
+        sequence:
+          - target:
+              entity_id: select.solax_charger_use_mode
+            data:
+              option: "Manual Mode"
+            action: select.select_option
+          - target:
+              entity_id: select.solax_manual_mode_select
+            data:
+              option: "Stop Charge and Discharge"
+            action: select.select_option
+    
+    # Ostatní režimy (Feedin Priority, Back Up Mode)
+    default:
+      - target:
+          entity_id: select.solax_charger_use_mode
+        data:
+          option: "{{ powerplan_mode }}"
+        action: select.select_option
   
   # Ovládání horní akumulace
   - target:
@@ -77,7 +118,6 @@ variables:
   
   # Pouze režim měniče se nastaví na backup při překročení limitu (chrání EEPROM)
   powerplan_mode: "{{ 'Back Up Mode' if safety_mode else states('sensor.powerplan_charger_use_mode') }}"
-  powerplan_manual_mode: "{{ states('sensor.powerplan_manual_mode_select') }}"
   
   # Akumulace může normálně fungovat podle PowerPlan logiky (nemá EEPROM)
   powerplan_upper_accu: "{{ is_state('sensor.powerplan_upper_accumulation_on', 'True') }}"
