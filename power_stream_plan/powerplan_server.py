@@ -142,11 +142,13 @@ def load_cache(filename=None):
 def create_csv_export(solution, filename):
     """
     Vytvoří CSV soubor s přehlednými daty z optimalizace.
+    Zahrnuje vstupy, výstupy optimalizace, akce a klíčové metriky.
     """
     times = solution["times"]
     inputs = solution["inputs"]
     outputs = solution["outputs"]
     actions_timeline = solution["actions_timeline"]
+    results = solution.get("results", {})
     
     # Příprava CSV dat
     csv_data = []
@@ -155,7 +157,7 @@ def create_csv_export(solution, filename):
             # Čas
             "Cas": time_str,
             
-            # Vstupy
+            # ==== VSTUPY OPTIMALIZACE ====
             "FVE_vyroba_kW": inputs["fve_pred"][i],
             "Spotreba_kW": inputs["load_pred"][i],
             "Cena_nakup_Kc_kWh": inputs["buy_price"][i],
@@ -164,48 +166,50 @@ def create_csv_export(solution, filename):
             "Pozadavek_topeni_kW": inputs["heating_demand"][i],
             "Venkovni_teplota_C": inputs["outdoor_temps"][i],
             
-            # Výstupy - baterie
+            # ==== VÝSTUPY OPTIMALIZACE - BATERIE ====
             "Baterie_vykon_kW": outputs["b_power"][i],
             "Baterie_nabijeni_kW": outputs["b_charge"][i],
             "Baterie_vybijeni_kW": outputs["b_discharge"][i],
             "Baterie_SOC_kWh": outputs["b_soc"][i],
             "Baterie_SOC_procenta": outputs["b_soc_percent"][i],
             
-            # Výstupy - síť
+            # ==== VÝSTUPY OPTIMALIZACE - SÍŤ ====
             "Sit_nakup_kW": outputs["g_buy"][i],
             "Sit_prodej_kW": outputs["g_sell"][i],
             "Naklady_nakup_Kc": outputs["buy_cost"][i],
             "Prijmy_prodej_Kc": outputs["sell_income"][i],
             "Celkove_naklady_Kc": outputs["net_step_cost"][i],
             
-            # Výstupy - ohřev
+            # ==== VÝSTUPY OPTIMALIZACE - OHŘEV ====
             "Ohrev_dolni_kW": outputs["h_in_lower"][i],
             "Ohrev_horni_kW": outputs["h_in_upper"][i],
             "Ohrev_celkem_kW": outputs["h_in_lower"][i] + outputs["h_in_upper"][i],
             "Odber_dolni_kW": outputs["h_out_lower"][i],
             "Odber_horni_kW": outputs["h_out_upper"][i],
+            "Prenos_tepla_kW": outputs.get("h_to_upper", [0] * len(times))[i],
             
-            # Výstupy - akumulace
+            # ==== VÝSTUPY OPTIMALIZACE - AKUMULACE ====
             "Akumulace_dolni_kWh": outputs["h_soc_lower"][i],
             "Akumulace_horni_kWh": outputs["h_soc_upper"][i],
             "Akumulace_dolni_procenta": outputs["h_soc_lower_percent"][i],
             "Akumulace_horni_procenta": outputs["h_soc_upper_percent"][i],
             
-            # Teploty
+            # ==== TEPLOTY ====
             "Teplota_dolni_C": outputs["temp_lower"][i],
             "Teplota_horni_C": outputs["temp_upper"][i],
             
-            # Akce
+            # ==== AKCE PRO HOME ASSISTANT ====
             "Rezim_menic": actions_timeline["charger_mode"][i],
             "Horni_akumulace": actions_timeline["upper_accumulation"][i],
             "Dolni_akumulace": actions_timeline["lower_accumulation"][i],
             "Maximalni_ohrev": actions_timeline["max_heat"][i],
             "Blokovani_ohrevu": actions_timeline["heating_blocked"][i],
+            "Komfortni_ohrev": actions_timeline.get("comfort_heating_grid", [False] * len(times))[i],
             "Cilovy_SOC_procenta": actions_timeline["battery_target_soc"][i],
             "Rezervovany_vykon_W": actions_timeline["reserve_power"][i],
             "Minimalni_SOC_procenta": actions_timeline["minimum_soc"][i],
             
-            # Vypočítané hodnoty
+            # ==== VYPOČÍTANÉ HODNOTY ====
             "FVE_prebytek_kW": max(0, inputs["fve_pred"][i] - inputs["load_pred"][i]),
             "Nevyuzita_FVE_kW": outputs.get("fve_unused", [0] * len(times))[i],
             "Energeticka_bilance_kW": (
@@ -213,6 +217,12 @@ def create_csv_export(solution, filename):
                 inputs["load_pred"][i] - outputs["b_charge"][i] - outputs["g_sell"][i] -
                 outputs["h_in_lower"][i] - outputs["h_in_upper"][i]
             ),
+            
+            # ==== METRIKY OPTIMALIZACE (časově závislé) ====
+            "Penalty_baterie_Kc": outputs["b_discharge"][i] * solution.get("options", {}).get("battery_penalty", 0),
+            "Bonus_ohrev_vody_Kc": -(outputs["h_in_lower"][i] + outputs["h_in_upper"][i]) * solution.get("options", {}).get("water_priority_bonus", 0),
+            "Bonus_horni_zona_Kc": -outputs["h_in_upper"][i] * solution.get("options", {}).get("upper_zone_priority", 0),
+            "Penalty_nevyuzita_FVE_Kc": outputs.get("fve_unused", [0] * len(times))[i] * solution.get("options", {}).get("fve_unused_penalty", 0),
         }
         csv_data.append(row)
     
@@ -223,6 +233,37 @@ def create_csv_export(solution, filename):
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(csv_data)
+        
+        # Přidání souhrnu optimalizace jako komentář na konec souboru
+        with open(filename, 'a', encoding='utf-8') as f:
+            f.write("\n# ==== SOUHRN OPTIMALIZACE ====\n")
+            f.write(f"# Vygenerováno: {solution.get('generated_at', 'neznámé')}\n")
+            f.write(f"# Status řešení: {solution.get('status', 'neznámý')}\n")
+            f.write(f"# Doba výpočtu: {solution.get('solve_time', 0):.2f}s\n")
+            f.write(f"# Hodnota účelové funkce: {results.get('objective_value', 'neznámá')}\n")
+            f.write("# \n")
+            f.write("# CELKOVÉ METRIKY:\n")
+            f.write(f"# Celkové náklady: {results.get('net_bilance', 0):.2f} Kč\n")
+            f.write(f"# Odběr ze sítě: {results.get('grid_consumption', 0):.2f} kWh\n")
+            f.write(f"# Dodávka do sítě: {results.get('grid_injection', 0):.2f} kWh\n")
+            f.write(f"# Nabíjení baterie: {results.get('total_charged', 0):.2f} kWh\n")
+            f.write(f"# Vybíjení baterie: {results.get('total_discharged', 0):.2f} kWh\n")
+            f.write(f"# Nevyužitá FVE: {results.get('total_fve_unused', 0):.2f} kWh\n")
+            f.write("# \n")
+            f.write("# OPTIMALIZAČNÍ SLOŽKY:\n")
+            f.write(f"# Penalty baterie: {results.get('total_battery_penalty', 0):.2f} Kč\n")
+            f.write(f"# Bonus ohřev vody: {results.get('total_water_priority_bonus', 0):.2f} Kč\n")
+            f.write(f"# Bonus horní zóna: {results.get('total_upper_zone_priority', 0):.2f} Kč\n")
+            f.write(f"# Penalty nízký SOC: {results.get('total_battery_under_penalty', 0):.2f} Kč\n")
+            f.write(f"# Penalty nevyužitá FVE: {results.get('total_fve_unused_penalty', 0):.2f} Kč\n")
+            f.write(f"# Hodnota energie v nádrži: {results.get('total_final_boiler_value', 0):.2f} Kč\n")
+            f.write(f"# Bonus konečné horní zóny: {results.get('final_upper_zone_bonus', 0):.2f} Kč\n")
+            f.write(f"# Bonus hodnoty tepla: {results.get('tank_value_bonus', 0):.2f} Kč\n")
+            f.write("# \n")
+            f.write("# PARAZITNÍ ENERGIE:\n")
+            f.write(f"# Celková parazitní energie: {results.get('total_parasitic_energy', 0):.2f} kWh\n")
+            f.write(f"# Parazitní energie do baterie: {results.get('total_parasitic_to_battery', 0):.2f} kWh\n")
+            f.write(f"# Parazitní energie ze sítě: {results.get('total_parasitic_to_grid', 0):.2f} kWh\n")
 
 # --- Web routes -----------------------------------------------------------
 
