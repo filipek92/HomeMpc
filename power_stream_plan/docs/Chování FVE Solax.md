@@ -31,8 +31,9 @@ Solax X3 G4 je hybridní střídač podporující širokou škálu provozních r
 
 ### d) Manual Mode (Ruční režim)
 - Uživatel může ručně přepnout invertor do nabíjení nebo vybíjení bez ohledu na automatiku.
-- Volba přes `select.solax_manual_mode_select`: **Auto** / **Force Charge** / **Force Discharge**.
-- **Force Charge** – invertor nabíjí baterii z FV a/nebo sítě až do hranice `number.solax_battery_charge_max_current` a cílového SOC (pokud je nastaveno).
+- Volba přes `select.solax_manual_mode_select`: **Stop Charge and Discharge** / **Force Charge** / **Force Discharge**.
+- **Stop Charge and Discharge** - baterie v klidu.
+- **Force Charge** – invertor nabíjí baterii z FV a/nebo sítě až do hranice `number.solax_battery_charge_max_current`.
 - **Force Discharge** – invertor vybíjí baterii pro napájení domu a/nebo sítě až do hranice `number.solax_battery_discharge_max_current`.
 
 ## 3. EPS (Emergency Power Supply)
@@ -40,8 +41,8 @@ Solax X3 G4 je hybridní střídač podporující širokou škálu provozních r
 - Aktivuje se, pokud `sensor.solax_grid_status` = OffGrid a invertor není v režimu Idle.
 - Napájí zálohovanou část domu výstupem EPS.
 - Parametry a stav:
-  - `select.solax_eps_mode_without_battery` – EPS i bez baterie
-  - `sensor.solax_eps_mute` – dočasné potlačení EPS výstupu
+  - `select.solax_eps_mode_without_battery` – umožňuje EPS režim i bez nainstalované baterie (může být nestabilní)
+  - `select.solax_eps_mute` – potlačuje pípání invertoru v EPS režimu
   - Statistiky provozu: `sensor.solax_eps_mode_runtime`, `sensor.solax_eps_yield_total`.
 
 ## 4. Konfigurace
@@ -51,7 +52,14 @@ Nastavení chování invertoru lze měnit přímo z Home Assistant:
 - `number.solax_backup_discharge_min_soc` – min. SOC pro zálohovací režim [%]
 - `number.solax_backup_nightcharge_upper_soc` – max. SOC pro noční dobíjení v Backup Mode [%]
 - `number.solax_selfuse_discharge_min_soc` – min. SOC pro režim vlastní spotřeby [%]
-- `number.solax_export_control_user_limit` – max. vývozní výkon do sítě [W]
-- `number.solax_battery_charge_max_current` – max. proud pro nabíjení baterie [A]
-- `number.solax_battery_discharge_max_current` – max. proud pro vybíjení baterie [A]
+- `number.solax_export_control_user_limit` – max. vývozní výkon do sítě [W] (doporučeno nastavit nižší než limit distributora)
+- `number.solax_battery_charge_max_current` – max. proud pro nabíjení baterie [A] (neměnit bez konzultace)
+- `number.solax_battery_discharge_max_current` – max. proud pro vybíjení baterie [A] (neměnit bez konzultace)
+- `select.solax_manual_mode_control` – aktivuje/deaktivuje manuální režim
+- `select.solax_manual_mode_select` – chování manuálního režimu (Auto/Force Charge/Force Discharge)
+- `select.solax_pgrid_bias` – nastavení preference: Inverter (menší přetok do sítě) / Grid (menší odběr ze sítě)
+- `select.solax_phase_power_balance_x3` – vyrovnávání výkonu mezi fázemi podle zatížení
+- `select.solax_selfuse_mode_backup` – zapne zálohovací režim v Self-Use módu
+- `number.solax_selfuse_nightcharge_upper_soc` – horní SOC pro noční dobíjení v Self-Use módu
+- `select.solax_selfuse_night_charge_enable` – povoluje noční dobíjení v Self-Use módu
 
