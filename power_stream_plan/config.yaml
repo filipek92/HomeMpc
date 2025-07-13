@@ -26,4 +26,4 @@ slug: power_stream_plan
 stage: experimental
 startup: services
 update: true
-version: 2.3.0
+version: 2.4.0

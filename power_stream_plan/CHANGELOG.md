@@ -1,4 +1,15 @@
 
+## 2.4.0 - 2025-07-13
+default value
+- default value
+- auto optimize on save settings
+- icons
+- single run file
+- central environment management
+- fx: actions
+- UI swap action plan with metrics
+
+
 ## 2.3.0 - 2025-07-12
 Download csv
 - Download csv
