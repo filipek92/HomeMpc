@@ -102,6 +102,10 @@
             gap: 1rem;
         }
 
+        .icon-lg {
+            font-size: 1.2rem;
+        }
+
         .header h1 {
             margin: 0;
             font-size: 2rem;
@@ -1396,13 +1400,13 @@
                         <tr>
                             <th>Čas</th>
                             <th>Režim střídače</th>
-                            <th>SoC (%)</th>
-                            <th><i class="fas fa-thermometer-full" title="Horní teplota"></i></th>
-                            <th><i class="fas fa-thermometer-empty" title="Spodní teplota"></i></th>
-                            <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
-                            <th title="Spodní akumulace"><i class="fas fa-arrow-down"></i></th>
-                            <th title="Max. ohřev"><i class="fas fa-fire"></i></th>
-                            <th title="Komfortní ohřev ze sítě"><i class="fas fa-bath"></i></th>
+                            <th><i class="fas fa-battery-half icon-lg" title="SoC baterie"></i></th>
+                            <th><i class="fas fa-thermometer-full icon-lg" title="Horní teplota"></i></th>
+                            <th><i class="fas fa-thermometer-empty icon-lg" title="Spodní teplota"></i></th>
+                            <th title="Horní akumulace"><i class="fas fa-arrow-up icon-lg"></i></th>
+                            <th title="Spodní akumulace"><i class="fas fa-arrow-down icon-lg"></i></th>
+                            <th title="Max. ohřev"><i class="fas fa-fire icon-lg"></i></th>
+                            <th title="Komfortní ohřev ze sítě"><i class="fas fa-bath icon-lg"></i></th>
                         </tr>
                     </thead>                            <tbody>
                                 {% for i in range(timeline.times|length) %}
@@ -1418,22 +1422,22 @@
                                     <td>{% if timeline.temp_lower and timeline.temp_lower[i] is defined %}{{ "%.1f"|format(timeline.temp_lower[i]) }}°C{% else %}N/A{% endif %}</td>
                                     <td>
                                         {% if timeline.upper_accumulation[i] %}
-                                        <i class="fas fa-arrow-up" style="color: var(--warning-color);" title="Horní akumulace"></i>
+                                        <i class="fas fa-arrow-up icon-lg" style="color: var(--warning-color);" title="Horní akumulace"></i>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if timeline.lower_accumulation[i] %}
-                                        <i class="fas fa-arrow-down" style="color: var(--warning-color);" title="Spodní akumulace"></i>
+                                        <i class="fas fa-arrow-down icon-lg" style="color: var(--warning-color);" title="Spodní akumulace"></i>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if timeline.max_heat[i] %}
-                                        <i class="fas fa-fire" style="color: var(--warning-color);" title="Max. ohřev"></i>
+                                        <i class="fas fa-fire icon-lg" style="color: var(--warning-color);" title="Max. ohřev"></i>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if timeline.comfort_heating_grid and timeline.comfort_heating_grid[i] %}
-                                        <i class="fas fa-bath" style="color: var(--info-color);" title="Komfortní ohřev ze sítě"></i>
+                                        <i class="fas fa-bath icon-lg" style="color: var(--info-color);" title="Komfortní ohřev ze sítě"></i>
                                         {% endif %}
                                     </td>
                                 </tr>
