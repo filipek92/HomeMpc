@@ -2,14 +2,13 @@ from flask import Blueprint, request, redirect, url_for
 import json
 from options import VARIABLES_SPEC
 import os.path
-
-DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
-SETTINGS_FILE = os.path.join(DATA_DIR, "powerplan_settings.json")
+from powerplan_environment import SETTINGS_FILE
 
 settings_bp = Blueprint("settings_bp", __name__)
 
 def load_settings():
     try:
+        print(f"Loading settings from {SETTINGS_FILE}")
         with open(SETTINGS_FILE, "r") as f:
             settings = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, ValueError):
@@ -37,6 +36,7 @@ def save_settings(settings):
         if val != default:
             to_save[key] = val
     with open(SETTINGS_FILE, "w") as f:
+        print(f"Saving settings to {SETTINGS_FILE}")
         json.dump(to_save, f, indent=2)
 
 @settings_bp.route("/settings", methods=["GET", "POST"])

@@ -8,14 +8,15 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, redirect, url_for, request, send_from_directory
 from flask_apscheduler import APScheduler
 
-from powerplan_optimizer import run_mpc_optimizer, VARIABLES_SPEC
+from powerplan_environment import PORT, HA_ADDON, RESULTS_DIR, LATEST_LINK, LATEST_CSV
+from powerplan_optimizer import run_mpc_optimizer
 from data_connector import prepare_data, publish_to_ha
 from presentation import presentation
 from actions import powerplan_to_actions, powerplan_to_actions_timeline, ACTION_ATTRIBUTES
 from powerplan_settings import settings_bp, load_settings
 from publish_version import get_current_version
 
-ENABLE_PUBLISH = bool(os.environ.get("HA_ADDON"))
+ENABLE_PUBLISH = bool(HA_ADDON)
 
 if ENABLE_PUBLISH:
     print("Publishing to Home Assistant is enabled.")
@@ -24,12 +25,6 @@ else:
 
 
 app = Flask(__name__)
-
-DATA_DIR = os.environ.get("HA_ADDON_DATA", "./data")
-RESULTS_DIR = os.path.join(DATA_DIR, "results")
-LATEST_LINK = os.path.join(RESULTS_DIR, "latest.json")
-# Ensure results directory exists on startup
-os.makedirs(RESULTS_DIR, exist_ok=True)
 
 class Config:                                    # <-- nový blok
     # spustí miniaturní REST rozhraní na /scheduler (můžeš vypnout)
@@ -114,7 +109,7 @@ def compute_and_cache():
 
     # Update the latest symlinks
     latest_json_link = LATEST_LINK
-    latest_csv_link = os.path.join(RESULTS_DIR, "latest.csv")
+    latest_csv_link = LATEST_CSV
     
     # JSON symlink
     if os.path.islink(latest_json_link) or os.path.exists(latest_json_link):
@@ -446,7 +441,7 @@ def download_csv_specific(filename):
         return f"Chyba při stahování souboru: {str(e)}", 500
 
 # Inicializace scheduleru pokud běží v produkci
-if os.environ.get("HA_ADDON"):
+if HA_ADDON:
     # pokud běží v Dockeru, použij přepočítávej pravielně model
     scheduler = APScheduler()                        # <-- nový objekt
     scheduler.init_app(app)
@@ -466,5 +461,5 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "26781")), debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)
 

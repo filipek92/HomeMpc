@@ -12,12 +12,9 @@ from models import (
     get_temperature_forecast,
 )
 
+from powerplan_environment import CREDENTIALS_FILE, OPTIONS_FILE
+
 TOKEN = ""
-
-DATA_DIR = os.environ.get("HA_ADDON_DATA", "./data")
-OPTIONS_FILE = os.path.join(DATA_DIR, "options.json")
-CREDENTIALS_FILE = os.path.join(DATA_DIR, "credentials.yaml")
-
 
 try:
     with open(OPTIONS_FILE, "r") as f:
@@ -27,6 +24,7 @@ try:
         HA_URL = opts.get("ha_url", "")
 except:
     pass
+
 
 if not TOKEN:
     HA_URL = os.environ.get("HA_URL", "http://homeassistant.local:8123")

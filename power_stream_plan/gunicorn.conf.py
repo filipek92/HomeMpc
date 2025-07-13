@@ -1,8 +1,8 @@
 # Gunicorn configuration file
-import os
+from powerplan_environment import PORT
 
 # Server socket
-bind = f"0.0.0.0:{os.environ.get('PORT', '26781')}"
+bind = f"0.0.0.0:{PORT}"
 backlog = 2048
 
 # Worker processes
