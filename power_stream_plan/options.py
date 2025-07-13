@@ -46,7 +46,7 @@ VARIABLES_SPEC = {
         "bat_price_above":   {"type": "float", "unit": "Kč/kWh", "default": 0.5},
         "battery_penalty":   {"type": "float", "unit": "Kč/kWh", "default": 1.0},
         "fve_unused_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
-        "water_priority_bonus": {"type": "float", "unit": "Kč/kWh", "default": 1.0},
+        "water_priority_bonus": {"type": "float", "unit": "Kč/kWh", "default": 0.45},
         "bat_under_penalty": {"type": "float", "unit": "Kč/kWh", "default": 0.1},
         # Přidáno pro ocenění energie v nádrži v konkrétní hodinu
         "tank_value_hour": {"type": "int", "unit": "hodina", "default": 18, "desc": "Hodina dne, kdy se oceňuje energie v nádrži"},
