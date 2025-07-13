@@ -925,19 +925,6 @@
             localStorage.setItem('activeTab', tabId);
         }
 
-        // Toggle additional slots in action plan table
-        function toggleAdditionalSlots() {
-            const additionalRows = document.querySelectorAll('.timeline-table .additional-slot');
-            const toggleBtn = document.querySelector('.toggle-slots-btn');
-            
-            additionalRows.forEach(row => {
-                row.classList.toggle('hidden');
-            });
-            
-            const isHidden = additionalRows[0]?.classList.contains('hidden');
-            toggleBtn.textContent = isHidden ? 'Zobrazit více slotů' : 'Skrýt dodatečné sloty';
-        }
-
         // Initialize page state
         document.addEventListener('DOMContentLoaded', function() {
             // Restore section states
@@ -1326,31 +1313,12 @@
         <div class="main-content">
             <div class="content-section">
                 <h2 class="section-title">
-                    <i class="fas fa-chart-bar"></i>
-                    Klíčové metriky optimalizace
+                    <i class="fas fa-calendar-alt"></i>
+                    Plán akcí a aktuální stav
                 </h2>
-                
-                <div class="key-metrics">
-                    <div class="metric-item">
-                        <div class="metric-value">{{ "%.2f"|format(current_results.get('net_bilance', 0)) }}</div>
-                        <div class="metric-label">Celkové náklady (Kč)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">{{ "%.2f"|format(current_results.get('grid_consumption', 0)) }}</div>
-                        <div class="metric-label">Odběr ze sítě (kWh)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">{{ "%.2f"|format(current_results.get('grid_injection', 0)) }}</div>
-                        <div class="metric-label">Dodávka do sítě (kWh)</div>
-                    </div>
-                    <div class="metric-item">
-                        <div class="metric-value">{{ "%.1f"|format(current_results.get('self_consumption_rate', 0) * 100) }}</div>
-                        <div class="metric-label">Míra soběstačnosti (%)</div>
-                    </div>
-                </div>
 
                 <!-- Current Actions Table -->
-                <h4 style="margin: 1.5rem 0 1rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                <h4 style="margin: 0 0 1rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
                     <i class="fas fa-play-circle"></i> Aktuální akce
                 </h4>
                 <table class="data-table">
@@ -1418,59 +1386,27 @@
                     {% endif %}
                 </table>
 
-                <!-- Enhanced results table -->
-                <table class="data-table">
-                    {% for key, value in current_results.items() %}
-                    <tr>
-                        <td>{{ key.replace('_', ' ').title() }}</td>
-                        <td>
-                            {% if value is number %}
-                                {% if key in ['total_cost', 'battery_cost', 'grid_cost'] %}
-                                    {{ "%.2f Kč"|format(value) }}
-                                {% elif 'rate' in key or 'efficiency' in key %}
-                                    {{ "%.1f%%"|format(value * 100) }}
-                                {% else %}
-                                    {{ "%.2f"|format(value) }}
-                                {% endif %}
-                            {% else %}
-                                {{ value }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
-            </div>
-
-            <!-- Enhanced sidebar -->
-            <div class="sidebar">
-                <!-- Action Plan Section -->
-                <div class="collapsible-section">
-                    <div class="collapsible-header" data-section="action-plan" onclick="toggleSection(this)">
-                        <h3>
-                            <i class="fas fa-calendar-alt"></i>
-                            Plán akcí (první 6 hodin)
-                        </h3>
-                        <i class="fas fa-chevron-down toggle-icon"></i>
-                    </div>
-                    <div class="collapsible-content">
-                        {% if timeline and timeline.get("times") %}
-                        <table class="timeline-table">
-                            <thead>
-                                <tr>
-                                    <th>Čas</th>
-                                    <th>Režim střídače</th>
-                                    <th>SoC (%)</th>
-                                    <th><i class="fas fa-thermometer-full" title="Horní teplota"></i></th>
-                                    <th><i class="fas fa-thermometer-empty" title="Spodní teplota"></i></th>
-                                    <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
-                                    <th title="Spodní akumulace"><i class="fas fa-arrow-down"></i></th>
-                                    <th title="Max. ohřev"><i class="fas fa-fire"></i></th>
-                                    <th title="Komfortní ohřev ze sítě"><i class="fas fa-bath"></i></th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                <!-- Action Plan Timeline -->
+                <h4 style="margin: 2rem 0 1rem 0; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                    <i class="fas fa-clock"></i> Plán akcí
+                </h4>
+                {% if timeline and timeline.get("times") %}
+                <table class="timeline-table">
+                    <thead>
+                        <tr>
+                            <th>Čas</th>
+                            <th>Režim střídače</th>
+                            <th>SoC (%)</th>
+                            <th><i class="fas fa-thermometer-full" title="Horní teplota"></i></th>
+                            <th><i class="fas fa-thermometer-empty" title="Spodní teplota"></i></th>
+                            <th title="Horní akumulace"><i class="fas fa-arrow-up"></i></th>
+                            <th title="Spodní akumulace"><i class="fas fa-arrow-down"></i></th>
+                            <th title="Max. ohřev"><i class="fas fa-fire"></i></th>
+                            <th title="Komfortní ohřev ze sítě"><i class="fas fa-bath"></i></th>
+                        </tr>
+                    </thead>                            <tbody>
                                 {% for i in range(timeline.times|length) %}
-                                <tr {% if i >= 6 %}class="additional-slot hidden"{% endif %}>
+                                <tr>
                                     <td>{{ timeline.times[i] }}</td>
                                     <td>
                                         <span class="mode-badge mode-{{ timeline.charger_mode[i].lower().replace(' ', '-') }}">
@@ -1504,13 +1440,61 @@
                                 {% endfor %}
                             </tbody>
                         </table>
-                        
-                        {% if timeline.times|length > 6 %}
-                        <button onclick="toggleAdditionalSlots()" class="btn-primary toggle-slots-btn" style="margin-top: 1rem; font-size: 0.75rem; padding: 0.5rem 1rem;">
-                            Zobrazit více slotů
-                        </button>
-                        {% endif %}
-                        {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Enhanced sidebar -->
+            <div class="sidebar">
+                <!-- Key Metrics Section -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" data-section="key-metrics" onclick="toggleSection(this)">
+                        <h3>
+                            <i class="fas fa-chart-bar"></i>
+                            Klíčové metriky optimalizace
+                        </h3>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="key-metrics">
+                            <div class="metric-item">
+                                <div class="metric-value">{{ "%.2f"|format(current_results.get('net_bilance', 0)) }}</div>
+                                <div class="metric-label">Celkové náklady (Kč)</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value">{{ "%.2f"|format(current_results.get('grid_consumption', 0)) }}</div>
+                                <div class="metric-label">Odběr ze sítě (kWh)</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value">{{ "%.2f"|format(current_results.get('grid_injection', 0)) }}</div>
+                                <div class="metric-label">Dodávka do sítě (kWh)</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value">{{ "%.1f"|format(current_results.get('self_consumption_rate', 0) * 100) }}</div>
+                                <div class="metric-label">Míra soběstačnosti (%)</div>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced results table -->
+                        <table class="data-table">
+                            {% for key, value in current_results.items() %}
+                            <tr>
+                                <td>{{ key.replace('_', ' ').title() }}</td>
+                                <td>
+                                    {% if value is number %}
+                                        {% if key in ['total_cost', 'battery_cost', 'grid_cost'] %}
+                                            {{ "%.2f Kč"|format(value) }}
+                                        {% elif 'rate' in key or 'efficiency' in key %}
+                                            {{ "%.1f%%"|format(value * 100) }}
+                                        {% else %}
+                                            {{ "%.2f"|format(value) }}
+                                        {% endif %}
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </table>
                     </div>
                 </div>
 
