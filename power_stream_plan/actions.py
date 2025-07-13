@@ -237,7 +237,7 @@ def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
     LOGIKA:
     - upper_on/lower_on: pouze povolují ukládání energie z FVE
     - comfort_heating_grid: povoluje ohřev ze sítě pro komfort (45°C celý den, 65°C/55°C od 18-21h)
-    - max_heat_on: povoluje maximální ohřev ze sítě (12kW při velkém přebytku nebo záporné ceně)
+    - max_heat_on: povoluje maximální ohřev ze sítě (12kW při velkém přebytku NEBO když MPC plánuje ohřev ze sítě)
     - block_heating: blokuje veškerý ohřev v kritických situacích
     
     MPC optimalizátor by měl řídit většinu rozhodnutí pomocí penalty funkcí.
@@ -273,14 +273,17 @@ def simplified_heating_logic(fve_surplus: float, B_SOC: float, Hin_upper: float,
         # Kritická situace - vždy povolit
         critical_upper or
         # Komfortní teploty podle času a MPC signálu
-        (needs_comfort_heating and (Hin_upper > 0.1 or is_comfort_time))
+        (needs_comfort_heating and (Hin_upper > 0.1 or is_comfort_time)) or
+        (Gbuy > 2.0 and Hin_upper > 1.0)
     )
     
     # Maximální ohřev ze sítě (12kW - celá nádrž)
     max_heat_on = (
         # Velký FVE přebytek - využít maximum
         (fve_surplus > 8.0 and battery_ok and 
-         (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK))
+         (temp_upper < TEMP_FULL_TANK or temp_lower < TEMP_FULL_TANK)) or
+        # MPC optimalizátor plánuje velký ohřev ze sítě - důvěřujeme mu
+        (Gbuy > 4.0 and (Hin_upper + Hin_lower) > 5.0)
     )
     
     # === BLOKOVÁNÍ OHŘEVU ===

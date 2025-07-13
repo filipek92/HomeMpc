@@ -25,7 +25,7 @@ else:
 
 app = Flask(__name__)
 
-DATA_DIR = os.environ.get("HA_ADDON_DATA", ".")
+DATA_DIR = os.environ.get("HA_ADDON_DATA", "./data")
 RESULTS_DIR = os.path.join(DATA_DIR, "results")
 LATEST_LINK = os.path.join(RESULTS_DIR, "latest.json")
 # Ensure results directory exists on startup
@@ -109,6 +109,8 @@ def compute_and_cache():
     csv_file = os.path.join(RESULTS_DIR, f"result_{timestamp}.csv")
     abs_csv_file = os.path.abspath(csv_file)
     create_csv_export(solution, csv_file)
+
+    print(f"Solution saved to {result_file} and {csv_file}")
 
     # Update the latest symlinks
     latest_json_link = LATEST_LINK
