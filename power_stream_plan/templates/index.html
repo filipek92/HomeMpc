@@ -1166,7 +1166,8 @@
                 'battery_soc': timeline.get("battery_target_soc", [0])[0],
                 'charger_mode': timeline.get("charger_mode", ["Unknown"])[0],
                 'fve_surplus': timeline.get("fve_surplus", [0])[0],
-                'reserve_power': timeline.get("reserve_power", [0])[0]
+                'grid_buy': timeline.get("grid_buy", [0])[0],
+                'grid_sell': timeline.get("grid_sell", [0])[0]
             } %}
         {% endif %}
 
@@ -1231,17 +1232,28 @@
             <div class="status-card">
                 <div class="status-card-header">
                     <div class="status-card-title">
-                        <i class="fas fa-shield-alt"></i>
-                        Rezerva baterie
+                        <i class="fas fa-exchange-alt"></i>
+                        Síťové toky
                     </div>
-                    <div class="status-card-icon bg-purple">
-                        <i class="fas fa-lock"></i>
+                    <div class="status-card-icon bg-cyan">
+                        <i class="fas fa-plug"></i>
                     </div>
                 </div>
                 <div class="status-card-content">
-                    <div class="status-card-value">{{ "%.1f"|format(first_slot_data.get('reserve_power', 0) / 1000) }}</div>
-                    <div class="status-card-unit">kW</div>
-                    <div class="status-card-subtitle">Rezervovaný výkon</div>
+                    {% set net_flow = first_slot_data.get('grid_sell', 0) - first_slot_data.get('grid_buy', 0) %}
+                    {% if net_flow > 0.01 %}
+                        <div class="status-card-value" style="color: var(--success-color);">{{ "%.2f"|format(net_flow) }}</div>
+                        <div class="status-card-unit">kW</div>
+                        <div class="status-card-subtitle">Prodej do sítě</div>
+                    {% elif net_flow < -0.01 %}
+                        <div class="status-card-value" style="color: var(--danger-color);">{{ "%.2f"|format(-net_flow) }}</div>
+                        <div class="status-card-unit">kW</div>
+                        <div class="status-card-subtitle">Nákup ze sítě</div>
+                    {% else %}
+                        <div class="status-card-value" style="color: var(--text-muted);">0.00</div>
+                        <div class="status-card-unit">kW</div>
+                        <div class="status-card-subtitle">Bez síťového toku</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
