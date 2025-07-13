@@ -52,6 +52,14 @@ def settings():
                 if val:
                     current[key] = float(val)
         save_settings(current)
+        
+        # Automaticky spustit novou optimalizaci po uložení nastavení
+        try:
+            from powerplan_server import compute_and_cache
+            compute_and_cache()
+        except Exception as e:
+            print(f"Chyba při automatickém přepočtu optimalizace: {e}")
+        
         return redirect('./')
     # Vykreslení moderního formuláře
     form_html = """
@@ -426,16 +434,51 @@ def settings():
                     </h3>
                     <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);">
                         Řádky označené žlutou barvou obsahují hodnoty odlišné od výchozího nastavení. 
-                        Po uložení se optimalizace automaticky přepočítá s novými parametry.
+                        <strong>Po uložení se optimalizace automaticky přepočítá s novými parametry</strong> - 
+                        proces může trvat několik sekund. Budete přesměrováni na hlavní stránku s aktualizovanými výsledky.
                     </p>
                 </div>
             </div>
         </div>
         
         <script>
+            // Loading indicator when form is submitted
+            const form = document.querySelector('form');
+            const submitButton = document.querySelector('.btn-save');
+            
+            form.addEventListener('submit', function(e) {
+                // Show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ukládám a přepočítávám...';
+                
+                // Add loading overlay to the whole page
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 9999;
+                    color: white;
+                    font-size: 1.2rem;
+                `;
+                overlay.innerHTML = `
+                    <div style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <div>Ukládám nastavení a přepočítávám optimalizaci...</div>
+                        <div style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.8;">Prosím počkejte, může to chvilku trvat.</div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            });
+            
             // Auto-save on form change with debounce
             let saveTimeout;
-            const form = document.querySelector('form');
             const inputs = form.querySelectorAll('input');
             
             inputs.forEach(input => {
