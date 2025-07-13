@@ -5,7 +5,7 @@ import json
 import csv
 from datetime import datetime, timedelta
 
-from flask import Flask, render_template, redirect, url_for, request, send_from_directory
+from flask import Flask, render_template, redirect, url_for, request, send_from_directory, jsonify
 from flask_apscheduler import APScheduler
 
 from powerplan_environment import PORT, HA_ADDON, RESULTS_DIR, LATEST_LINK, LATEST_CSV
@@ -263,6 +263,77 @@ def create_csv_export(solution, filename):
             f.write(f"# Parazitní energie ze sítě: {results.get('total_parasitic_to_grid', 0):.2f} kWh\n")
 
 # --- Web routes -----------------------------------------------------------
+
+@app.route("/api", methods=["GET"])
+def api_dashboard():
+    """JSON API endpoint pro Vue.js frontend"""
+    # List result files in descending order (newest first)
+    all_files = sorted(
+        (f for f in os.listdir(RESULTS_DIR)
+         if f.startswith('result_') and f.endswith('.json')),
+        reverse=True
+    )
+    
+    # Seskupení podle data (YYYYMMDD)
+    from collections import defaultdict
+    grouped_files = defaultdict(list)
+    for fname in all_files:
+        date_part = fname.split('_')[1]  # např. '20250707'
+        time_part = fname.split('_')[2].split('.')[0]  # např. '140000'
+        # Převod času na čitelnější formát HH:MM:SS
+        formatted_time = f"{time_part[:2]}:{time_part[2:4]}:{time_part[4:]}"
+        grouped_files[date_part].append((time_part, formatted_time, fname))
+    grouped_files = dict(sorted(grouped_files.items(), reverse=True))
+
+    # Připravit seznam dnů a časů
+    available_days = list(grouped_files.keys())
+    compare_day = request.args.get('day')
+    compare_time = request.args.get('time')
+    selected_file = None
+    available_times = []
+    available_times_display = []
+    
+    if compare_day and compare_day in grouped_files:
+        available_times = [t for t, _, _ in grouped_files[compare_day]]
+        available_times_display = [display_t for _, display_t, _ in grouped_files[compare_day]]
+        if compare_time and compare_time in available_times:
+            # Najít odpovídající soubor
+            for t, _, f in grouped_files[compare_day]:
+                if t == compare_time:
+                    selected_file = f
+                    break
+    
+    # Pokud není vybrán konkrétní soubor, použij latest
+    if not selected_file:
+        solution = load_cache()
+        if solution is None:
+            solution = compute_and_cache()
+    else:
+        solution = load_cache(selected_file)
+    
+    # Připravit data pro API response
+    current_state = solution.get("current_state", {})
+    
+    # Vytvoř JSON response s všemi potřebnými daty
+    response_data = {
+        "version": solution.get("version", "N/A"),
+        "generated_at": solution.get("generated_at"),
+        "day": compare_day,
+        "compare_time": compare_time,
+        "view_type": request.args.get('view_type', 'tabs'),
+        "available_days": available_days,
+        "available_times": available_times,
+        "available_times_display": available_times_display,
+        "current_state": current_state,
+        "solution": {
+            "actions": powerplan_to_actions(solution),
+            "actions_timeline": powerplan_to_actions_timeline(solution),
+            "results": solution.get("results", {})
+        },
+        "graphs": presentation(solution)  # HTML grafy
+    }
+    
+    return jsonify(response_data)
 
 @app.route("/regenerate", methods=["POST"])
 def regenerate():
