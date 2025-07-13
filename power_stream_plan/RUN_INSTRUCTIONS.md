@@ -10,13 +10,13 @@ Hlavní skript pro addon:
 ## Místní testování (s Gunicorn)
 
 ```bash
-./run_local.sh
+./run.sh local
 ```
 
 ## Vývojové prostředí (Flask dev server)
 
 ```bash
-./run_dev.sh
+./run.sh dev
 ```
 
 ### Přímé spuštění
@@ -42,8 +42,8 @@ python3 powerplan_server.py
 ## Rozdíly mezi skripty
 
 - `run.sh` - **Produkční prostředí pro Home Assistant addon** s publikováním do HA
-- `run_local.sh` - Místní testování s Gunicorn, bez publikování do HA
-- `run_dev.sh` - Vývojový režim s Flask dev serverem, bez publikování do HA
+- `run.sh local` - Místní testování s Gunicorn, bez publikování do HA
+- `run.sh dev` - Vývojový režim s Flask dev serverem, bez publikování do HA
 
 ## Úspěšné přeřešení varování
 
