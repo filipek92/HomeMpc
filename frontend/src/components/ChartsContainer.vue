@@ -14,124 +14,147 @@
       <q-tab name="power" icon="fas fa-bolt" label="Výkony" />
       <q-tab name="prices" icon="fas fa-coins" label="Ceny" />
       <q-tab name="heating" icon="fas fa-thermometer-half" label="Teplo" />
-      <q-tab name="actions" icon="fas fa-tasks" label="Akce" />
     </q-tabs>
 
     <q-separator />
 
     <q-tab-panels v-model="activeTab" animated>
-      <q-tab-panel name="overview" class="chart-panel" data-tab="overview">
-        <div v-html="graphs.overview" class="chart-container" ref="overviewChart"></div>
+      <q-tab-panel name="overview" class="chart-panel">
+        <PlotlyChart
+          v-if="dashboardStore.data"
+          :data="overviewChartData"
+          :layout="overviewLayout"
+        />
+        <div v-else class="text-center q-pa-xl">
+          <q-spinner size="40px" color="primary" />
+          <div class="q-mt-md">Načítání dat...</div>
+        </div>
       </q-tab-panel>
 
-      <q-tab-panel name="states" class="chart-panel" data-tab="states">
-        <div v-html="graphs.states" class="chart-container" ref="statesChart"></div>
+      <q-tab-panel name="states" class="chart-panel">
+        <PlotlyChart
+          v-if="dashboardStore.data"
+          :data="statesChartData"
+          :layout="statesLayout"
+        />
+        <div v-else class="text-center q-pa-xl">
+          <q-spinner size="40px" color="primary" />
+          <div class="q-mt-md">Načítání dat...</div>
+        </div>
       </q-tab-panel>
 
-      <q-tab-panel name="power" class="chart-panel" data-tab="power">
-        <div v-html="graphs.power" class="chart-container" ref="powerChart"></div>
+      <q-tab-panel name="power" class="chart-panel">
+        <PlotlyChart
+          v-if="dashboardStore.data"
+          :data="powerChartData"
+          :layout="powerLayout"
+        />
+        <div v-else class="text-center q-pa-xl">
+          <q-spinner size="40px" color="primary" />
+          <div class="q-mt-md">Načítání dat...</div>
+        </div>
       </q-tab-panel>
 
-      <q-tab-panel name="prices" class="chart-panel" data-tab="prices">
-        <div v-html="graphs.prices" class="chart-container" ref="pricesChart"></div>
+      <q-tab-panel name="prices" class="chart-panel">
+        <PlotlyChart
+          v-if="dashboardStore.data"
+          :data="pricesChartData"
+          :layout="pricesLayout"
+        />
+        <div v-else class="text-center q-pa-xl">
+          <q-spinner size="40px" color="primary" />
+          <div class="q-mt-md">Načítání dat...</div>
+        </div>
       </q-tab-panel>
 
-      <q-tab-panel name="heating" class="chart-panel" data-tab="heating">
-        <div v-html="graphs.heating" class="chart-container" ref="heatingChart"></div>
-      </q-tab-panel>
-
-      <q-tab-panel name="actions" class="chart-panel" data-tab="actions">
-        <div v-html="graphs.actions" class="chart-container" ref="actionsChart"></div>
+      <q-tab-panel name="heating" class="chart-panel">
+        <PlotlyChart
+          v-if="dashboardStore.data"
+          :data="heatingChartData"
+          :layout="heatingLayout"
+        />
+        <div v-else class="text-center q-pa-xl">
+          <q-spinner size="40px" color="primary" />
+          <div class="q-mt-md">Načítání dat...</div>
+        </div>
       </q-tab-panel>
     </q-tab-panels>
   </q-card>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, watch } from "vue";
+import { useDashboardStore } from "../stores/dashboard";
+import { useChartGenerator } from "../composables/useChartGenerator";
+import PlotlyChart from "./PlotlyChart.vue";
 
-interface Props {
-  graphs: {
-    overview: string;
-    states: string;
-    power: string;
-    prices: string;
-    heating: string;
-    actions: string;
-  };
-}
+const dashboardStore = useDashboardStore();
+const chartGenerator = useChartGenerator();
+const activeTab = ref("overview");
 
-const props = defineProps<Props>();
-const activeTab = ref('overview');
+// Computed properties for chart data
+const overviewChartData = computed(() => {
+  if (!dashboardStore.data) return [];
+  return chartGenerator.generateOverviewChart(dashboardStore.data);
+});
 
-// Function to execute scripts in HTML content
-const executeScripts = (element: HTMLElement) => {
-  if (!element) return;
-  
-  const scripts = element.querySelectorAll('script');
-  scripts.forEach(script => {
-    if (script.innerHTML && script.innerHTML.trim()) {
-      try {
-        // Execute the script content
-        const func = new Function(script.innerHTML);
-        func();
-      } catch (error) {
-        console.error('Error executing Plotly script:', error);
-      }
-    }
-  });
-};
+const statesChartData = computed(() => {
+  if (!dashboardStore.data) return [];
+  return chartGenerator.generateStatesChart(dashboardStore.data);
+});
 
-// Re-execute scripts when graphs change
-watch(
-  () => props.graphs,
-  () => {
-    nextTick(() => {
-      // Wait a bit for DOM to update
-      setTimeout(() => {
-        const chartContainers = document.querySelectorAll('.chart-container');
-        chartContainers.forEach(container => {
-          executeScripts(container as HTMLElement);
-        });
-      }, 100);
-    });
-  },
-  { immediate: true }
-);
+const powerChartData = computed(() => {
+  if (!dashboardStore.data) return [];
+  return chartGenerator.generatePowerChart(dashboardStore.data);
+});
 
-// Re-execute script for active tab when tab changes
-watch(activeTab, () => {
-  nextTick(() => {
-    setTimeout(() => {
-      const activeContainer = document.querySelector(`[data-tab="${activeTab.value}"] .chart-container`);
-      if (activeContainer) {
-        executeScripts(activeContainer as HTMLElement);
-      }
-    }, 200);
-  });
+const pricesChartData = computed(() => {
+  if (!dashboardStore.data) return [];
+  return chartGenerator.generatePricesChart(dashboardStore.data);
+});
+
+const heatingChartData = computed(() => {
+  if (!dashboardStore.data) return [];
+  return chartGenerator.generateHeatingChart(dashboardStore.data);
+});
+
+// Computed properties for chart layouts
+const overviewLayout = computed(() => {
+  return chartGenerator.getChartLayout("Přehled optimalizace", "Hodnota");
+});
+
+const statesLayout = computed(() => {
+  return chartGenerator.getChartLayout("Stavy úložišť", "Hodnota");
+});
+
+const powerLayout = computed(() => {
+  return chartGenerator.getChartLayout("Výkony a energie", "Výkon [kW]");
+});
+
+const pricesLayout = computed(() => {
+  return chartGenerator.getChartLayout("Ceny elektřiny", "Cena [Kč/kWh]");
+});
+
+const heatingLayout = computed(() => {
+  return chartGenerator.getChartLayout("Ohřev a teploty", "Teplota [°C]", true);
 });
 
 // Save active tab to localStorage
-watch(activeTab, (newTab) => {
-  localStorage.setItem('activeTab', newTab);
-});
+const saveActiveTab = (newTab: string) => {
+  localStorage.setItem("activeTab", newTab);
+};
 
 // Restore active tab from localStorage
 onMounted(() => {
-  const savedTab = localStorage.getItem('activeTab');
+  const savedTab = localStorage.getItem("activeTab");
   if (savedTab) {
     activeTab.value = savedTab;
   }
-  
-  // Execute scripts on mount
-  nextTick(() => {
-    setTimeout(() => {
-      const chartContainers = document.querySelectorAll('.chart-container');
-      chartContainers.forEach(container => {
-        executeScripts(container as HTMLElement);
-      });
-    }, 300);
-  });
+});
+
+// Watch active tab changes
+watch(activeTab, (newTab: string) => {
+  saveActiveTab(newTab);
 });
 </script>
 

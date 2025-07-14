@@ -44,10 +44,7 @@
           />
 
           <!-- Charts -->
-          <ChartsContainer
-            v-if="data?.graphs"
-            :graphs="data.graphs"
-          />
+          <ChartsContainer v-if="data" />
 
           <!-- Main Content -->
           <div v-if="data && data.solution" class="main-content">
@@ -67,10 +64,7 @@
           </div>
 
           <!-- Action Section -->
-          <ActionSection
-            v-if="data"
-            :generated-at="data.generated_at || ''"
-          />
+          <ActionSection v-if="data" :generated-at="data.generated_at || ''" />
         </div>
       </q-page>
     </q-page-container>
@@ -78,48 +72,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useDashboardStore } from '@/stores/dashboard'
-import type { ControlsForm } from '@/types/dashboard'
+import { ref, onMounted, onUnmounted } from "vue";
+import { storeToRefs } from "pinia";
+import { useDashboardStore } from "@/stores/dashboard";
+import type { ControlsForm } from "@/types/dashboard";
 
 // Components
-import DashboardHeader from '@/components/DashboardHeader.vue'
-import DashboardControls from '@/components/DashboardControls.vue'
-import StatusCards from '@/components/StatusCards.vue'
-import ChartsContainer from '@/components/ChartsContainer.vue'
-import ActionPlan from '@/components/ActionPlan.vue'
-import DashboardSidebar from '@/components/DashboardSidebar.vue'
-import ActionSection from '@/components/ActionSection.vue'
+import DashboardHeader from "@/components/DashboardHeader.vue";
+import DashboardControls from "@/components/DashboardControls.vue";
+import StatusCards from "@/components/StatusCards.vue";
+import ChartsContainer from "@/components/ChartsContainer.vue";
+import ActionPlan from "@/components/ActionPlan.vue";
+import DashboardSidebar from "@/components/DashboardSidebar.vue";
+import ActionSection from "@/components/ActionSection.vue";
 
-const dashboardStore = useDashboardStore()
-const { data, loading, error, statusCards, keyMetrics } = storeToRefs(dashboardStore)
+const dashboardStore = useDashboardStore();
+const { data, loading, error, statusCards, keyMetrics } =
+  storeToRefs(dashboardStore);
 
-const controlsVisible = ref(false)
+const controlsVisible = ref(false);
 
 onMounted(async () => {
   await dashboardStore.fetchDashboardData();
   dashboardStore.startAutoRefresh();
 
   // Handle visibility change
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
 onUnmounted(() => {
-  dashboardStore.stopAutoRefresh()
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-})
+  dashboardStore.stopAutoRefresh();
+  document.removeEventListener("visibilitychange", handleVisibilityChange);
+});
 
 function handleVisibilityChange() {
-  if (document.visibilityState === 'visible') {
-    dashboardStore.startAutoRefresh()
+  if (document.visibilityState === "visible") {
+    dashboardStore.startAutoRefresh();
   } else {
-    dashboardStore.stopAutoRefresh()
+    dashboardStore.stopAutoRefresh();
   }
 }
 
 async function handleUpdateFilters(filters: Partial<ControlsForm>) {
-  await dashboardStore.fetchDashboardData(filters)
+  await dashboardStore.fetchDashboardData(filters);
 }
 </script>
 

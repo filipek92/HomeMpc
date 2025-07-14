@@ -9,6 +9,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
   const data = ref<DashboardData | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const autoRefreshEnabled = ref(false);
   
   // Auto-refresh state
   let refreshTimer: NodeJS.Timeout | null = null;
@@ -132,6 +133,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
   function startAutoRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
     
+    autoRefreshEnabled.value = true;
     refreshTimer = setInterval(async () => {
       await fetchDashboardData();
     }, 300000); // 5 minut
@@ -142,6 +144,15 @@ export const useDashboardStore = defineStore("dashboard", () => {
       clearInterval(refreshTimer);
       refreshTimer = null;
     }
+    autoRefreshEnabled.value = false;
+  }
+
+  function toggleAutoRefresh() {
+    if (autoRefreshEnabled.value) {
+      stopAutoRefresh();
+    } else {
+      startAutoRefresh();
+    }
   }
 
   return {
@@ -149,6 +160,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
     data,
     loading,
     error,
+    autoRefreshEnabled,
     // Computed
     statusCards,
     keyMetrics,
@@ -159,5 +171,6 @@ export const useDashboardStore = defineStore("dashboard", () => {
     downloadCSV,
     startAutoRefresh,
     stopAutoRefresh,
+    toggleAutoRefresh,
   };
 });

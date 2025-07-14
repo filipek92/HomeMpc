@@ -330,7 +330,12 @@ def api_dashboard():
             "actions_timeline": powerplan_to_actions_timeline(solution),
             "results": solution.get("results", {})
         },
-        "graphs": presentation(solution)  # HTML grafy
+        "chart_data": {
+            "slots": solution.get("slots", []),
+            "inputs": solution.get("inputs", {}),
+            "outputs": solution.get("outputs", {}),
+            "timestamps": solution.get("times", [])
+        }
     }
     
     return jsonify(response_data)

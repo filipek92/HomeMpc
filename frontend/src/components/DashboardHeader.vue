@@ -155,8 +155,8 @@ function toggleAutoRefresh() {
   dashboardStore.toggleAutoRefresh()
   $q.notify({
     type: 'info',
-    message: autoRefreshEnabled.value 
-      ? 'Auto-refresh byl zapnut' 
+    message: dashboardStore.autoRefreshEnabled
+      ? 'Auto-refresh byl zapnut'
       : 'Auto-refresh byl vypnut',
     position: 'top'
   })

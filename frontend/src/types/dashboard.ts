@@ -74,6 +74,12 @@ export interface DashboardData {
   solution: Solution;
   current_state: CurrentState;
   forecast_data: ForecastData;
+  chart_data: {
+    slots: any[];
+    inputs: any;
+    outputs: any;
+    timestamps: string[];
+  };
   graphs: {
     overview: string;
     states: string;
@@ -93,7 +99,7 @@ export interface DashboardData {
 }
 
 export interface ControlsForm {
-  day: string
-  time: string
-  view_type: string
+  day: string;
+  time: string;
+  view_type: string;
 }

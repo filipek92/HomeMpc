@@ -311,10 +311,12 @@ def powerplan_to_actions_timeline(sol: Dict[str, Any]) -> Dict[str, Any]:
     """
     out = sol["outputs"]
     inp = sol.get("inputs", {})  # inputs contain predictions
+    times = sol.get("times", [])  # Add times from solution
     num_slots = len(out["h_in_upper"])
     
     # Příprava výstupních časových řad
     timeline = {
+        "times": times,  # Add times to timeline
         "charger_mode": [],
         "upper_accumulation": [],
         "lower_accumulation": [],
