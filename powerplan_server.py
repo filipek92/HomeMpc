@@ -292,14 +292,23 @@ def index():
     available_days = list(grouped_files.keys())
     compare_day = request.args.get('day')
     compare_time = request.args.get('time')
+    # Pokud ještě nebyl vybrán žádný den, automaticky použij nejnovější dostupný den
+    if not compare_day and available_days:
+        compare_day = available_days[0]
     selected_file = None
     available_times = []
     available_times_display = []
     if compare_day and compare_day in grouped_files:
+        # Prepare list of times and their display labels for the selected day
         available_times = [t for t, _, _ in grouped_files[compare_day]]
         available_times_display = [display_t for _, display_t, _ in grouped_files[compare_day]]
-        if compare_time and compare_time in available_times:
-            # Najít odpovídající soubor
+        # If no specific time requested, default to the first (latest) entry
+        if not compare_time and available_times:
+            compare_time = available_times[0]
+            # Select the corresponding file for the default time
+            selected_file = grouped_files[compare_day][0][2]
+        # If a valid time is provided, find its file
+        elif compare_time and compare_time in available_times:
             for t, _, f in grouped_files[compare_day]:
                 if t == compare_time:
                     selected_file = f
@@ -341,6 +350,8 @@ def index():
                 formatted_times.append(str(t))
         timeline["times"] = formatted_times
 
+    # Determine whether to expand filter controls only when user provided filter parameters
+    expand_filters = bool(request.args.get('day') or request.args.get('time'))
     return render_template(
         'index.html',
         graphs=graphs,
